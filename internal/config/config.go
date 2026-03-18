@@ -117,15 +117,7 @@ type HealthServerSpec struct {
 }
 
 type EndpointSpec struct {
-	Enabled *bool  `yaml:"enabled"`
-	Path    string `yaml:"path"`
-}
-
-func (e EndpointSpec) EnabledOrDefault(defaultValue bool) bool {
-	if e.Enabled == nil {
-		return defaultValue
-	}
-	return *e.Enabled
+	Path string `yaml:"path"`
 }
 
 type SwarmSpec struct {
@@ -209,9 +201,6 @@ func (c *Config) applyDefaults(configDir string) error {
 	}
 	if c.Spec.HealthServer.Healthz.Path == "" {
 		c.Spec.HealthServer.Healthz.Path = "/healthz"
-	}
-	if c.Spec.HealthServer.Healthz.Enabled == nil {
-		c.Spec.HealthServer.Healthz.Enabled = boolPtr(true)
 	}
 
 	for i := range c.Spec.Notifications.Telegram {

@@ -12,13 +12,13 @@ import (
 	entrypoint "github.com/artarts36/go-entrypoint"
 	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/artarts36/swarm-deploy/internal/controller"
+	"github.com/artarts36/swarm-deploy/internal/entrypoints/healthserver"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/notify"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/artarts36/swarm-deploy/internal/web"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -45,8 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	promRegistry := prometheus.NewRegistry()
-	metricRecorder, err := metrics.New(promRegistry)
+	metricRecorder, err := metrics.New(prometheus.DefaultRegisterer)
 	if err != nil {
 		slog.Error("failed to init metrics", slog.Any("err", err))
 		os.Exit(1)
@@ -77,11 +76,6 @@ func main() {
 		notifier,
 	)
 
-	var metricsHandler http.Handler
-	if cfg.Spec.HealthServer.Metrics.EnabledOrDefault(false) {
-		metricsHandler = promhttp.HandlerFor(promRegistry, promhttp.HandlerOpts{})
-	}
-
 	webServer := web.NewServer(cfg, control)
 	apiServer := &http.Server{
 		Addr:              cfg.Spec.Web.Address,
@@ -89,17 +83,12 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	healthServer := web.NewHealthServer(cfg.Spec.HealthServer, metricsHandler)
-	healthHTTPServer := &http.Server{
-		Addr:              cfg.Spec.HealthServer.Address,
-		Handler:           healthServer.Handler(),
-		ReadHeaderTimeout: 10 * time.Second,
-	}
+	healthServer := healthserver.NewApplication(cfg.Spec.HealthServer)
 
 	runner := entrypoint.NewRunner(
 		[]entrypoint.Entrypoint{
 			entrypoint.HTTPServer("apiServer", apiServer),
-			entrypoint.HTTPServer("healthServer", healthHTTPServer),
+			healthServer.Entrypoint(),
 			{
 				Name: "sync-controller",
 				Run: func(ctx context.Context) error {
@@ -113,9 +102,7 @@ func main() {
 	slog.Info("starting swarm deploy",
 		slog.String("api.address", cfg.Spec.Web.Address),
 		slog.String("healthServer.address", cfg.Spec.HealthServer.Address),
-		slog.Bool("healthz.enabled", cfg.Spec.HealthServer.Healthz.EnabledOrDefault(true)),
 		slog.String("healthz.path", cfg.Spec.HealthServer.Healthz.Path),
-		slog.Bool("metrics.enabled", cfg.Spec.HealthServer.Metrics.EnabledOrDefault(false)),
 		slog.String("metrics.path", cfg.Spec.HealthServer.Metrics.Path),
 		slog.String("mode", cfg.Spec.Sync.Mode),
 		slog.String("repo", cfg.Spec.Git.Repository),
