@@ -18,6 +18,8 @@ const (
 	SyncModeWebhook = "webhook"
 	SyncModeHybrid  = "hybrid"
 
+	defaultWebAddress         = ":8080"
+	defaultWebhookAddress     = ":8082"
 	defaultSyncPollInterval   = 30 * time.Second
 	defaultInitJobPollEvery   = 2 * time.Second
 	defaultInitJobMaxDuration = 10 * time.Minute
@@ -42,7 +44,7 @@ type Spec struct {
 	Stacks []StackSpec `yaml:"-"`
 	// Notifications contains notification channel configuration.
 	Notifications NotificationSpec `yaml:"notifications"`
-	// Web contains API and frontend HTTP server addresses.
+	// Web contains public HTTP server settings.
 	Web WebSpec `yaml:"web"`
 	// HealthServer contains health and metrics server settings.
 	HealthServer HealthServerSpec `yaml:"healthServer"`
@@ -160,10 +162,8 @@ type CustomChannel struct {
 }
 
 type WebSpec struct {
-	// APIAddress is an HTTP listen address for API server.
-	APIAddress string `yaml:"apiAddress"`
-	// FrontendAddress is an HTTP listen address for frontend server.
-	FrontendAddress string `yaml:"frontendAddress"`
+	// Address is an HTTP listen address for UI and API server.
+	Address string `yaml:"address"`
 }
 
 type HealthServerSpec struct {
@@ -268,7 +268,7 @@ func (c *Config) applyGitAndSyncDefaults(configDir string) {
 		c.Spec.Sync.Webhook.Path = "/api/v1/webhooks/git"
 	}
 	if strings.TrimSpace(c.Spec.Sync.Webhook.Address) == "" {
-		c.Spec.Sync.Webhook.Address = ":8080"
+		c.Spec.Sync.Webhook.Address = defaultWebhookAddress
 	}
 	if secretPath := strings.TrimSpace(c.Spec.Sync.Webhook.SecretPath); secretPath != "" &&
 		!filepath.IsAbs(secretPath) {
@@ -284,11 +284,8 @@ func (c *Config) applyGitAndSyncDefaults(configDir string) {
 }
 
 func (c *Config) applyWebAndHealthDefaults() {
-	if strings.TrimSpace(c.Spec.Web.APIAddress) == "" {
-		c.Spec.Web.APIAddress = ":8080"
-	}
-	if strings.TrimSpace(c.Spec.Web.FrontendAddress) == "" {
-		c.Spec.Web.FrontendAddress = ":8080"
+	if strings.TrimSpace(c.Spec.Web.Address) == "" {
+		c.Spec.Web.Address = defaultWebAddress
 	}
 	if c.Spec.HealthServer.Address == "" {
 		c.Spec.HealthServer.Address = ":8081"

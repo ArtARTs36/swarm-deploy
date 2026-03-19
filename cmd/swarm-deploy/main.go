@@ -11,10 +11,9 @@ import (
 	entrypoint "github.com/artarts36/go-entrypoint"
 	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/artarts36/swarm-deploy/internal/controller"
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/apiserver"
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/frontendserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/healthserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webhookserver"
+	"github.com/artarts36/swarm-deploy/internal/entrypoints/webserver"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/notify"
@@ -24,7 +23,7 @@ import (
 
 const shutdownTimeout = 30 * time.Second
 
-func main() { //nolint:funlen // not need
+func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
@@ -80,23 +79,17 @@ func main() { //nolint:funlen // not need
 		notifier,
 	)
 
-	apiApplication, err := apiserver.NewApplication(cfg.Spec.Web.APIAddress, control)
+	webApplication, err := webserver.NewApplication(cfg.Spec.Web.Address, control)
 	if err != nil {
-		slog.Error("failed to init api server", slog.Any("err", err))
+		slog.Error("failed to init web server", slog.Any("err", err))
 		os.Exit(1)
 	}
 	webhookApplication := webhookserver.NewApplication(cfg.Spec.Sync.Webhook.Address, cfg, control)
-	frontendApplication, err := frontendserver.NewApplication(cfg.Spec.Web.FrontendAddress)
-	if err != nil {
-		slog.Error("failed to init frontend server", slog.Any("err", err))
-		os.Exit(1)
-	}
 
 	healthServer := healthserver.NewApplication(cfg.Spec.HealthServer)
 
 	entrypoints := []entrypoint.Entrypoint{
-		apiApplication.Entrypoint(),
-		frontendApplication.Entrypoint(),
+		webApplication.Entrypoint(),
 		healthServer.Entrypoint(),
 		{
 			Name: "sync-controller",
@@ -116,8 +109,7 @@ func main() { //nolint:funlen // not need
 	)
 
 	slog.Info("starting swarm deploy",
-		slog.String("api.address", cfg.Spec.Web.APIAddress),
-		slog.String("frontend.address", cfg.Spec.Web.FrontendAddress),
+		slog.String("web.address", cfg.Spec.Web.Address),
 		slog.String("webhook.address", cfg.Spec.Sync.Webhook.Address),
 		slog.Bool("webhook.enabled", webhookApplication.Enabled()),
 		slog.String("healthServer.address", cfg.Spec.HealthServer.Address),

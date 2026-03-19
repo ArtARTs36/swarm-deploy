@@ -1,18 +1,18 @@
 # Git repository settings for stack manifests.
 git:
   # Repository URL (ssh/https).
-  repository: https://github.com:your-org/your-stacks-repo.git
+  repository: https://github.com/your-org/your-stacks-repo.git
   # Branch to synchronize.
   branch: main
   # Git authentication settings.
   auth:
     # Authentication type: none | http | ssh.
-    type: http
+    type: none
 
 # Git-to-deploy synchronization settings.
 sync:
   # Synchronization mode: pull | webhook | hybrid.
-  mode: hybrid
+  mode: pull
   # Pull polling interval.
   pollInterval: 30s
 
@@ -43,17 +43,15 @@ swarm:
   # Maximum init job duration.
   initJobMaxDuration: 10m
 
-# UI and API web server addresses.
+# UI and API web server address.
 web:
-  # API server listen address.
-  apiAddress: ":8080"
-  # Frontend server listen address.
-  frontendAddress: ":8082"
+  # Single web server listen address for UI and API.
+  address: ":8080"
 
 # Dedicated health/metrics server.
 healthServer:
   # Health/metrics server listen address.
-  address: ":8081"
+  address: ":8082"
   # Metrics endpoint settings.
   metrics:
     # Prometheus metrics HTTP path.

@@ -9,9 +9,12 @@ GitOps controller for Docker Swarm with an ArgoCD-inspired, but Swarm-native, co
   - `webhook`,
   - `hybrid` (both modes at the same time).
 - Stack deployment only when a diff is detected (`compose + referenced configs/secrets` digest). .
+- UI and API are served by a single web server on `web.address`.
 - [Notification hooks for successful and failed deployments](./docs/notifications.md)
 - [Init Deploy Jobs](./docs/init-deploy-jobs.md)
 - [Secrets Rotation](./docs/secrets-rotation.md)
 
 ## Usage examples
 - [Basic: deploy public repositories](./example/01-basic)
+- TODO: Example of deploy private repositories
+- TODO: Example of deploy private repositories via webhook

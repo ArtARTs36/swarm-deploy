@@ -1,9 +1,9 @@
-package apiserver
+package webserver
 
 import (
 	"context"
 
-	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/apiserver/generated"
+	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
 )
 
 func (h *handler) ListStacks(_ context.Context) (*generated.StacksResponse, error) {

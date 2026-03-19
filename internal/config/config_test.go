@@ -177,7 +177,7 @@ stacksFile: ./stacks.yaml
 	}
 }
 
-func TestLoadWebIgnoresLegacyAddressField(t *testing.T) {
+func TestLoadWebAddressUsedForSingleServer(t *testing.T) {
 	dir := t.TempDir()
 
 	stacksPath := filepath.Join(dir, "stacks.yaml")
@@ -207,63 +207,15 @@ web:
 		t.Fatalf("load config: %v", err)
 	}
 
-	if cfg.Spec.Web.APIAddress != ":8080" {
-		t.Fatalf("expected apiAddress :8080, got %q", cfg.Spec.Web.APIAddress)
+	if cfg.Spec.Web.Address != ":18080" {
+		t.Fatalf("expected web.address :18080, got %q", cfg.Spec.Web.Address)
 	}
-	if cfg.Spec.Web.FrontendAddress != ":8080" {
-		t.Fatalf("expected frontendAddress :8080, got %q", cfg.Spec.Web.FrontendAddress)
-	}
-	if cfg.Spec.Sync.Webhook.Address != ":8080" {
-		t.Fatalf("expected sync.webhook.address :8080, got %q", cfg.Spec.Sync.Webhook.Address)
+	if cfg.Spec.Sync.Webhook.Address != defaultWebhookAddress {
+		t.Fatalf("expected sync.webhook.address %s, got %q", defaultWebhookAddress, cfg.Spec.Sync.Webhook.Address)
 	}
 }
 
-func TestLoadWebDedicatedAddresses(t *testing.T) {
-	dir := t.TempDir()
-
-	stacksPath := filepath.Join(dir, "stacks.yaml")
-	stacksPayload := []byte(`
-stacks:
-  - name: app
-    composeFile: app/docker-compose.yml
-`)
-	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
-		t.Fatalf("write stacks file: %v", err)
-	}
-
-	configPath := filepath.Join(dir, "swarm-deploy.yaml")
-	configPayload := []byte(`
-git:
-  repository: https://example.com/repo.git
-sync:
-  webhook:
-    address: ":8083"
-stacksFile: ./stacks.yaml
-web:
-  apiAddress: ":8080"
-  frontendAddress: ":8082"
-`)
-	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
-	}
-
-	cfg, err := Load(configPath)
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
-
-	if cfg.Spec.Web.APIAddress != ":8080" {
-		t.Fatalf("expected apiAddress :8080, got %q", cfg.Spec.Web.APIAddress)
-	}
-	if cfg.Spec.Web.FrontendAddress != ":8082" {
-		t.Fatalf("expected frontendAddress :8082, got %q", cfg.Spec.Web.FrontendAddress)
-	}
-	if cfg.Spec.Sync.Webhook.Address != ":8083" {
-		t.Fatalf("expected sync.webhook.address :8083, got %q", cfg.Spec.Sync.Webhook.Address)
-	}
-}
-
-func TestLoadWebDoesNotUseSingleDedicatedAddressAsFallback(t *testing.T) {
+func TestLoadWebAddressDefaults(t *testing.T) {
 	dir := t.TempDir()
 
 	stacksPath := filepath.Join(dir, "stacks.yaml")
@@ -281,8 +233,6 @@ stacks:
 git:
   repository: https://example.com/repo.git
 stacksFile: ./stacks.yaml
-web:
-  apiAddress: ":18080"
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
 		t.Fatalf("write config file: %v", err)
@@ -293,14 +243,11 @@ web:
 		t.Fatalf("load config: %v", err)
 	}
 
-	if cfg.Spec.Web.APIAddress != ":18080" {
-		t.Fatalf("expected apiAddress :18080, got %q", cfg.Spec.Web.APIAddress)
+	if cfg.Spec.Web.Address != defaultWebAddress {
+		t.Fatalf("expected web.address %s, got %q", defaultWebAddress, cfg.Spec.Web.Address)
 	}
-	if cfg.Spec.Web.FrontendAddress != ":8080" {
-		t.Fatalf("expected frontendAddress :8080, got %q", cfg.Spec.Web.FrontendAddress)
-	}
-	if cfg.Spec.Sync.Webhook.Address != ":8080" {
-		t.Fatalf("expected sync.webhook.address :8080, got %q", cfg.Spec.Sync.Webhook.Address)
+	if cfg.Spec.Sync.Webhook.Address != defaultWebhookAddress {
+		t.Fatalf("expected sync.webhook.address %s, got %q", defaultWebhookAddress, cfg.Spec.Sync.Webhook.Address)
 	}
 }
 

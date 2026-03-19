@@ -1,8 +1,8 @@
-package apiserver
+package webserver
 
 import (
 	"github.com/artarts36/swarm-deploy/internal/controller"
-	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/apiserver/generated"
+	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
 )
 
 func toGeneratedStacks(stacks []controller.StackView) []generated.StackView {

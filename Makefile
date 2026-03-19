@@ -7,4 +7,4 @@ lint:
 
 .PHONY: gen
 gen:
-	ogen --target ./internal/entrypoints/apiserver/generated --clean ./api/api-server.yaml
+	ogen --target ./internal/entrypoints/webserver/generated --clean ./api/api-server.yaml
