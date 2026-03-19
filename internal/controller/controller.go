@@ -9,6 +9,7 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/compose"
 	"github.com/artarts36/swarm-deploy/internal/config"
+	"github.com/artarts36/swarm-deploy/internal/event"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/notify"
@@ -48,7 +49,7 @@ type Controller struct {
 	gitSync  *gitops.Syncer
 	deployer *swarm.Deployer
 	metrics  *metrics.Recorder
-	notify   *notify.Manager
+	event    *event.Dispatcher
 
 	stateStore      *runtimeStateStore
 	stackReconciler *stackReconciler
@@ -68,7 +69,7 @@ func New(
 		gitSync:    gitSync,
 		deployer:   deployer,
 		metrics:    metricRecorder,
-		notify:     notifier,
+		event:      event.NewDispatcher(notifier),
 		stateStore: newRuntimeStateStore(),
 		stackReconciler: newStackReconciler(
 			cfg,
@@ -232,7 +233,11 @@ func (c *Controller) syncStack(ctx context.Context, stackCfg config.StackSpec, c
 		}
 	})
 
-	c.dispatchDeployEvents("success", stackCfg.Name, commit, reconcileResult.Services, "")
+	c.event.DispatchSuccessfulDeploy(event.SuccessfulDeployEvent{
+		StackName: stackCfg.Name,
+		Commit:    commit,
+		Services:  reconcileResult.Services,
+	})
 	return nil
 }
 
@@ -262,49 +267,10 @@ func (c *Controller) recordStackFailure(stackName, commit string, services []com
 		}
 	})
 
-	c.dispatchDeployEvents("failed", stackName, commit, services, reason.Error())
-}
-
-func (c *Controller) dispatchDeployEvents(status, stackName, commit string, services []compose.Service, errorMessage string) {
-	if len(services) == 0 {
-		err := c.notify.Notify(context.Background(), notify.Event{
-			Status:    status,
-			StackName: stackName,
-			Service:   "unknown",
-			Image: notify.Image{
-				FullName: "unknown",
-				Version:  "unknown",
-			},
-			Commit:    commit,
-			Error:     errorMessage,
-			Timestamp: time.Now(),
-		})
-		if err != nil {
-			slog.Warn("[controller] failed to notify about error", slog.Any("err", err))
-		}
-		return
-	}
-
-	for _, service := range services {
-		imageName := service.Image
-		if imageName == "" {
-			imageName = "unknown"
-		}
-		event := notify.Event{
-			Status:    status,
-			StackName: stackName,
-			Service:   service.Name,
-			Image: notify.Image{
-				FullName: imageName,
-				Version:  compose.ImageVersion(imageName),
-			},
-			Commit:    commit,
-			Error:     errorMessage,
-			Timestamp: time.Now(),
-		}
-		err := c.notify.Notify(context.Background(), event)
-		if err != nil {
-			slog.Warn("[controller] failed to notify", slog.Any("err", err))
-		}
-	}
+	c.event.DispatchFailedDeploy(event.FailedDeployEvent{
+		StackName: stackName,
+		Commit:    commit,
+		Services:  services,
+		Error:     reason,
+	})
 }

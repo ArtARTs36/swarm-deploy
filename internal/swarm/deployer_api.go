@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	dockernetwork "github.com/docker/docker/api/types/network"
 	dockerswarm "github.com/docker/docker/api/types/swarm"
+	swarmtypes "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/errdefs"
 )
 
@@ -149,7 +150,7 @@ func (d *Deployer) waitForJobCompletionAPI(ctx context.Context, serviceID, jobNa
 		case <-ctx.Done():
 			return fmt.Errorf("wait init job %s: %w", jobName, ctx.Err())
 		case <-ticker.C:
-			tasks, err := d.dockerClient.TaskList(ctx, dockertypes.TaskListOptions{
+			tasks, err := d.dockerClient.TaskList(ctx, swarmtypes.TaskListOptions{
 				Filters: filters.NewArgs(filters.Arg("service", serviceID)),
 			})
 			if err != nil {

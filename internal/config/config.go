@@ -507,7 +507,3 @@ func (c CustomChannel) ResolveURL() string {
 	}
 	return c.URL
 }
-
-func boolPtr(v bool) *bool {
-	return &v
-}
