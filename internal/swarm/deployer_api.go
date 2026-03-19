@@ -38,7 +38,12 @@ func (d *Deployer) runInitJobAPI(ctx context.Context, spec InitJobSpec) error {
 		return err
 	}
 
-	serviceCreate, err := d.dockerClient.ServiceCreate(jobCtx, serviceSpec, dockerswarm.ServiceCreateOptions{})
+	serviceCreateOptions, err := d.buildInitServiceCreateOptions(spec.Job.Image)
+	if err != nil {
+		return fmt.Errorf("build init job service create options: %w", err)
+	}
+
+	serviceCreate, err := d.dockerClient.ServiceCreate(jobCtx, serviceSpec, serviceCreateOptions)
 	if err != nil {
 		return fmt.Errorf("create init job service %s: %w", jobName, err)
 	}
