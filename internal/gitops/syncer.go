@@ -28,7 +28,6 @@ type Syncer struct {
 	repositoryURL string
 	branch        string
 	repositoryDir string
-	repositorySub string
 	auth          transport.AuthMethod
 }
 
@@ -42,7 +41,6 @@ func NewSyncer(gitSpec config.GitSpec, dataDir string) (*Syncer, error) {
 		repositoryURL: gitSpec.Repository,
 		branch:        gitSpec.Branch,
 		repositoryDir: filepath.Join(dataDir, "repo"),
-		repositorySub: gitSpec.Path,
 		auth:          authMethod,
 	}, nil
 }
@@ -52,10 +50,7 @@ func (s *Syncer) RepositoryDir() string {
 }
 
 func (s *Syncer) WorkingDir() string {
-	if s.repositorySub == "" {
-		return s.repositoryDir
-	}
-	return filepath.Join(s.repositoryDir, s.repositorySub)
+	return s.repositoryDir
 }
 
 func (s *Syncer) Sync(ctx context.Context) (SyncResult, error) {
@@ -165,25 +160,23 @@ func buildSSHAuthMethod(auth config.GitSSHAuthSpec) (transport.AuthMethod, error
 	if user == "" {
 		user = "git"
 	}
-	passphrase := auth.ResolvePassphrase()
+	passphrase, err := auth.ResolvePassphrase()
+	if err != nil {
+		return nil, fmt.Errorf("resolve ssh passphrase: %w", err)
+	}
 
 	var (
-		pk  *gitssh.PublicKeys
-		err error
+		pk     *gitssh.PublicKeys
+		keyErr error
 	)
 
 	if auth.PrivateKeyPath != "" {
-		pk, err = gitssh.NewPublicKeysFromFile(user, auth.PrivateKeyPath, passphrase)
-		if err != nil {
-			return nil, fmt.Errorf("read ssh private key from file: %w", err)
-		}
-	} else if key := auth.ResolvePrivateKey(); key != "" {
-		pk, err = gitssh.NewPublicKeys(user, []byte(key), passphrase)
-		if err != nil {
-			return nil, fmt.Errorf("read ssh private key from value: %w", err)
+		pk, keyErr = gitssh.NewPublicKeysFromFile(user, auth.PrivateKeyPath, passphrase)
+		if keyErr != nil {
+			return nil, fmt.Errorf("read ssh private key from file: %w", keyErr)
 		}
 	} else {
-		return nil, errors.New("ssh auth requires privateKeyPath or privateKey/privateKeyEnv")
+		return nil, errors.New("ssh auth requires privateKeyPath")
 	}
 
 	if auth.InsecureIgnoreHostKey {

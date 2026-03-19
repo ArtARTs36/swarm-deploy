@@ -5,19 +5,20 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"time"
 
 	entrypoint "github.com/artarts36/go-entrypoint"
 	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/artarts36/swarm-deploy/internal/controller"
+	"github.com/artarts36/swarm-deploy/internal/entrypoints/apiserver"
+	"github.com/artarts36/swarm-deploy/internal/entrypoints/frontendserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/healthserver"
+	"github.com/artarts36/swarm-deploy/internal/entrypoints/webhookserver"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/notify"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	"github.com/artarts36/swarm-deploy/internal/web"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -76,31 +77,42 @@ func main() {
 		notifier,
 	)
 
-	webServer := web.NewServer(cfg, control)
-	apiServer := &http.Server{
-		Addr:              cfg.Spec.Web.Address,
-		Handler:           webServer.Handler(),
-		ReadHeaderTimeout: 10 * time.Second,
+	apiApplication := apiserver.NewApplication(cfg.Spec.Web.APIAddress, control)
+	webhookApplication := webhookserver.NewApplication(cfg.Spec.Sync.Webhook.Address, cfg, control)
+	frontendApplication, err := frontendserver.NewApplication(cfg.Spec.Web.FrontendAddress)
+	if err != nil {
+		slog.Error("failed to init frontend server", slog.Any("err", err))
+		os.Exit(1)
 	}
 
 	healthServer := healthserver.NewApplication(cfg.Spec.HealthServer)
 
-	runner := entrypoint.NewRunner(
-		[]entrypoint.Entrypoint{
-			entrypoint.HTTPServer("apiServer", apiServer),
-			healthServer.Entrypoint(),
-			{
-				Name: "sync-controller",
-				Run: func(ctx context.Context) error {
-					return control.Run(ctx)
-				},
+	entrypoints := []entrypoint.Entrypoint{
+		apiApplication.Entrypoint(),
+		frontendApplication.Entrypoint(),
+		healthServer.Entrypoint(),
+		{
+			Name: "sync-controller",
+			Run: func(ctx context.Context) error {
+				return control.Run(ctx)
 			},
 		},
+	}
+
+	if webhookApplication.Enabled() {
+		entrypoints = append(entrypoints, webhookApplication.Entrypoint())
+	}
+
+	runner := entrypoint.NewRunner(
+		entrypoints,
 		entrypoint.WithShutdownTimeout(30*time.Second),
 	)
 
 	slog.Info("starting swarm deploy",
-		slog.String("api.address", cfg.Spec.Web.Address),
+		slog.String("api.address", cfg.Spec.Web.APIAddress),
+		slog.String("frontend.address", cfg.Spec.Web.FrontendAddress),
+		slog.String("webhook.address", cfg.Spec.Sync.Webhook.Address),
+		slog.Bool("webhook.enabled", webhookApplication.Enabled()),
 		slog.String("healthServer.address", cfg.Spec.HealthServer.Address),
 		slog.String("healthz.path", cfg.Spec.HealthServer.Healthz.Path),
 		slog.String("metrics.path", cfg.Spec.HealthServer.Metrics.Path),

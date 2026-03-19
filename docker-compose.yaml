@@ -15,6 +15,8 @@ services:
       - swarm-deploy-data:/etc/swarm-deploy/.swarm-deploy
     ports:
       - "8080:8080"
+      - "8082:8082"
+      - "8083:8083"
       - "8081:8081"
     restart: unless-stopped
     secrets:

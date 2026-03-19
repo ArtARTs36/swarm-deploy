@@ -20,116 +20,177 @@ const (
 )
 
 type Config struct {
+	// Spec is the runtime configuration loaded from YAML.
 	Spec Spec `yaml:"-"`
 }
 
 type Spec struct {
-	DataDir         string             `yaml:"-"`
-	Git             GitSpec            `yaml:"git"`
-	Sync            SyncSpec           `yaml:"sync"`
-	StacksFile      string             `yaml:"stacksFile"`
-	Stacks          []StackSpec        `yaml:"-"`
-	Notifications   NotificationSpec   `yaml:"notifications"`
-	Web             WebSpec            `yaml:"web"`
-	HealthServer    HealthServerSpec   `yaml:"healthServer"`
-	Swarm           SwarmSpec          `yaml:"swarm"`
-	SecretRotation  SecretRotationSpec `yaml:"secretRotation"`
-	InitJobsTimeout specw.Duration     `yaml:"initJobsTimeout"`
+	// DataDir is an internal working directory derived from config location.
+	DataDir string `yaml:"-"`
+	// Git contains repository and authentication settings.
+	Git GitSpec `yaml:"git"`
+	// Sync contains pull/webhook synchronization settings.
+	Sync SyncSpec `yaml:"sync"`
+	// StacksFile points to a YAML file with stack definitions.
+	StacksFile string `yaml:"stacksFile"`
+	// Stacks is a parsed list of stack specifications loaded from StacksFile.
+	Stacks []StackSpec `yaml:"-"`
+	// Notifications contains notification channel configuration.
+	Notifications NotificationSpec `yaml:"notifications"`
+	// Web contains API and frontend HTTP server addresses.
+	Web WebSpec `yaml:"web"`
+	// HealthServer contains health and metrics server settings.
+	HealthServer HealthServerSpec `yaml:"healthServer"`
+	// Swarm contains docker stack deploy execution settings.
+	Swarm SwarmSpec `yaml:"swarm"`
+	// SecretRotation controls secret/config name rotation strategy.
+	SecretRotation SecretRotationSpec `yaml:"secretRotation"`
+	// InitJobsTimeout is a global timeout for init jobs.
+	InitJobsTimeout specw.Duration `yaml:"initJobsTimeout"`
 }
 
 type GitSpec struct {
-	Repository string      `yaml:"repository"`
-	Branch     string      `yaml:"branch"`
-	Path       string      `yaml:"path"`
-	Auth       GitAuthSpec `yaml:"auth"`
+	// Repository is a git repository URL (ssh or https).
+	Repository string `yaml:"repository"`
+	// Branch is a git branch to track.
+	Branch string `yaml:"branch"`
+	// Auth contains git authentication settings.
+	Auth GitAuthSpec `yaml:"auth"`
 }
 
 type GitAuthSpec struct {
-	Type string         `yaml:"type"`
-	HTTP GitHTTPAuth    `yaml:"http"`
-	SSH  GitSSHAuthSpec `yaml:"ssh"`
+	// Type is git auth type: none, http, or ssh.
+	Type string `yaml:"type"`
+	// HTTP is HTTP(S) basic/token authentication configuration.
+	HTTP GitHTTPAuth `yaml:"http"`
+	// SSH is SSH authentication configuration.
+	SSH GitSSHAuthSpec `yaml:"ssh"`
 }
 
 type GitHTTPAuth struct {
-	Username    string `yaml:"username"`
-	Password    string `yaml:"password"`
+	// Username is HTTP basic auth username.
+	Username string `yaml:"username"`
+	// Password is HTTP basic auth password.
+	Password string `yaml:"password"`
+	// PasswordEnv is an env variable name containing HTTP password.
 	PasswordEnv string `yaml:"passwordEnv"`
-	Token       string `yaml:"token"`
-	TokenEnv    string `yaml:"tokenEnv"`
+	// Token is an HTTP token value used as password.
+	Token string `yaml:"token"`
+	// TokenEnv is an env variable name containing HTTP token.
+	TokenEnv string `yaml:"tokenEnv"`
 }
 
 type GitSSHAuthSpec struct {
-	User                  string `yaml:"user"`
-	PrivateKeyPath        string `yaml:"privateKeyPath"`
-	PrivateKey            string `yaml:"privateKey"`
-	PrivateKeyEnv         string `yaml:"privateKeyEnv"`
-	KnownHostsPath        string `yaml:"knownHostsPath"`
-	InsecureIgnoreHostKey bool   `yaml:"insecureIgnoreHostKey"`
-	PassphraseEnv         string `yaml:"passphraseEnv"`
+	// User is an SSH user, typically "git".
+	User string `yaml:"user"`
+	// PrivateKeyPath is a path to a private key file for git SSH auth.
+	PrivateKeyPath string `yaml:"privateKeyPath"`
+	// KnownHostsPath is a path to known_hosts file used for host verification.
+	KnownHostsPath string `yaml:"knownHostsPath"`
+	// InsecureIgnoreHostKey disables SSH host key verification.
+	InsecureIgnoreHostKey bool `yaml:"insecureIgnoreHostKey"`
+	// PassphrasePath is a path to file containing private key passphrase.
+	PassphrasePath string `yaml:"passphrasePath"`
 }
 
 type SyncSpec struct {
-	Mode         string         `yaml:"mode"`
+	// Mode is sync mode: pull, webhook, or hybrid.
+	Mode string `yaml:"mode"`
+	// PollInterval is an interval between git pull attempts.
 	PollInterval specw.Duration `yaml:"pollInterval"`
-	Webhook      WebhookSpec    `yaml:"webhook"`
+	// Webhook contains webhook sync trigger settings.
+	Webhook WebhookSpec `yaml:"webhook"`
 }
 
 type WebhookSpec struct {
-	Enabled    bool   `yaml:"enabled"`
-	Path       string `yaml:"path"`
-	SecretFile string `yaml:"secretFile"`
+	// Enabled toggles webhook trigger processing.
+	Enabled bool `yaml:"enabled"`
+	// Address is an HTTP listen address for webhook server.
+	Address string `yaml:"address"`
+	// Path is an HTTP path for webhook endpoint.
+	Path string `yaml:"path"`
+	// SecretPath is a path to file containing webhook shared secret.
+	SecretPath string `yaml:"secretPath"`
 }
 
 type StackSpec struct {
-	Name        string `yaml:"name"`
+	// Name is a Docker Swarm stack name.
+	Name string `yaml:"name"`
+	// ComposeFile is a path to stack compose file relative to repo root.
 	ComposeFile string `yaml:"composeFile"`
 }
 
 type NotificationSpec struct {
+	// Telegram is a list of Telegram notification channels.
 	Telegram []TelegramChannel `yaml:"telegram"`
-	Custom   []CustomChannel   `yaml:"custom"`
+	// Custom is a list of custom webhook notification channels.
+	Custom []CustomChannel `yaml:"custom"`
 }
 
 type TelegramChannel struct {
-	Name               string `yaml:"name"`
-	BotTokenSecretFile string `yaml:"botTokenSecretFile"`
-	ChatID             string `yaml:"chatId"`
-	ChatThreadID       int64  `yaml:"chatThreadId"`
-	Message            string `yaml:"message"`
+	// Name is a logical channel name used in logs/diagnostics.
+	Name string `yaml:"name"`
+	// BotTokenPath is a path to file containing Telegram bot token.
+	BotTokenPath string `yaml:"botTokenPath"`
+	// ChatID is a target Telegram chat identifier.
+	ChatID string `yaml:"chatId"`
+	// ChatThreadID is an optional topic/thread id inside target chat.
+	ChatThreadID int64 `yaml:"chatThreadId"`
+	// Message is a text/template used for notification rendering.
+	Message string `yaml:"message"`
 }
 
 type CustomChannel struct {
-	Name   string            `yaml:"name"`
-	URL    string            `yaml:"url"`
-	URLEnv string            `yaml:"urlEnv"`
-	Method string            `yaml:"method"`
+	// Name is a logical channel name used in logs/diagnostics.
+	Name string `yaml:"name"`
+	// URL is a webhook endpoint URL.
+	URL string `yaml:"url"`
+	// URLEnv is an env variable name containing webhook URL.
+	URLEnv string `yaml:"urlEnv"`
+	// Method is an HTTP method for webhook delivery.
+	Method string `yaml:"method"`
+	// Header contains additional HTTP headers for webhook delivery.
 	Header map[string]string `yaml:"header"`
 }
 
 type WebSpec struct {
-	Address string `yaml:"address"`
+	// APIAddress is an HTTP listen address for API server.
+	APIAddress string `yaml:"apiAddress"`
+	// FrontendAddress is an HTTP listen address for frontend server.
+	FrontendAddress string `yaml:"frontendAddress"`
 }
 
 type HealthServerSpec struct {
-	Address string       `yaml:"address"`
+	// Address is an HTTP listen address for health/metrics server.
+	Address string `yaml:"address"`
+	// Metrics contains Prometheus endpoint settings.
 	Metrics EndpointSpec `yaml:"metrics"`
+	// Healthz contains healthcheck endpoint settings.
 	Healthz EndpointSpec `yaml:"healthz"`
 }
 
 type EndpointSpec struct {
+	// Path is an HTTP route path for endpoint.
 	Path string `yaml:"path"`
 }
 
 type SwarmSpec struct {
-	Command            string         `yaml:"command"`
-	StackDeployArgs    []string       `yaml:"stackDeployArgs"`
-	InitJobPollEvery   specw.Duration `yaml:"initJobPollEvery"`
+	// Command is executable used to invoke Docker CLI.
+	Command string `yaml:"command"`
+	// StackDeployArgs is argument list for docker stack deploy command.
+	StackDeployArgs []string `yaml:"stackDeployArgs"`
+	// InitJobPollEvery is polling interval for init jobs.
+	InitJobPollEvery specw.Duration `yaml:"initJobPollEvery"`
+	// InitJobMaxDuration is maximum execution time for init jobs.
 	InitJobMaxDuration specw.Duration `yaml:"initJobMaxDuration"`
 }
 
 type SecretRotationSpec struct {
-	Enabled     bool `yaml:"enabled"`
-	HashLength  int  `yaml:"hashLength"`
+	// Enabled toggles secret/config name rotation.
+	Enabled bool `yaml:"enabled"`
+	// HashLength is a length of generated hash suffix.
+	HashLength int `yaml:"hashLength"`
+	// IncludePath adds source path into hash input.
 	IncludePath bool `yaml:"includePath"`
 }
 
@@ -183,15 +244,24 @@ func (c *Config) applyDefaults(configDir string) error {
 	if c.Spec.Sync.Webhook.Path == "" {
 		c.Spec.Sync.Webhook.Path = "/api/v1/webhooks/git"
 	}
-	if secretFile := strings.TrimSpace(c.Spec.Sync.Webhook.SecretFile); secretFile != "" && !filepath.IsAbs(secretFile) {
-		c.Spec.Sync.Webhook.SecretFile = filepath.Join(configDir, secretFile)
+	if strings.TrimSpace(c.Spec.Sync.Webhook.Address) == "" {
+		c.Spec.Sync.Webhook.Address = ":8080"
+	}
+	if secretPath := strings.TrimSpace(c.Spec.Sync.Webhook.SecretPath); secretPath != "" && !filepath.IsAbs(secretPath) {
+		c.Spec.Sync.Webhook.SecretPath = filepath.Join(configDir, secretPath)
+	}
+	if passphrasePath := strings.TrimSpace(c.Spec.Git.Auth.SSH.PassphrasePath); passphrasePath != "" && !filepath.IsAbs(passphrasePath) {
+		c.Spec.Git.Auth.SSH.PassphrasePath = filepath.Join(configDir, passphrasePath)
 	}
 	if c.Spec.Sync.Mode == SyncModeWebhook && !c.Spec.Sync.Webhook.Enabled {
 		c.Spec.Sync.Webhook.Enabled = true
 	}
 
-	if c.Spec.Web.Address == "" {
-		c.Spec.Web.Address = ":8080"
+	if strings.TrimSpace(c.Spec.Web.APIAddress) == "" {
+		c.Spec.Web.APIAddress = ":8080"
+	}
+	if strings.TrimSpace(c.Spec.Web.FrontendAddress) == "" {
+		c.Spec.Web.FrontendAddress = ":8080"
 	}
 	if c.Spec.HealthServer.Address == "" {
 		c.Spec.HealthServer.Address = ":8081"
@@ -204,9 +274,9 @@ func (c *Config) applyDefaults(configDir string) error {
 	}
 
 	for i := range c.Spec.Notifications.Telegram {
-		secretFile := strings.TrimSpace(c.Spec.Notifications.Telegram[i].BotTokenSecretFile)
-		if secretFile != "" && !filepath.IsAbs(secretFile) {
-			c.Spec.Notifications.Telegram[i].BotTokenSecretFile = filepath.Join(configDir, secretFile)
+		tokenPath := strings.TrimSpace(c.Spec.Notifications.Telegram[i].BotTokenPath)
+		if tokenPath != "" && !filepath.IsAbs(tokenPath) {
+			c.Spec.Notifications.Telegram[i].BotTokenPath = filepath.Join(configDir, tokenPath)
 		}
 	}
 
@@ -322,15 +392,15 @@ func (c *Config) validate() error {
 	}
 
 	if c.Spec.Sync.Webhook.Enabled {
-		secretFile := strings.TrimSpace(c.Spec.Sync.Webhook.SecretFile)
-		if secretFile == "" {
-			errs = append(errs, errors.New("webhook enabled but sync.webhook.secretFile is empty"))
+		secretPath := strings.TrimSpace(c.Spec.Sync.Webhook.SecretPath)
+		if secretPath == "" {
+			errs = append(errs, errors.New("webhook enabled but sync.webhook.secretPath is empty"))
 		} else {
-			payload, err := os.ReadFile(secretFile)
+			payload, err := os.ReadFile(secretPath)
 			if err != nil {
-				errs = append(errs, fmt.Errorf("read sync.webhook.secretFile %s: %w", secretFile, err))
+				errs = append(errs, fmt.Errorf("read sync.webhook.secretPath %s: %w", secretPath, err))
 			} else if strings.TrimSpace(string(payload)) == "" {
-				errs = append(errs, errors.New("webhook enabled but sync.webhook.secretFile contains empty secret"))
+				errs = append(errs, errors.New("webhook enabled but sync.webhook.secretPath contains empty secret"))
 			}
 		}
 	}
@@ -343,7 +413,7 @@ func (c *Config) validate() error {
 		if err != nil {
 			errs = append(errs, fmt.Errorf("notifications.telegram[%d]: %w", i, err))
 		} else if token == "" {
-			errs = append(errs, fmt.Errorf("notifications.telegram[%d].botTokenSecretFile contains empty token", i))
+			errs = append(errs, fmt.Errorf("notifications.telegram[%d].botTokenPath contains empty token", i))
 		}
 		if tg.ResolveChatThreadID() < 0 {
 			errs = append(errs, fmt.Errorf("notifications.telegram[%d].chatThreadId must be >= 0", i))
@@ -360,11 +430,11 @@ func (c *Config) validate() error {
 }
 
 func (w WebhookSpec) ResolveSecret() string {
-	secretFile := strings.TrimSpace(w.SecretFile)
-	if secretFile == "" {
+	secretPath := strings.TrimSpace(w.SecretPath)
+	if secretPath == "" {
 		return ""
 	}
-	payload, err := os.ReadFile(secretFile)
+	payload, err := os.ReadFile(secretPath)
 	if err != nil {
 		return ""
 	}
@@ -399,29 +469,29 @@ func (a GitHTTPAuth) ResolveUsername() string {
 	return ""
 }
 
-func (a GitSSHAuthSpec) ResolvePrivateKey() string {
-	if a.PrivateKeyEnv != "" {
-		return os.Getenv(a.PrivateKeyEnv)
+func (a GitSSHAuthSpec) ResolvePassphrase() (string, error) {
+	passphrasePath := strings.TrimSpace(a.PassphrasePath)
+	if passphrasePath == "" {
+		return "", nil
 	}
-	return a.PrivateKey
-}
 
-func (a GitSSHAuthSpec) ResolvePassphrase() string {
-	if a.PassphraseEnv == "" {
-		return ""
+	payload, err := os.ReadFile(passphrasePath)
+	if err != nil {
+		return "", fmt.Errorf("read passphrasePath %s: %w", passphrasePath, err)
 	}
-	return os.Getenv(a.PassphraseEnv)
+
+	return strings.TrimSpace(string(payload)), nil
 }
 
 func (t TelegramChannel) ResolveToken() (string, error) {
-	tokenPath := strings.TrimSpace(t.BotTokenSecretFile)
+	tokenPath := strings.TrimSpace(t.BotTokenPath)
 	if tokenPath == "" {
-		return "", errors.New("botTokenSecretFile is required")
+		return "", errors.New("botTokenPath is required")
 	}
 
 	payload, err := os.ReadFile(tokenPath)
 	if err != nil {
-		return "", fmt.Errorf("read botTokenSecretFile %s: %w", tokenPath, err)
+		return "", fmt.Errorf("read botTokenPath %s: %w", tokenPath, err)
 	}
 
 	return strings.TrimSpace(string(payload)), nil

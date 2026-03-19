@@ -54,12 +54,12 @@ printf '%s' '<webhook-secret>' > ./secrets/webhook_secret
 docker compose up --build -d
 ```
 
-`docker-compose.yaml` монтирует `registry_auth_config` в `/run/secrets/config.json` и выставляет `DOCKER_CONFIG=/run/secrets`, поэтому `docker stack deploy --with-registry-auth` использует этот файл. Секрет вебхука берется из `sync.webhook.secretFile` (в примерах это `/run/secrets/webhook_secret`).
+`docker-compose.yaml` монтирует `registry_auth_config` в `/run/secrets/config.json` и выставляет `DOCKER_CONFIG=/run/secrets`, поэтому `docker stack deploy --with-registry-auth` использует этот файл. Секрет вебхука берется из `sync.webhook.secretPath` (в примерах это `/run/secrets/webhook_secret`).
 
-5. UI и API доступны на `web.address`:
-- `GET /api/v1/stacks`
-- `POST /api/v1/sync`
-- `POST /api/v1/webhooks/git`
+5. Web-серверы разделены по портам:
+- Frontend (`/` и `/ui/`) доступен на `web.frontendAddress`.
+- API (`GET /api/v1/stacks`, `POST /api/v1/sync`) доступен на `web.apiAddress`.
+- Webhook (`POST /api/v1/webhooks/git`) доступен на `sync.webhook.address`.
 
 6. Health/metrics сервер доступен на `healthServer.address`:
 - `GET healthServer.healthz.path` (если `healthServer.healthz.enabled=true`)
@@ -100,7 +100,7 @@ stacks:
 
 В канале Telegram можно задать:
 
-- `botTokenSecretFile` для чтения токена бота из файла.
+- `botTokenPath` для чтения токена бота из файла.
 - `chatThreadId` для отправки в конкретный thread/topic.
 - `message` с синтаксисом `text/template`.
 
@@ -121,7 +121,7 @@ stacks:
 notifications:
   telegram:
     - name: ops
-      botTokenSecretFile: /run/secrets/telegram_bot_token
+      botTokenPath: /run/secrets/telegram_bot_token
       chatId: "-1001234567890"
       chatThreadId: 42
       message: |

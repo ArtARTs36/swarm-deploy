@@ -72,13 +72,13 @@ sync:
 
 func TestWebhookSecretResolveFromFile(t *testing.T) {
 	dir := t.TempDir()
-	secretFile := filepath.Join(dir, "webhook_secret")
-	if err := os.WriteFile(secretFile, []byte(" from-file \n"), 0o600); err != nil {
+	secretPath := filepath.Join(dir, "webhook_secret")
+	if err := os.WriteFile(secretPath, []byte(" from-file \n"), 0o600); err != nil {
 		t.Fatalf("write secret file: %v", err)
 	}
 
 	spec := WebhookSpec{
-		SecretFile: secretFile,
+		SecretPath: secretPath,
 	}
 
 	if got := spec.ResolveSecret(); got != "from-file" {
@@ -86,7 +86,7 @@ func TestWebhookSecretResolveFromFile(t *testing.T) {
 	}
 }
 
-func TestLoadResolvesRelativeWebhookSecretFile(t *testing.T) {
+func TestLoadResolvesRelativeWebhookSecretPath(t *testing.T) {
 	dir := t.TempDir()
 
 	stacksPath := filepath.Join(dir, "stacks.yaml")
@@ -99,8 +99,8 @@ stacks:
 		t.Fatalf("write stacks file: %v", err)
 	}
 
-	secretFile := filepath.Join(dir, "webhook_secret")
-	if err := os.WriteFile(secretFile, []byte("from-file"), 0o600); err != nil {
+	secretPath := filepath.Join(dir, "webhook_secret")
+	if err := os.WriteFile(secretPath, []byte("from-file"), 0o600); err != nil {
 		t.Fatalf("write secret file: %v", err)
 	}
 
@@ -112,7 +112,7 @@ sync:
   mode: webhook
   webhook:
     enabled: true
-    secretFile: ./webhook_secret
+    secretPath: ./webhook_secret
 stacksFile: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
@@ -124,8 +124,8 @@ stacksFile: ./stacks.yaml
 		t.Fatalf("load config: %v", err)
 	}
 
-	if cfg.Spec.Sync.Webhook.SecretFile != secretFile {
-		t.Fatalf("expected resolved secretFile %q, got %q", secretFile, cfg.Spec.Sync.Webhook.SecretFile)
+	if cfg.Spec.Sync.Webhook.SecretPath != secretPath {
+		t.Fatalf("expected resolved secretPath %q, got %q", secretPath, cfg.Spec.Sync.Webhook.SecretPath)
 	}
 	if got := cfg.WebhookSecret(); got != "from-file" {
 		t.Fatalf("expected secret from file, got %q", got)
@@ -145,8 +145,8 @@ stacks:
 		t.Fatalf("write stacks file: %v", err)
 	}
 
-	secretFile := filepath.Join(dir, "webhook_secret")
-	if err := os.WriteFile(secretFile, []byte("secret"), 0o600); err != nil {
+	secretPath := filepath.Join(dir, "webhook_secret")
+	if err := os.WriteFile(secretPath, []byte("secret"), 0o600); err != nil {
 		t.Fatalf("write secret file: %v", err)
 	}
 
@@ -159,7 +159,7 @@ sync:
   mode: webhook
   webhook:
     enabled: true
-    secretFile: ./webhook_secret
+    secretPath: ./webhook_secret
 stacksFile: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
@@ -174,5 +174,183 @@ stacksFile: ./stacks.yaml
 	expectedDataDir := filepath.Join(dir, ".swarm-deploy")
 	if cfg.Spec.DataDir != expectedDataDir {
 		t.Fatalf("expected dataDir %q, got %q", expectedDataDir, cfg.Spec.DataDir)
+	}
+}
+
+func TestLoadWebIgnoresLegacyAddressField(t *testing.T) {
+	dir := t.TempDir()
+
+	stacksPath := filepath.Join(dir, "stacks.yaml")
+	stacksPayload := []byte(`
+stacks:
+  - name: app
+    composeFile: app/docker-compose.yml
+`)
+	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
+		t.Fatalf("write stacks file: %v", err)
+	}
+
+	configPath := filepath.Join(dir, "swarm-deploy.yaml")
+	configPayload := []byte(`
+git:
+  repository: https://example.com/repo.git
+stacksFile: ./stacks.yaml
+web:
+  address: ":18080"
+`)
+	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+
+	if cfg.Spec.Web.APIAddress != ":8080" {
+		t.Fatalf("expected apiAddress :8080, got %q", cfg.Spec.Web.APIAddress)
+	}
+	if cfg.Spec.Web.FrontendAddress != ":8080" {
+		t.Fatalf("expected frontendAddress :8080, got %q", cfg.Spec.Web.FrontendAddress)
+	}
+	if cfg.Spec.Sync.Webhook.Address != ":8080" {
+		t.Fatalf("expected sync.webhook.address :8080, got %q", cfg.Spec.Sync.Webhook.Address)
+	}
+}
+
+func TestLoadWebDedicatedAddresses(t *testing.T) {
+	dir := t.TempDir()
+
+	stacksPath := filepath.Join(dir, "stacks.yaml")
+	stacksPayload := []byte(`
+stacks:
+  - name: app
+    composeFile: app/docker-compose.yml
+`)
+	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
+		t.Fatalf("write stacks file: %v", err)
+	}
+
+	configPath := filepath.Join(dir, "swarm-deploy.yaml")
+	configPayload := []byte(`
+git:
+  repository: https://example.com/repo.git
+sync:
+  webhook:
+    address: ":8083"
+stacksFile: ./stacks.yaml
+web:
+  apiAddress: ":8080"
+  frontendAddress: ":8082"
+`)
+	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+
+	if cfg.Spec.Web.APIAddress != ":8080" {
+		t.Fatalf("expected apiAddress :8080, got %q", cfg.Spec.Web.APIAddress)
+	}
+	if cfg.Spec.Web.FrontendAddress != ":8082" {
+		t.Fatalf("expected frontendAddress :8082, got %q", cfg.Spec.Web.FrontendAddress)
+	}
+	if cfg.Spec.Sync.Webhook.Address != ":8083" {
+		t.Fatalf("expected sync.webhook.address :8083, got %q", cfg.Spec.Sync.Webhook.Address)
+	}
+}
+
+func TestLoadWebDoesNotUseSingleDedicatedAddressAsFallback(t *testing.T) {
+	dir := t.TempDir()
+
+	stacksPath := filepath.Join(dir, "stacks.yaml")
+	stacksPayload := []byte(`
+stacks:
+  - name: app
+    composeFile: app/docker-compose.yml
+`)
+	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
+		t.Fatalf("write stacks file: %v", err)
+	}
+
+	configPath := filepath.Join(dir, "swarm-deploy.yaml")
+	configPayload := []byte(`
+git:
+  repository: https://example.com/repo.git
+stacksFile: ./stacks.yaml
+web:
+  apiAddress: ":18080"
+`)
+	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+
+	if cfg.Spec.Web.APIAddress != ":18080" {
+		t.Fatalf("expected apiAddress :18080, got %q", cfg.Spec.Web.APIAddress)
+	}
+	if cfg.Spec.Web.FrontendAddress != ":8080" {
+		t.Fatalf("expected frontendAddress :8080, got %q", cfg.Spec.Web.FrontendAddress)
+	}
+	if cfg.Spec.Sync.Webhook.Address != ":8080" {
+		t.Fatalf("expected sync.webhook.address :8080, got %q", cfg.Spec.Sync.Webhook.Address)
+	}
+}
+
+func TestLoadResolvesRelativeGitSSHPassphrasePath(t *testing.T) {
+	dir := t.TempDir()
+
+	stacksPath := filepath.Join(dir, "stacks.yaml")
+	stacksPayload := []byte(`
+stacks:
+  - name: app
+    composeFile: app/docker-compose.yml
+`)
+	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
+		t.Fatalf("write stacks file: %v", err)
+	}
+
+	passphrasePath := filepath.Join(dir, "git_passphrase")
+	if err := os.WriteFile(passphrasePath, []byte(" super-secret \n"), 0o600); err != nil {
+		t.Fatalf("write passphrase file: %v", err)
+	}
+
+	configPath := filepath.Join(dir, "swarm-deploy.yaml")
+	configPayload := []byte(`
+git:
+  repository: git@github.com:your-org/your-stacks-repo.git
+  auth:
+    type: ssh
+    ssh:
+      privateKeyPath: /run/secrets/deploy_key
+      passphrasePath: ./git_passphrase
+stacksFile: ./stacks.yaml
+`)
+	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+
+	if cfg.Spec.Git.Auth.SSH.PassphrasePath != passphrasePath {
+		t.Fatalf("expected passphrasePath %q, got %q", passphrasePath, cfg.Spec.Git.Auth.SSH.PassphrasePath)
+	}
+
+	passphrase, err := cfg.Spec.Git.Auth.SSH.ResolvePassphrase()
+	if err != nil {
+		t.Fatalf("resolve passphrase: %v", err)
+	}
+	if passphrase != "super-secret" {
+		t.Fatalf("expected passphrase super-secret, got %q", passphrase)
 	}
 }
