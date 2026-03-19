@@ -5,3 +5,6 @@ run:
 lint:
 	golangci-lint run --fix
 
+.PHONY: gen
+gen:
+	ogen --target ./internal/entrypoints/apiserver/generated --clean ./api/api-server.yaml

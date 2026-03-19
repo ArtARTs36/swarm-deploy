@@ -1,73 +1,38 @@
 package apiserver
 
 import (
-	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/artarts36/go-entrypoint"
 	"github.com/artarts36/swarm-deploy/internal/controller"
+	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/apiserver/generated"
 )
 
 const readHeaderTimeout = 10 * time.Second
 
 type Application struct {
-	mux     *http.ServeMux
-	server  *http.Server
-	control *controller.Controller
+	server *http.Server
 }
 
-func NewApplication(address string, control *controller.Controller) *Application {
-	app := &Application{
-		mux:     http.NewServeMux(),
-		control: control,
+func NewApplication(address string, control *controller.Controller) (*Application, error) {
+	h := NewHandler(control)
+
+	server, err := generated.NewServer(h)
+	if err != nil {
+		return nil, fmt.Errorf("build ogen api server: %w", err)
 	}
 
-	app.registerRoutes()
-	app.server = &http.Server{
-		Addr:              address,
-		Handler:           app.mux,
-		ReadHeaderTimeout: readHeaderTimeout,
-	}
-
-	return app
+	return &Application{
+		server: &http.Server{
+			Addr:              address,
+			Handler:           server,
+			ReadHeaderTimeout: readHeaderTimeout,
+		},
+	}, nil
 }
 
 func (a *Application) Entrypoint() entrypoint.Entrypoint {
 	return entrypoint.HTTPServer("api-server", a.server)
-}
-
-func (a *Application) registerRoutes() {
-	a.mux.HandleFunc("/api/v1/stacks", a.handleListStacks)
-	a.mux.HandleFunc("/api/v1/sync", a.handleManualSync)
-}
-
-func (a *Application) handleListStacks(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"stacks": a.control.ListStacks(),
-		"sync":   a.control.LastSyncInfo(),
-	})
-}
-
-func (a *Application) handleManualSync(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	queued := a.control.Trigger(controller.TriggerManual)
-	writeJSON(w, http.StatusAccepted, map[string]any{
-		"queued": queued,
-	})
-}
-
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
 }

@@ -4,107 +4,7 @@ package api
 
 import (
 	"time"
-
-	"github.com/go-faster/jx"
 )
-
-// Ref: #/components/schemas/ErrorResponse
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
-// GetError returns the value of Error.
-func (s *ErrorResponse) GetError() string {
-	return s.Error
-}
-
-// SetError sets the value of Error.
-func (s *ErrorResponse) SetError(val string) {
-	s.Error = val
-}
-
-func (*ErrorResponse) receiveGitWebhookRes() {}
-
-// Ref: #/components/schemas/GitWebhookPayload
-type GitWebhookPayload struct {
-	Provider        OptString                      `json:"provider"`
-	Repository      OptString                      `json:"repository"`
-	Ref             OptString                      `json:"ref"`
-	Commits         []GitWebhookPayloadCommitsItem `json:"commits"`
-	AdditionalProps GitWebhookPayloadAdditional
-}
-
-// GetProvider returns the value of Provider.
-func (s *GitWebhookPayload) GetProvider() OptString {
-	return s.Provider
-}
-
-// GetRepository returns the value of Repository.
-func (s *GitWebhookPayload) GetRepository() OptString {
-	return s.Repository
-}
-
-// GetRef returns the value of Ref.
-func (s *GitWebhookPayload) GetRef() OptString {
-	return s.Ref
-}
-
-// GetCommits returns the value of Commits.
-func (s *GitWebhookPayload) GetCommits() []GitWebhookPayloadCommitsItem {
-	return s.Commits
-}
-
-// GetAdditionalProps returns the value of AdditionalProps.
-func (s *GitWebhookPayload) GetAdditionalProps() GitWebhookPayloadAdditional {
-	return s.AdditionalProps
-}
-
-// SetProvider sets the value of Provider.
-func (s *GitWebhookPayload) SetProvider(val OptString) {
-	s.Provider = val
-}
-
-// SetRepository sets the value of Repository.
-func (s *GitWebhookPayload) SetRepository(val OptString) {
-	s.Repository = val
-}
-
-// SetRef sets the value of Ref.
-func (s *GitWebhookPayload) SetRef(val OptString) {
-	s.Ref = val
-}
-
-// SetCommits sets the value of Commits.
-func (s *GitWebhookPayload) SetCommits(val []GitWebhookPayloadCommitsItem) {
-	s.Commits = val
-}
-
-// SetAdditionalProps sets the value of AdditionalProps.
-func (s *GitWebhookPayload) SetAdditionalProps(val GitWebhookPayloadAdditional) {
-	s.AdditionalProps = val
-}
-
-type GitWebhookPayloadAdditional map[string]jx.Raw
-
-func (s *GitWebhookPayloadAdditional) init() GitWebhookPayloadAdditional {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
-
-type GitWebhookPayloadCommitsItem map[string]jx.Raw
-
-func (s *GitWebhookPayloadCommitsItem) init() GitWebhookPayloadCommitsItem {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
 
 // NewOptDateTime returns new OptDateTime with value set to v.
 func NewOptDateTime(v time.Time) OptDateTime {
@@ -146,52 +46,6 @@ func (o OptDateTime) Get() (v time.Time, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptDateTime) Or(d time.Time) time.Time {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptGitWebhookPayload returns new OptGitWebhookPayload with value set to v.
-func NewOptGitWebhookPayload(v GitWebhookPayload) OptGitWebhookPayload {
-	return OptGitWebhookPayload{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptGitWebhookPayload is optional GitWebhookPayload.
-type OptGitWebhookPayload struct {
-	Value GitWebhookPayload
-	Set   bool
-}
-
-// IsSet returns true if OptGitWebhookPayload was set.
-func (o OptGitWebhookPayload) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptGitWebhookPayload) Reset() {
-	var v GitWebhookPayload
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptGitWebhookPayload) SetTo(v GitWebhookPayload) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptGitWebhookPayload) Get() (v GitWebhookPayload, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptGitWebhookPayload) Or(d GitWebhookPayload) GitWebhookPayload {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -258,8 +112,6 @@ func (s *QueueResponse) GetQueued() bool {
 func (s *QueueResponse) SetQueued(val bool) {
 	s.Queued = val
 }
-
-func (*QueueResponse) receiveGitWebhookRes() {}
 
 // Ref: #/components/schemas/ServiceView
 type ServiceView struct {

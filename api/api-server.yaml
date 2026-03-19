@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     MVP API for Swarm Deploy.
-    Includes stack status, manual sync and generic git webhook endpoint.
+    Includes stack status and manual sync endpoint.
 servers:
   - url: http://localhost:8080
 paths:
@@ -28,34 +28,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueueResponse'
-  /api/v1/webhooks/git:
-    post:
-      operationId: receiveGitWebhook
-      parameters:
-        - name: X-Swarm-Deploy-Secret
-          in: header
-          schema:
-            type: string
-          required: false
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GitWebhookPayload'
-      responses:
-        '202':
-          description: Webhook accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QueueResponse'
-        '401':
-          description: Invalid webhook secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     QueueResponse:
@@ -64,30 +36,6 @@ components:
       properties:
         queued:
           type: boolean
-    ErrorResponse:
-      type: object
-      required: [error]
-      properties:
-        error:
-          type: string
-    GitWebhookPayload:
-      type: object
-      additionalProperties: true
-      properties:
-        provider:
-          type: string
-          example: github
-        repository:
-          type: string
-          example: org/repo
-        ref:
-          type: string
-          example: refs/heads/main
-        commits:
-          type: array
-          items:
-            type: object
-            additionalProperties: true
     SyncInfo:
       type: object
       additionalProperties:

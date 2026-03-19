@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/artarts36/go-entrypoint v0.2.1
 	github.com/artarts36/specw v0.1.4
+	github.com/containerd/errdefs v1.0.0
 	github.com/docker/docker v28.3.3+incompatible
 	github.com/go-faster/errors v0.7.1
 	github.com/go-faster/jx v1.2.0
@@ -26,7 +27,6 @@ require (
 	github.com/buildkite/interpolate v0.1.5 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
-	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect

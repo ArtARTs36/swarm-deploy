@@ -20,13 +20,6 @@ func (UnimplementedHandler) ListStacks(ctx context.Context) (r *StacksResponse, 
 	return r, ht.ErrNotImplemented
 }
 
-// ReceiveGitWebhook implements receiveGitWebhook operation.
-//
-// POST /api/v1/webhooks/git
-func (UnimplementedHandler) ReceiveGitWebhook(ctx context.Context, req OptGitWebhookPayload, params ReceiveGitWebhookParams) (r ReceiveGitWebhookRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // TriggerSync implements triggerSync operation.
 //
 // POST /api/v1/sync

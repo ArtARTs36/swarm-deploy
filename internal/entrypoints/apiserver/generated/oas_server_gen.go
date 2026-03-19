@@ -12,10 +12,6 @@ type Handler interface {
 	//
 	// GET /api/v1/stacks
 	ListStacks(ctx context.Context) (*StacksResponse, error)
-	// ReceiveGitWebhook implements receiveGitWebhook operation.
-	//
-	// POST /api/v1/webhooks/git
-	ReceiveGitWebhook(ctx context.Context, req OptGitWebhookPayload, params ReceiveGitWebhookParams) (ReceiveGitWebhookRes, error)
 	// TriggerSync implements triggerSync operation.
 	//
 	// POST /api/v1/sync

@@ -80,7 +80,11 @@ func main() { //nolint:funlen // not need
 		notifier,
 	)
 
-	apiApplication := apiserver.NewApplication(cfg.Spec.Web.APIAddress, control)
+	apiApplication, err := apiserver.NewApplication(cfg.Spec.Web.APIAddress, control)
+	if err != nil {
+		slog.Error("failed to init api server", slog.Any("err", err))
+		os.Exit(1)
+	}
 	webhookApplication := webhookserver.NewApplication(cfg.Spec.Sync.Webhook.Address, cfg, control)
 	frontendApplication, err := frontendserver.NewApplication(cfg.Spec.Web.FrontendAddress)
 	if err != nil {
