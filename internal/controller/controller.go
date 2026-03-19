@@ -112,6 +112,8 @@ func (c *Controller) Run(ctx context.Context) error {
 		defer ticker.Stop()
 	}
 
+	slog.InfoContext(ctx, "[controller] trigger startup sync")
+
 	c.Trigger(TriggerStartup)
 
 	for {
@@ -188,9 +190,11 @@ func (c *Controller) ListStacks() []StackView {
 func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) {
 	startedAt := time.Now()
 
+	slog.InfoContext(ctx, "[controller] run sync", slog.String("reason", string(reason)))
+
 	syncResult, err := c.gitSync.Sync(ctx)
 	if err != nil {
-		slog.Error("sync failed at git stage",
+		slog.ErrorContext(ctx, "sync failed at git stage",
 			slog.String("reason", string(reason)),
 			slog.String("repository", c.cfg.Spec.Git.Repository),
 			slog.Any("err", err),
@@ -205,6 +209,8 @@ func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) {
 		})
 		return
 	}
+
+	slog.InfoContext(ctx, "[controller] git synced", slog.Any("result", syncResult))
 
 	updateResult := "no_change"
 	if syncResult.Updated {
@@ -405,7 +411,7 @@ func (c *Controller) recordStackFailure(stackName, commit string, services []com
 
 func (c *Controller) dispatchDeployEvents(status, stackName, commit string, services []compose.Service, errorMessage string) {
 	if len(services) == 0 {
-		_ = c.notify.Notify(context.Background(), notify.Event{
+		err := c.notify.Notify(context.Background(), notify.Event{
 			Status:    status,
 			StackName: stackName,
 			Service:   "unknown",
@@ -417,6 +423,9 @@ func (c *Controller) dispatchDeployEvents(status, stackName, commit string, serv
 			Error:     errorMessage,
 			Timestamp: time.Now(),
 		})
+		if err != nil {
+			slog.Warn("[controller] failed to notify about error", slog.Any("err", err))
+		}
 		return
 	}
 
@@ -437,7 +446,10 @@ func (c *Controller) dispatchDeployEvents(status, stackName, commit string, serv
 			Error:     errorMessage,
 			Timestamp: time.Now(),
 		}
-		_ = c.notify.Notify(context.Background(), event)
+		err := c.notify.Notify(context.Background(), event)
+		if err != nil {
+			slog.Warn("[controller] failed to notify", slog.Any("err", err))
+		}
 	}
 }
 

@@ -1,49 +1,49 @@
 # swarm-deploy
 
-GitOps controller for Docker Swarm with ArgoCD-inspired, but Swarm-native, configuration style.
+GitOps controller for Docker Swarm with an ArgoCD-inspired, but Swarm-native, configuration style.
 
-## Что умеет сейчас
+## Current capabilities
 
-- `go-git` синхронизация репозитория по `http/https` и `ssh`.
-- Режимы работы:
+- `go-git` repository synchronization over `http/https` and `ssh`.
+- Operating modes:
   - `pull` (polling),
   - `webhook`,
-  - `hybrid` (оба режима одновременно).
-- Деплой стека только при diff (`compose + referenced configs/secrets` digest).
-- Хуки нотификаций при:
-  - успешном деплое,
-  - ошибке деплоя.
-- Расширяемая архитектура нотификаторов:
+  - `hybrid` (both modes at the same time).
+- Stack deployment only when a diff is detected (`compose + referenced configs/secrets` digest).
+- Notification hooks for:
+  - successful deployment,
+  - failed deployment.
+- Extensible notifier architecture:
   - Telegram,
   - custom webhook.
-- Для Telegram поддерживаются:
-  - `chatThreadId` (форумы/топики),
-  - `message` на Go template.
-- Prometheus-метрики:
+- Telegram supports:
+  - `chatThreadId` (forums/topics),
+  - `message` based on Go template.
+- Prometheus metrics:
   - `swarm_deploy_total{stack,service,status}`,
   - `swarm_git_updates_total{repo,result}`,
   - `swarm_sync_runs_total{reason,result}`,
   - `swarm_sync_duration_milliseconds{reason,result}`.
-- `x-init-deploy-jobs` в compose:
-  - init jobs запускаются до `docker stack deploy`,
-  - в сетях сервиса,
-  - с попыткой подключения secrets/configs сервиса и job.
-- Init jobs выполняются через Docker Engine API.
-- Graceful shutdown через `github.com/artarts36/go-entrypoint`.
-- MVP UI без аутентификации.
+- `x-init-deploy-jobs` in compose:
+  - init jobs run before `docker stack deploy`,
+  - in service networks,
+  - with an attempt to attach service and job secrets/configs.
+- Init jobs run via Docker Engine API.
+- Graceful shutdown via `github.com/artarts36/go-entrypoint`.
+- MVP UI without authentication.
 
-## Быстрый старт
+## Quick start
 
-1. Скопируйте [swarm-deploy.example.yaml](./swarm-deploy.example.yaml) в `swarm-deploy.yaml` и заполните значения.
-2. Скопируйте [stacks.example.yaml](./stacks.example.yaml) в свой `stacks.yaml` и опишите стеки.
-3. В `swarm-deploy.yaml` укажите `stacksFile: ./stacks.yaml`.
-4. Запустите:
+1. Copy [swarm-deploy.example.yaml](./swarm-deploy.example.yaml) to `swarm-deploy.yaml` and fill in values.
+2. Copy [stacks.example.yaml](./stacks.example.yaml) to your `stacks.yaml` and describe stacks.
+3. In `swarm-deploy.yaml`, set `stacksFile: ./stacks.yaml`.
+4. Run:
 
 ```bash
 go run ./cmd/swarm-deploy -config ./swarm-deploy.yaml
 ```
 
-Либо через Docker Compose (с передачей `docker/config.json` в secret для auth в Registry):
+Or run with Docker Compose (including `docker/config.json` as a secret for registry auth):
 
 ```bash
 mkdir -p ./secrets
@@ -54,34 +54,34 @@ printf '%s' '<webhook-secret>' > ./secrets/webhook_secret
 docker compose up --build -d
 ```
 
-`docker-compose.yaml` монтирует `registry_auth_config` в `/run/secrets/config.json` и выставляет `DOCKER_CONFIG=/run/secrets`, поэтому `docker stack deploy --with-registry-auth` использует этот файл. Секрет вебхука берется из `sync.webhook.secretPath` (в примерах это `/run/secrets/webhook_secret`).
+`docker-compose.yaml` mounts `registry_auth_config` to `/run/secrets/config.json` and sets `DOCKER_CONFIG=/run/secrets`, so `docker stack deploy --with-registry-auth` uses this file. Webhook secret is read from `sync.webhook.secretPath` (in examples: `/run/secrets/webhook_secret`).
 
-5. Web-серверы разделены по портам:
-- Frontend (`/` и `/ui/`) доступен на `web.frontendAddress`.
-- API (`GET /api/v1/stacks`, `POST /api/v1/sync`) доступен на `web.apiAddress`.
-- Webhook (`POST /api/v1/webhooks/git`) доступен на `sync.webhook.address`.
+5. Web servers are split by ports:
+- Frontend (`/` and `/ui/`) is available on `web.frontendAddress`.
+- API (`GET /api/v1/stacks`, `POST /api/v1/sync`) is available on `web.apiAddress`.
+- Webhook (`POST /api/v1/webhooks/git`) is available on `sync.webhook.address`.
 
-6. Health/metrics сервер доступен на `healthServer.address`:
-- `GET healthServer.healthz.path` (если `healthServer.healthz.enabled=true`)
-- `GET healthServer.metrics.path` (если `healthServer.metrics.enabled=true`)
+6. Health/metrics server is available on `healthServer.address`:
+- `GET healthServer.healthz.path` (if `healthServer.healthz.enabled=true`)
+- `GET healthServer.metrics.path` (if `healthServer.metrics.enabled=true`)
 
-7. Init jobs требуют доступ к Docker Engine API (обычно через `/var/run/docker.sock`).
+7. Init jobs require access to Docker Engine API (typically via `/var/run/docker.sock`).
 
 ## OpenAPI + ogen
 
-Контракт находится в [`api/openapi.yaml`](./api/openapi.yaml). Генерация кода:
+The contract is in [`api/openapi.yaml`](./api/openapi.yaml). Code generation:
 
 ```bash
 go generate ./api
 ```
 
-`go:generate` использует `ogen`.
+`go:generate` uses `ogen`.
 
-## Вынесенный список стеков
+## External stack list
 
-Можно хранить список стеков в отдельном файле через `stacksFile`.
+You can keep the stack list in a separate file using `stacksFile`.
 
-Поддерживаются два формата:
+Two formats are supported:
 
 ```yaml
 stacks:
@@ -89,22 +89,22 @@ stacks:
     composeFile: app/docker-compose.yml
 ```
 
-или
+or
 
 ```yaml
 - name: app
   composeFile: app/docker-compose.yml
 ```
 
-## Telegram шаблоны
+## Telegram templates
 
-В канале Telegram можно задать:
+In a Telegram channel you can set:
 
-- `botTokenPath` для чтения токена бота из файла.
-- `chatThreadId` для отправки в конкретный thread/topic.
-- `message` с синтаксисом `text/template`.
+- `botTokenPath` to read bot token from a file.
+- `chatThreadId` to send to a specific thread/topic.
+- `message` with `text/template` syntax.
 
-Доступные поля в шаблоне:
+Available template fields:
 
 - `.status`
 - `.stack_name`
@@ -115,7 +115,7 @@ stacks:
 - `.error`
 - `.timestamp` (RFC3339)
 
-Пример:
+Example:
 
 ```yaml
 notifications:
@@ -135,7 +135,7 @@ notifications:
         {{- end }}
 ```
 
-## Пример `x-init-deploy-jobs`
+## `x-init-deploy-jobs` example
 
 ```yaml
 services:
@@ -154,15 +154,15 @@ services:
           APP_ENV: production
 ```
 
-## Про ротацию секретов (по мотивам swarm-cd)
+## Secret rotation notes (inspired by swarm-cd)
 
-В `swarm-cd` ротация работает через изменение `configs/secrets.*.name` на `stack-object-hash` при изменении файла.
+In `swarm-cd`, rotation is done by changing `configs/secrets.*.name` to `stack-object-hash` when a source file changes.
 
-Плюсы:
-- сервисы гарантированно получают новую версию объекта при изменении файла.
+Benefits:
+- services are guaranteed to receive a new object version when a file changes.
 
-Ограничения:
-- старые объекты не удаляются автоматически (нужна отдельная cleanup-стратегия),
-- это не криптографическая ротация ключей, а ротация **имени** объекта для форсирования rollout.
+Limitations:
+- old objects are not removed automatically (a separate cleanup strategy is required),
+- this is not cryptographic key rotation, but rotation of the object **name** to force rollout.
 
-В этом проекте реализована такая же идея (hash-based naming), но с SHA-256.
+This project implements the same idea (hash-based naming), but with SHA-256.

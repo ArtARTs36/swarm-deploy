@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"text/template"
@@ -105,10 +106,16 @@ func (n *TelegramNotifier) Notify(ctx context.Context, event Event) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("unexpected status: %s", resp.Status)
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
+		return nil
 	}
-	return nil
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read response body: %w", err)
+	}
+
+	return fmt.Errorf("unexpected status: %s, response: %s", resp.Status, string(respBody))
 }
 
 func (n *TelegramNotifier) renderMessage(event Event) (string, error) {
