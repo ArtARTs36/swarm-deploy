@@ -167,7 +167,7 @@ func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) {
 		err = c.syncStack(ctx, stackCfg, syncResult.NewRevision)
 		if err != nil {
 			deployErrs = append(deployErrs, err)
-			slog.Error("sync failed for stack",
+			slog.ErrorContext(ctx, "sync failed for stack",
 				slog.String("reason", string(reason)),
 				slog.String("stack", stackCfg.Name),
 				slog.String("commit", syncResult.NewRevision),
@@ -180,7 +180,7 @@ func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) {
 	combinedErr := errors.Join(deployErrs...)
 	if combinedErr != nil {
 		result = "partial_error"
-		slog.Error("sync finished with errors",
+		slog.ErrorContext(ctx, "sync finished with errors",
 			slog.String("reason", string(reason)),
 			slog.String("commit", syncResult.NewRevision),
 			slog.Any("err", combinedErr),

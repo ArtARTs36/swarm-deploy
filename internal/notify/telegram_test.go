@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTelegramNotifierSendsThreadAndRenderedTemplate(t *testing.T) {
@@ -23,23 +26,15 @@ func TestTelegramNotifierSendsThreadAndRenderedTemplate(t *testing.T) {
 			APIBaseURL:   "https://telegram.invalid",
 		},
 	)
-	if err != nil {
-		t.Fatalf("build notifier: %v", err)
-	}
+	require.NoError(t, err, "build notifier")
 	notifier.client = &http.Client{
 		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
-			if r.Method != http.MethodPost {
-				t.Fatalf("unexpected method: %s", r.Method)
-			}
-			if r.URL.Path != "/botTOKEN/sendMessage" {
-				t.Fatalf("unexpected path: %s", r.URL.Path)
-			}
+			require.Equal(t, http.MethodPost, r.Method, "unexpected method")
+			require.Equal(t, "/botTOKEN/sendMessage", r.URL.Path, "unexpected path")
 
 			defer r.Body.Close()
 			decodeErr := json.NewDecoder(r.Body).Decode(&received)
-			if decodeErr != nil {
-				t.Fatalf("decode request body: %v", decodeErr)
-			}
+			require.NoError(t, decodeErr, "decode request body")
 
 			return &http.Response{
 				StatusCode: http.StatusOK,
@@ -60,23 +55,13 @@ func TestTelegramNotifierSendsThreadAndRenderedTemplate(t *testing.T) {
 		},
 		Timestamp: time.Now(),
 	})
-	if err != nil {
-		t.Fatalf("notify: %v", err)
-	}
+	require.NoError(t, err, "notify")
 
-	if received["chat_id"] != "-100123" {
-		t.Fatalf("unexpected chat_id: %#v", received["chat_id"])
-	}
+	assert.Equal(t, "-100123", received["chat_id"], "unexpected chat_id")
 	threadIDRaw, ok := received["message_thread_id"].(float64)
-	if !ok {
-		t.Fatalf("message_thread_id has unexpected type: %#v", received["message_thread_id"])
-	}
-	if int64(threadIDRaw) != 42 {
-		t.Fatalf("unexpected message_thread_id: %#v", received["message_thread_id"])
-	}
-	if received["text"] != "stack=app image=ghcr.io/acme/api:1.2.3 success=true" {
-		t.Fatalf("unexpected text: %#v", received["text"])
-	}
+	require.True(t, ok, "message_thread_id has unexpected type: %#v", received["message_thread_id"])
+	assert.Equal(t, int64(42), int64(threadIDRaw), "unexpected message_thread_id")
+	assert.Equal(t, "stack=app image=ghcr.io/acme/api:1.2.3 success=true", received["text"], "unexpected text")
 }
 
 func TestTelegramNotifierInvalidTemplate(t *testing.T) {
@@ -88,9 +73,7 @@ func TestTelegramNotifierInvalidTemplate(t *testing.T) {
 			Message: "{{ if }}",
 		},
 	)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
+	require.Error(t, err, "expected error")
 }
 
 type roundTripFunc func(*http.Request) (*http.Response, error)

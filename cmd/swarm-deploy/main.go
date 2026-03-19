@@ -23,7 +23,10 @@ import (
 
 const shutdownTimeout = 30 * time.Second
 
+//nolint:funlen//not need
 func main() {
+	ctx := context.Background()
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
@@ -32,31 +35,36 @@ func main() {
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		slog.Error("failed to load config", slog.Any("err", err))
+		slog.ErrorContext(ctx, "failed to load config", slog.Any("err", err))
 		os.Exit(1)
 	}
 
 	err = os.MkdirAll(cfg.Spec.DataDir, 0o755)
 	if err != nil {
-		slog.Error("failed to create data dir", slog.String("dir", cfg.Spec.DataDir), slog.Any("err", err))
+		slog.ErrorContext(
+			ctx,
+			"failed to create data dir",
+			slog.String("dir", cfg.Spec.DataDir),
+			slog.Any("err", err),
+		)
 		os.Exit(1)
 	}
 
 	gitSyncer, err := gitops.NewSyncer(cfg.Spec.Git, cfg.Spec.DataDir)
 	if err != nil {
-		slog.Error("failed to build git syncer", slog.Any("err", err))
+		slog.ErrorContext(ctx, "failed to build git syncer", slog.Any("err", err))
 		os.Exit(1)
 	}
 
 	metricRecorder, err := metrics.New(prometheus.DefaultRegisterer)
 	if err != nil {
-		slog.Error("failed to init metrics", slog.Any("err", err))
+		slog.ErrorContext(ctx, "failed to init metrics", slog.Any("err", err))
 		os.Exit(1)
 	}
 
 	notifier, err := buildNotifiers(cfg)
 	if err != nil {
-		slog.Error("failed to build notifiers", slog.Any("err", err))
+		slog.ErrorContext(ctx, "failed to build notifiers", slog.Any("err", err))
 		os.Exit(1)
 	}
 	deployer, err := swarm.NewDeployer(
@@ -67,7 +75,7 @@ func main() {
 		swarm.ExecRunner{},
 	)
 	if err != nil {
-		slog.Error("failed to init deployer", slog.Any("err", err))
+		slog.ErrorContext(ctx, "failed to init deployer", slog.Any("err", err))
 		os.Exit(1)
 	}
 
@@ -81,7 +89,7 @@ func main() {
 
 	webApplication, err := webserver.NewApplication(cfg.Spec.Web.Address, control)
 	if err != nil {
-		slog.Error("failed to init web server", slog.Any("err", err))
+		slog.ErrorContext(ctx, "failed to init web server", slog.Any("err", err))
 		os.Exit(1)
 	}
 	webhookApplication := webhookserver.NewApplication(cfg.Spec.Sync.Webhook.Address, cfg, control)
@@ -108,7 +116,7 @@ func main() {
 		entrypoint.WithShutdownTimeout(shutdownTimeout),
 	)
 
-	slog.Info("starting swarm deploy",
+	slog.InfoContext(ctx, "starting swarm deploy",
 		slog.String("web.address", cfg.Spec.Web.Address),
 		slog.String("webhook.address", cfg.Spec.Sync.Webhook.Address),
 		slog.Bool("webhook.enabled", webhookApplication.Enabled()),
@@ -120,7 +128,7 @@ func main() {
 	)
 	err = runner.Run()
 	if err != nil {
-		slog.Error("failed to run", slog.Any("err", err))
+		slog.ErrorContext(ctx, "failed to run", slog.Any("err", err))
 		os.Exit(1)
 	}
 }

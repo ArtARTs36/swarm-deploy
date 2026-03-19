@@ -1,37 +1,31 @@
 package webserver
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUIRoutes(t *testing.T) {
 	app, err := NewApplication(":0", nil)
-	if err != nil {
-		t.Fatalf("new application: %v", err)
-	}
+	require.NoError(t, err, "new application")
 
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	app.server.Handler.ServeHTTP(rec, req)
-	if rec.Code != 200 {
-		t.Fatalf("expected / status 200, got %d", rec.Code)
-	}
+	assert.Equal(t, 200, rec.Code, "expected / status 200")
 
 	rec = httptest.NewRecorder()
-	req = httptest.NewRequest("GET", "/ui", nil)
+	req = httptest.NewRequest(http.MethodGet, "/ui", nil)
 	app.server.Handler.ServeHTTP(rec, req)
-	if rec.Code != 301 {
-		t.Fatalf("expected /ui status 301, got %d", rec.Code)
-	}
-	if location := rec.Header().Get("Location"); location != "/ui/" {
-		t.Fatalf("expected /ui redirect to /ui/, got %q", location)
-	}
+	assert.Equal(t, 301, rec.Code, "expected /ui status 301")
+	assert.Equal(t, "/ui/", rec.Header().Get("Location"), "expected /ui redirect to /ui/")
 
 	rec = httptest.NewRecorder()
-	req = httptest.NewRequest("GET", "/ui/", nil)
+	req = httptest.NewRequest(http.MethodGet, "/ui/", nil)
 	app.server.Handler.ServeHTTP(rec, req)
-	if rec.Code != 200 {
-		t.Fatalf("expected /ui/ status 200, got %d", rec.Code)
-	}
+	assert.Equal(t, 200, rec.Code, "expected /ui/ status 200")
 }

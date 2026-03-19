@@ -4,6 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadInitJobsEnvironment(t *testing.T) {
@@ -22,25 +25,18 @@ services:
           DB_USER: app
 `)
 	if err := os.WriteFile(composePath, composePayload, 0o600); err != nil {
-		t.Fatalf("write compose file: %v", err)
+		require.NoError(t, err, "write compose file")
 	}
 
 	file, err := Load(composePath)
-	if err != nil {
-		t.Fatalf("load compose: %v", err)
-	}
+	require.NoError(t, err, "load compose")
 
-	if len(file.Services) != 1 {
-		t.Fatalf("expected 1 service, got %d", len(file.Services))
-	}
-	if len(file.Services[0].InitJobs) != 1 {
-		t.Fatalf("expected 1 init job, got %d", len(file.Services[0].InitJobs))
-	}
+	require.Len(t, file.Services, 1, "expected 1 service")
+	require.Len(t, file.Services[0].InitJobs, 1, "expected 1 init job")
 
 	first := file.Services[0].InitJobs[0]
-	if first.Environment["DB_HOST"] != "postgres" || first.Environment["DB_USER"] != "app" {
-		t.Fatalf("unexpected environment for first job: %#v", first.Environment)
-	}
+	assert.Equal(t, "postgres", first.Environment["DB_HOST"], "unexpected DB_HOST")
+	assert.Equal(t, "app", first.Environment["DB_USER"], "unexpected DB_USER")
 }
 
 func TestLoadInitJobsIgnoresLegacyEnv(t *testing.T) {
@@ -57,18 +53,13 @@ services:
           LEGACY: "1"
 `)
 	if err := os.WriteFile(composePath, composePayload, 0o600); err != nil {
-		t.Fatalf("write compose file: %v", err)
+		require.NoError(t, err, "write compose file")
 	}
 
 	file, err := Load(composePath)
-	if err != nil {
-		t.Fatalf("load compose: %v", err)
-	}
+	require.NoError(t, err, "load compose")
 
-	if len(file.Services) != 1 || len(file.Services[0].InitJobs) != 1 {
-		t.Fatalf("unexpected init jobs shape: %#v", file.Services)
-	}
-	if file.Services[0].InitJobs[0].Environment != nil {
-		t.Fatalf("legacy env must be ignored, got: %#v", file.Services[0].InitJobs[0].Environment)
-	}
+	require.Len(t, file.Services, 1, "unexpected services count")
+	require.Len(t, file.Services[0].InitJobs, 1, "unexpected init jobs count")
+	assert.Nil(t, file.Services[0].InitJobs[0].Environment, "legacy env must be ignored")
 }

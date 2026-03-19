@@ -3,8 +3,10 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadWithStacksFile(t *testing.T) {
@@ -19,7 +21,7 @@ stacks:
     composeFile: worker/docker-compose.yml
 `)
 	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
-		t.Fatalf("write stacks file: %v", err)
+		require.NoError(t, err, "write stacks file")
 	}
 
 	configPath := filepath.Join(dir, "swarm-deploy.yaml")
@@ -31,20 +33,14 @@ sync:
 stacksFile: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
+		require.NoError(t, err, "write config file")
 	}
 
 	cfg, err := Load(configPath)
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
-
-	if len(cfg.Spec.Stacks) != 2 {
-		t.Fatalf("expected 2 stacks, got %d", len(cfg.Spec.Stacks))
-	}
-	if cfg.Spec.Stacks[0].Name != "app" || cfg.Spec.Stacks[1].Name != "worker" {
-		t.Fatalf("unexpected stacks order/content: %+v", cfg.Spec.Stacks)
-	}
+	require.NoError(t, err, "load config")
+	require.Len(t, cfg.Spec.Stacks, 2, "expected 2 stacks")
+	assert.Equal(t, "app", cfg.Spec.Stacks[0].Name, "unexpected first stack")
+	assert.Equal(t, "worker", cfg.Spec.Stacks[1].Name, "unexpected second stack")
 }
 
 func TestLoadFailsWithoutStacksFile(t *testing.T) {
@@ -58,32 +54,26 @@ sync:
   mode: pull
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
+		require.NoError(t, err, "write config file")
 	}
 
 	_, err := Load(configPath)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if !strings.Contains(err.Error(), "stacksFile is required") {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.Error(t, err, "expected error")
+	assert.Contains(t, err.Error(), "stacksFile is required", "unexpected error")
 }
 
 func TestWebhookSecretResolveFromFile(t *testing.T) {
 	dir := t.TempDir()
 	secretPath := filepath.Join(dir, "webhook_secret")
 	if err := os.WriteFile(secretPath, []byte(" from-file \n"), 0o600); err != nil {
-		t.Fatalf("write secret file: %v", err)
+		require.NoError(t, err, "write secret file")
 	}
 
 	spec := WebhookSpec{
 		SecretPath: secretPath,
 	}
 
-	if got := spec.ResolveSecret(); got != "from-file" {
-		t.Fatalf("expected secret from file, got %q", got)
-	}
+	assert.Equal(t, "from-file", spec.ResolveSecret(), "expected secret from file")
 }
 
 func TestLoadResolvesRelativeWebhookSecretPath(t *testing.T) {
@@ -96,12 +86,12 @@ stacks:
     composeFile: app/docker-compose.yml
 `)
 	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
-		t.Fatalf("write stacks file: %v", err)
+		require.NoError(t, err, "write stacks file")
 	}
 
 	secretPath := filepath.Join(dir, "webhook_secret")
 	if err := os.WriteFile(secretPath, []byte("from-file"), 0o600); err != nil {
-		t.Fatalf("write secret file: %v", err)
+		require.NoError(t, err, "write secret file")
 	}
 
 	configPath := filepath.Join(dir, "swarm-deploy.yaml")
@@ -116,20 +106,13 @@ sync:
 stacksFile: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
+		require.NoError(t, err, "write config file")
 	}
 
 	cfg, err := Load(configPath)
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
-
-	if cfg.Spec.Sync.Webhook.SecretPath != secretPath {
-		t.Fatalf("expected resolved secretPath %q, got %q", secretPath, cfg.Spec.Sync.Webhook.SecretPath)
-	}
-	if got := cfg.WebhookSecret(); got != "from-file" {
-		t.Fatalf("expected secret from file, got %q", got)
-	}
+	require.NoError(t, err, "load config")
+	assert.Equal(t, secretPath, cfg.Spec.Sync.Webhook.SecretPath, "expected resolved secretPath")
+	assert.Equal(t, "from-file", cfg.WebhookSecret(), "expected secret from file")
 }
 
 func TestLoadIgnoresDataDirFromConfig(t *testing.T) {
@@ -142,12 +125,12 @@ stacks:
     composeFile: app/docker-compose.yml
 `)
 	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
-		t.Fatalf("write stacks file: %v", err)
+		require.NoError(t, err, "write stacks file")
 	}
 
 	secretPath := filepath.Join(dir, "webhook_secret")
 	if err := os.WriteFile(secretPath, []byte("secret"), 0o600); err != nil {
-		t.Fatalf("write secret file: %v", err)
+		require.NoError(t, err, "write secret file")
 	}
 
 	configPath := filepath.Join(dir, "swarm-deploy.yaml")
@@ -163,18 +146,14 @@ sync:
 stacksFile: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
+		require.NoError(t, err, "write config file")
 	}
 
 	cfg, err := Load(configPath)
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	require.NoError(t, err, "load config")
 
 	expectedDataDir := filepath.Join(dir, ".swarm-deploy")
-	if cfg.Spec.DataDir != expectedDataDir {
-		t.Fatalf("expected dataDir %q, got %q", expectedDataDir, cfg.Spec.DataDir)
-	}
+	assert.Equal(t, expectedDataDir, cfg.Spec.DataDir, "expected dataDir")
 }
 
 func TestLoadWebAddressUsedForSingleServer(t *testing.T) {
@@ -187,7 +166,7 @@ stacks:
     composeFile: app/docker-compose.yml
 `)
 	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
-		t.Fatalf("write stacks file: %v", err)
+		require.NoError(t, err, "write stacks file")
 	}
 
 	configPath := filepath.Join(dir, "swarm-deploy.yaml")
@@ -199,20 +178,13 @@ web:
   address: ":18080"
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
+		require.NoError(t, err, "write config file")
 	}
 
 	cfg, err := Load(configPath)
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
-
-	if cfg.Spec.Web.Address != ":18080" {
-		t.Fatalf("expected web.address :18080, got %q", cfg.Spec.Web.Address)
-	}
-	if cfg.Spec.Sync.Webhook.Address != defaultWebhookAddress {
-		t.Fatalf("expected sync.webhook.address %s, got %q", defaultWebhookAddress, cfg.Spec.Sync.Webhook.Address)
-	}
+	require.NoError(t, err, "load config")
+	assert.Equal(t, ":18080", cfg.Spec.Web.Address, "expected web.address")
+	assert.Equal(t, defaultWebhookAddress, cfg.Spec.Sync.Webhook.Address, "expected sync.webhook.address")
 }
 
 func TestLoadWebAddressDefaults(t *testing.T) {
@@ -225,7 +197,7 @@ stacks:
     composeFile: app/docker-compose.yml
 `)
 	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
-		t.Fatalf("write stacks file: %v", err)
+		require.NoError(t, err, "write stacks file")
 	}
 
 	configPath := filepath.Join(dir, "swarm-deploy.yaml")
@@ -235,20 +207,13 @@ git:
 stacksFile: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
+		require.NoError(t, err, "write config file")
 	}
 
 	cfg, err := Load(configPath)
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
-
-	if cfg.Spec.Web.Address != defaultWebAddress {
-		t.Fatalf("expected web.address %s, got %q", defaultWebAddress, cfg.Spec.Web.Address)
-	}
-	if cfg.Spec.Sync.Webhook.Address != defaultWebhookAddress {
-		t.Fatalf("expected sync.webhook.address %s, got %q", defaultWebhookAddress, cfg.Spec.Sync.Webhook.Address)
-	}
+	require.NoError(t, err, "load config")
+	assert.Equal(t, defaultWebAddress, cfg.Spec.Web.Address, "expected web.address")
+	assert.Equal(t, defaultWebhookAddress, cfg.Spec.Sync.Webhook.Address, "expected sync.webhook.address")
 }
 
 func TestLoadResolvesRelativeGitSSHPassphrasePath(t *testing.T) {
@@ -261,12 +226,12 @@ stacks:
     composeFile: app/docker-compose.yml
 `)
 	if err := os.WriteFile(stacksPath, stacksPayload, 0o600); err != nil {
-		t.Fatalf("write stacks file: %v", err)
+		require.NoError(t, err, "write stacks file")
 	}
 
 	passphrasePath := filepath.Join(dir, "git_passphrase")
 	if err := os.WriteFile(passphrasePath, []byte(" super-secret \n"), 0o600); err != nil {
-		t.Fatalf("write passphrase file: %v", err)
+		require.NoError(t, err, "write passphrase file")
 	}
 
 	configPath := filepath.Join(dir, "swarm-deploy.yaml")
@@ -281,23 +246,14 @@ git:
 stacksFile: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
+		require.NoError(t, err, "write config file")
 	}
 
 	cfg, err := Load(configPath)
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
-
-	if cfg.Spec.Git.Auth.SSH.PassphrasePath != passphrasePath {
-		t.Fatalf("expected passphrasePath %q, got %q", passphrasePath, cfg.Spec.Git.Auth.SSH.PassphrasePath)
-	}
+	require.NoError(t, err, "load config")
+	assert.Equal(t, passphrasePath, cfg.Spec.Git.Auth.SSH.PassphrasePath, "expected passphrasePath")
 
 	passphrase, err := cfg.Spec.Git.Auth.SSH.ResolvePassphrase()
-	if err != nil {
-		t.Fatalf("resolve passphrase: %v", err)
-	}
-	if passphrase != "super-secret" {
-		t.Fatalf("expected passphrase super-secret, got %q", passphrase)
-	}
+	require.NoError(t, err, "resolve passphrase")
+	assert.Equal(t, "super-secret", passphrase, "expected passphrase")
 }

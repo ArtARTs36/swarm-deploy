@@ -66,7 +66,8 @@ func (d *Dispatcher) DispatchFailedDeploy(
 }
 
 func (d *Dispatcher) dispatch(event notify.Event) {
-	if err := d.notifier.Notify(context.Background(), event); err != nil {
-		slog.Warn("[event] failed to notify", slog.Any("err", err))
+	ctx := context.Background()
+	if err := d.notifier.Notify(ctx, event); err != nil {
+		slog.ErrorContext(ctx, "[event] failed to notify", slog.Any("err", err))
 	}
 }

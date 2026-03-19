@@ -8,3 +8,6 @@ lint:
 .PHONY: gen
 gen:
 	ogen --target ./internal/entrypoints/webserver/generated --clean ./api/api-server.yaml
+
+test:
+	go test -v ./...
