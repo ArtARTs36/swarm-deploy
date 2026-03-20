@@ -25,6 +25,8 @@ const (
 	TriggerManual  TriggerReason = "manual"
 )
 
+const eventShutdownTimeout = 5 * time.Second
+
 type StackView struct {
 	Name         string        `json:"name"`
 	ComposeFile  string        `json:"compose_file"`
@@ -94,6 +96,15 @@ func (c *Controller) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), eventShutdownTimeout)
+			if err := c.event.Shutdown(shutdownCtx); err != nil {
+				slog.ErrorContext(
+					context.Background(),
+					"[controller] failed to shutdown event dispatcher",
+					slog.Any("err", err),
+				)
+			}
+			cancel()
 			return nil
 		case reason := <-c.triggerCh:
 			c.syncOnce(ctx, reason)
