@@ -19,6 +19,8 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/notify"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/cappuccinotm/slogx"
+	"github.com/cappuccinotm/slogx/slogm"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -28,7 +30,11 @@ const shutdownTimeout = 30 * time.Second
 func main() {
 	ctx := context.Background()
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slogx.RequestIDKey = "x-request-id"
+	logger := slog.New(slogx.NewChain(
+		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
+		slogm.RequestID(),
+	))
 	slog.SetDefault(logger)
 
 	configPath := flag.String("config", "swarm-deploy.yaml", "Path to config file")
@@ -88,7 +94,11 @@ func main() {
 		notifier,
 	)
 
-	webApplication, err := webserver.NewApplication(cfg.Spec.Web.Address, control)
+	webApplication, err := webserver.NewApplication(
+		cfg.Spec.Web.Address,
+		control,
+		cfg.Spec.Web.Security.Authentication,
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to init web server", slog.Any("err", err))
 		os.Exit(1)

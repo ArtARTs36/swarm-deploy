@@ -6,8 +6,11 @@ import (
 	"time"
 
 	"github.com/artarts36/go-entrypoint"
+	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/artarts36/swarm-deploy/internal/controller"
+	"github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/authenticator"
 	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
+	"github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/middlewares"
 	"github.com/artarts36/swarm-deploy/ui"
 )
 
@@ -17,7 +20,11 @@ type Application struct {
 	server *http.Server
 }
 
-func NewApplication(address string, control *controller.Controller) (*Application, error) {
+func NewApplication(
+	address string,
+	control *controller.Controller,
+	authCfg config.AuthenticationSpec,
+) (*Application, error) {
 	h := NewHandler(control)
 
 	apiHandler, err := generated.NewServer(h)
@@ -35,10 +42,16 @@ func NewApplication(address string, control *controller.Controller) (*Applicatio
 	mux.Handle("/ui/", http.StripPrefix("/ui/", uiHandler))
 	mux.Handle("/", uiHandler)
 
+	rootHandler := http.Handler(mux)
+	auth, err := authenticator.Create(authCfg)
+	if err != nil {
+		return nil, fmt.Errorf("build authenticator: %w", err)
+	}
+
 	return &Application{
 		server: &http.Server{
 			Addr:              address,
-			Handler:           mux,
+			Handler:           middlewares.NewLog(middlewares.Authorize(rootHandler, auth), apiHandler.FindRoute),
 			ReadHeaderTimeout: readHeaderTimeout,
 		},
 	}, nil

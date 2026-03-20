@@ -18,6 +18,11 @@ const (
 	SyncModeWebhook = "webhook"
 	SyncModeHybrid  = "hybrid"
 
+	// AuthenticationStrategyNone disables web authentication.
+	AuthenticationStrategyNone = "none"
+	// AuthenticationStrategyBasic enables HTTP Basic authentication.
+	AuthenticationStrategyBasic = "basic"
+
 	defaultWebAddress         = ":8080"
 	defaultWebhookAddress     = ":8082"
 	defaultSyncPollInterval   = 30 * time.Second
@@ -169,6 +174,23 @@ type CustomChannel struct {
 type WebSpec struct {
 	// Address is an HTTP listen address for UI and API server.
 	Address string `yaml:"address"`
+	// Security contains UI and API access settings.
+	Security SecuritySpec `yaml:"security"`
+}
+
+type SecuritySpec struct {
+	// Authentication contains web authentication strategy settings.
+	Authentication AuthenticationSpec `yaml:"authentication"`
+}
+
+type AuthenticationSpec struct {
+	// Basic contains HTTP Basic authentication settings.
+	Basic BasicAuthenticationSpec `yaml:"basic"`
+}
+
+type BasicAuthenticationSpec struct {
+	// HTPasswdFile is a path to htpasswd file with user credentials.
+	HTPasswdFile string `yaml:"htpasswdFile"`
 }
 
 type HealthServerSpec struct {
@@ -248,6 +270,7 @@ func (c *Config) applyDefaults(configDir string) error {
 	c.Spec.DataDir = filepath.Join(configDir, ".swarm-deploy")
 	c.applyGitAndSyncDefaults(configDir)
 	c.applyWebAndHealthDefaults()
+	c.applySecurityDefaults(configDir)
 	c.applyNotificationDefaults(configDir)
 	c.applySwarmDefaults()
 	c.applySecretRotationDefaults()
@@ -300,6 +323,13 @@ func (c *Config) applyWebAndHealthDefaults() {
 	}
 	if c.Spec.HealthServer.Healthz.Path == "" {
 		c.Spec.HealthServer.Healthz.Path = "/healthz"
+	}
+}
+
+func (c *Config) applySecurityDefaults(configDir string) {
+	htpasswdPath := strings.TrimSpace(c.Spec.Web.Security.Authentication.Basic.HTPasswdFile)
+	if htpasswdPath != "" && !filepath.IsAbs(htpasswdPath) {
+		c.Spec.Web.Security.Authentication.Basic.HTPasswdFile = filepath.Join(configDir, htpasswdPath)
 	}
 }
 
@@ -444,6 +474,7 @@ func (c *Config) validate() error {
 	errs = append(errs, c.validateStacks()...)
 	errs = append(errs, c.validateSync()...)
 	errs = append(errs, c.validateGitAuth()...)
+	errs = append(errs, c.validateSecurity()...)
 	errs = append(errs, c.validateTelegramNotifications()...)
 	errs = append(errs, c.validateCustomNotifications()...)
 
@@ -521,6 +552,23 @@ func (c *Config) validateGitAuth() []error {
 	return errs
 }
 
+func (c *Config) validateSecurity() []error {
+	htpasswdPath := strings.TrimSpace(c.Spec.Web.Security.Authentication.Basic.HTPasswdFile)
+	if htpasswdPath == "" {
+		return nil
+	}
+
+	payload, err := os.ReadFile(htpasswdPath)
+	if err != nil {
+		return []error{fmt.Errorf("read web.security.authentication.basic.htpasswdFile %s: %w", htpasswdPath, err)}
+	}
+	if strings.TrimSpace(string(payload)) == "" {
+		return []error{errors.New("web.security.authentication.basic.htpasswdFile contains empty credentials")}
+	}
+
+	return nil
+}
+
 func (c *Config) validateWebhookSecret() []error {
 	if !c.Spec.Sync.Webhook.Enabled {
 		return nil
@@ -589,6 +637,15 @@ func (w WebhookSpec) ResolveSecret() string {
 
 func (c *Config) WebhookSecret() string {
 	return c.Spec.Sync.Webhook.ResolveSecret()
+}
+
+// Strategy resolves configured web authentication strategy.
+func (a AuthenticationSpec) Strategy() string {
+	if strings.TrimSpace(a.Basic.HTPasswdFile) != "" {
+		return AuthenticationStrategyBasic
+	}
+
+	return AuthenticationStrategyNone
 }
 
 func (a GitHTTPAuth) ResolvePassword() string {

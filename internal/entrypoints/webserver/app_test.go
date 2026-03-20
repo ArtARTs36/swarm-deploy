@@ -5,12 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUIRoutes(t *testing.T) {
-	app, err := NewApplication(":0", nil)
+	app, err := NewApplication(":0", nil, config.AuthenticationSpec{})
 	require.NoError(t, err, "new application")
 
 	rec := httptest.NewRecorder()

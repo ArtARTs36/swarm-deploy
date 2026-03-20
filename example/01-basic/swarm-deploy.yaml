@@ -49,6 +49,14 @@ swarm:
 web:
   # Single web server listen address for UI and API.
   address: ":8080"
+  # UI/API access control settings.
+  security:
+    authentication:
+      basic:
+        # Path to htpasswd file with bcrypt hashes (mounted secret recommended).
+        # Example: /run/secrets/basic.htpasswd
+        # Leave empty to disable authentication.
+        htpasswdFile: ""
 
 # Dedicated health/metrics server.
 healthServer:
