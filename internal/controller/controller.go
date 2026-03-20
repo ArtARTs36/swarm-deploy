@@ -119,7 +119,7 @@ func (c *Controller) Trigger(reason TriggerReason) bool {
 	}
 }
 
-func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) {
+func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) { //nolint:funlen // not need
 	startedAt := time.Now()
 
 	slog.InfoContext(ctx, "[controller] run sync", slog.String("reason", string(reason)))
