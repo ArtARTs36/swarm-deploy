@@ -16,8 +16,10 @@ sync:
   # Pull polling interval.
   pollInterval: 30s
 
-# Path to stacks definition file.
-stacksFile: ./stacks.yaml
+# Stacks source settings.
+stacks:
+  # Path to stacks definition file in git repository (relative to repo root).
+  file: ./stacks.yaml
 
 # Secret/config name rotation settings.
 secretRotation:

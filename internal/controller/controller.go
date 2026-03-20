@@ -150,6 +150,29 @@ func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) {
 	}
 	c.metrics.RecordGitUpdate(c.cfg.Spec.Git.Repository, updateResult)
 
+	reloadedFrom, reloadErr := c.reloadStacks()
+	if reloadErr != nil {
+		slog.ErrorContext(ctx, "sync failed at stacks reload stage",
+			slog.String("reason", string(reason)),
+			slog.String("stacks.file", c.cfg.Spec.StacksSource.File),
+			slog.Any("err", reloadErr),
+		)
+		c.metrics.RecordSyncRun(string(reason), "error", time.Since(startedAt))
+		c.updateState(func(s *runtimeState) {
+			s.LastSyncAt = time.Now()
+			s.LastSyncReason = string(reason)
+			s.LastSyncResult = "error"
+			s.LastSyncError = reloadErr.Error()
+			s.GitRevision = syncResult.NewRevision
+		})
+		return
+	}
+
+	slog.InfoContext(ctx, "[controller] stacks reloaded",
+		slog.String("path", reloadedFrom),
+		slog.Int("count", len(c.cfg.Spec.Stacks)),
+	)
+
 	if !syncResult.Updated && reason != TriggerManual {
 		c.metrics.RecordSyncRun(string(reason), "no_change", time.Since(startedAt))
 		c.updateState(func(s *runtimeState) {
@@ -198,6 +221,10 @@ func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) {
 		}
 		s.GitRevision = syncResult.NewRevision
 	})
+}
+
+func (c *Controller) reloadStacks() (string, error) {
+	return c.cfg.ReloadStacks(c.gitSync.WorkingDir())
 }
 
 func (c *Controller) syncStack(ctx context.Context, stackCfg config.StackSpec, commit string) error {

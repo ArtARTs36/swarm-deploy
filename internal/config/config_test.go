@@ -30,7 +30,8 @@ git:
   repository: https://example.com/repo.git
 sync:
   mode: pull
-stacksFile: ./stacks.yaml
+stacks:
+  file: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
 		require.NoError(t, err, "write config file")
@@ -59,7 +60,28 @@ sync:
 
 	_, err := Load(configPath)
 	require.Error(t, err, "expected error")
-	assert.Contains(t, err.Error(), "stacksFile is required", "unexpected error")
+	assert.Contains(t, err.Error(), "stacks.file is required", "unexpected error")
+}
+
+func TestLoadAllowsMissingStacksFileBeforeFirstSync(t *testing.T) {
+	dir := t.TempDir()
+
+	configPath := filepath.Join(dir, "swarm-deploy.yaml")
+	configPayload := []byte(`
+git:
+  repository: https://example.com/repo.git
+sync:
+  mode: pull
+stacks:
+  file: ./stacks.yaml
+`)
+	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
+		require.NoError(t, err, "write config file")
+	}
+
+	cfg, err := Load(configPath)
+	require.NoError(t, err, "load config")
+	assert.Empty(t, cfg.Spec.Stacks, "stacks must be loaded later from git repository during sync")
 }
 
 func TestWebhookSecretResolveFromFile(t *testing.T) {
@@ -103,7 +125,8 @@ sync:
   webhook:
     enabled: true
     secretPath: ./webhook_secret
-stacksFile: ./stacks.yaml
+stacks:
+  file: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
 		require.NoError(t, err, "write config file")
@@ -143,7 +166,8 @@ sync:
   webhook:
     enabled: true
     secretPath: ./webhook_secret
-stacksFile: ./stacks.yaml
+stacks:
+  file: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
 		require.NoError(t, err, "write config file")
@@ -173,7 +197,8 @@ stacks:
 	configPayload := []byte(`
 git:
   repository: https://example.com/repo.git
-stacksFile: ./stacks.yaml
+stacks:
+  file: ./stacks.yaml
 web:
   address: ":18080"
 `)
@@ -204,7 +229,8 @@ stacks:
 	configPayload := []byte(`
 git:
   repository: https://example.com/repo.git
-stacksFile: ./stacks.yaml
+stacks:
+  file: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
 		require.NoError(t, err, "write config file")
@@ -243,7 +269,8 @@ git:
     ssh:
       privateKeyPath: /run/secrets/deploy_key
       passphrasePath: ./git_passphrase
-stacksFile: ./stacks.yaml
+stacks:
+  file: ./stacks.yaml
 `)
 	if err := os.WriteFile(configPath, configPayload, 0o600); err != nil {
 		require.NoError(t, err, "write config file")
@@ -256,4 +283,73 @@ stacksFile: ./stacks.yaml
 	passphrase, err := cfg.Spec.Git.Auth.SSH.ResolvePassphrase()
 	require.NoError(t, err, "resolve passphrase")
 	assert.Equal(t, "super-secret", passphrase, "expected passphrase")
+}
+
+func TestReloadStacksPrefersFirstAvailableBaseDir(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, "config")
+	repoDir := filepath.Join(dir, "repo")
+
+	require.NoError(t, os.MkdirAll(configDir, 0o755), "create config dir")
+	require.NoError(t, os.MkdirAll(repoDir, 0o755), "create repo dir")
+
+	configStacksPath := filepath.Join(configDir, "stacks.yaml")
+	repoStacksPath := filepath.Join(repoDir, "stacks.yaml")
+
+	configStacks := []byte(`
+stacks:
+  - name: from-config
+    composeFile: app.yaml
+`)
+	repoStacks := []byte(`
+stacks:
+  - name: from-repo
+    composeFile: app.yaml
+`)
+
+	require.NoError(t, os.WriteFile(configStacksPath, configStacks, 0o600), "write config stacks")
+	require.NoError(t, os.WriteFile(repoStacksPath, repoStacks, 0o600), "write repo stacks")
+
+	cfg := &Config{
+		Spec: Spec{
+			StacksSource: StacksSourceSpec{
+				File: "./stacks.yaml",
+			},
+		},
+	}
+
+	loadedFrom, err := cfg.ReloadStacks(repoDir, configDir)
+	require.NoError(t, err, "reload stacks")
+	assert.Equal(t, repoStacksPath, loadedFrom, "expected repo stacks path")
+	require.Len(t, cfg.Spec.Stacks, 1, "expected one stack")
+	assert.Equal(t, "from-repo", cfg.Spec.Stacks[0].Name, "expected stack from repo")
+}
+
+func TestReloadStacksFallsBackToNextBaseDir(t *testing.T) {
+	dir := t.TempDir()
+	missingRepoDir := filepath.Join(dir, "repo")
+	configDir := filepath.Join(dir, "config")
+	require.NoError(t, os.MkdirAll(configDir, 0o755), "create config dir")
+
+	configStacksPath := filepath.Join(configDir, "stacks.yaml")
+	configStacks := []byte(`
+stacks:
+  - name: from-config
+    composeFile: app.yaml
+`)
+	require.NoError(t, os.WriteFile(configStacksPath, configStacks, 0o600), "write config stacks")
+
+	cfg := &Config{
+		Spec: Spec{
+			StacksSource: StacksSourceSpec{
+				File: "./stacks.yaml",
+			},
+		},
+	}
+
+	loadedFrom, err := cfg.ReloadStacks(missingRepoDir, configDir)
+	require.NoError(t, err, "reload stacks")
+	assert.Equal(t, configStacksPath, loadedFrom, "expected fallback config stacks path")
+	require.Len(t, cfg.Spec.Stacks, 1, "expected one stack")
+	assert.Equal(t, "from-config", cfg.Spec.Stacks[0].Name, "expected stack from config")
 }

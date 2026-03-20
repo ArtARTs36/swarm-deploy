@@ -38,9 +38,9 @@ type Spec struct {
 	Git GitSpec `yaml:"git"`
 	// Sync contains pull/webhook synchronization settings.
 	Sync SyncSpec `yaml:"sync"`
-	// StacksFile points to a YAML file with stack definitions.
-	StacksFile string `yaml:"stacksFile"`
-	// Stacks is a parsed list of stack specifications loaded from StacksFile.
+	// StacksSource contains path to stack definitions file inside git repository.
+	StacksSource StacksSourceSpec `yaml:"stacks"`
+	// Stacks is a parsed list of stack specifications loaded from stacks.file.
 	Stacks []StackSpec `yaml:"-"`
 	// Notifications contains notification channel configuration.
 	Notifications NotificationSpec `yaml:"notifications"`
@@ -119,6 +119,11 @@ type WebhookSpec struct {
 	Path string `yaml:"path"`
 	// SecretPath is a path to file containing webhook shared secret.
 	SecretPath string `yaml:"secretPath"`
+}
+
+type StacksSourceSpec struct {
+	// File is a path to YAML file with stack definitions relative to repository root.
+	File string `yaml:"file"`
 }
 
 type StackSpec struct {
@@ -332,18 +337,79 @@ func (c *Config) applySecretRotationDefaults() {
 }
 
 func (c *Config) loadStacks(configDir string) error {
-	if c.Spec.StacksFile == "" {
-		return errors.New("stacksFile is required")
+	_, err := c.ReloadStacks(filepath.Join(c.Spec.DataDir, "repo"), configDir)
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+// ReloadStacks reloads stack definitions from the first existing base directory.
+// If stacks.file is absolute, the absolute path is used directly.
+func (c *Config) ReloadStacks(baseDirs ...string) (string, error) {
+	stacksPath, err := c.resolveStacksPath(baseDirs...)
+	if err != nil {
+		return "", err
 	}
 
-	stacksPath := c.Spec.StacksFile
-	if !filepath.IsAbs(stacksPath) {
-		stacksPath = filepath.Join(configDir, stacksPath)
+	stacks, err := loadStacksFromFile(stacksPath)
+	if err != nil {
+		return "", err
+	}
+	if errs := validateStacksList(stacks); len(errs) > 0 {
+		return "", errors.Join(errs...)
 	}
 
+	c.Spec.Stacks = stacks
+	return stacksPath, nil
+}
+
+func (c *Config) resolveStacksPath(baseDirs ...string) (string, error) {
+	if c.Spec.StacksSource.File == "" {
+		return "", errors.New("stacks.file is required")
+	}
+
+	if filepath.IsAbs(c.Spec.StacksSource.File) {
+		return c.Spec.StacksSource.File, nil
+	}
+
+	var candidates []string
+	for _, baseDir := range baseDirs {
+		if strings.TrimSpace(baseDir) == "" {
+			continue
+		}
+
+		candidate := filepath.Join(baseDir, c.Spec.StacksSource.File)
+		candidates = append(candidates, candidate)
+
+		_, err := os.Stat(candidate)
+		if err == nil {
+			return candidate, nil
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("stat stacks file %s: %w", candidate, err)
+		}
+	}
+
+	if len(candidates) == 0 {
+		return "", errors.New("stacks.file is relative and no baseDirs provided")
+	}
+
+	return "", fmt.Errorf(
+		"stacks file %s not found in any base dir: %s: %w",
+		c.Spec.StacksSource.File,
+		strings.Join(candidates, ", "),
+		os.ErrNotExist,
+	)
+}
+
+func loadStacksFromFile(stacksPath string) ([]StackSpec, error) {
 	data, err := os.ReadFile(stacksPath)
 	if err != nil {
-		return fmt.Errorf("read stacks file %s: %w", stacksPath, err)
+		return nil, fmt.Errorf("read stacks file %s: %w", stacksPath, err)
 	}
 
 	type stacksContainer struct {
@@ -353,24 +419,22 @@ func (c *Config) loadStacks(configDir string) error {
 	var container stacksContainer
 	err = yaml.Unmarshal(data, &container)
 	if err != nil {
-		return fmt.Errorf("decode stacks file %s: %w", stacksPath, err)
+		return nil, fmt.Errorf("decode stacks file %s: %w", stacksPath, err)
 	}
 	if len(container.Stacks) > 0 {
-		c.Spec.Stacks = container.Stacks
-		return nil
+		return container.Stacks, nil
 	}
 
 	var list []StackSpec
 	err = yaml.Unmarshal(data, &list)
 	if err != nil {
-		return fmt.Errorf("decode stacks list %s: %w", stacksPath, err)
+		return nil, fmt.Errorf("decode stacks list %s: %w", stacksPath, err)
 	}
 	if len(list) == 0 {
-		return fmt.Errorf("stacks file %s does not contain any stacks", stacksPath)
+		return nil, fmt.Errorf("stacks file %s does not contain any stacks", stacksPath)
 	}
 
-	c.Spec.Stacks = list
-	return nil
+	return list, nil
 }
 
 func (c *Config) validate() error {
@@ -392,29 +456,34 @@ func (c *Config) validateRequired() []error {
 	if c.Spec.Git.Repository == "" {
 		errs = append(errs, errors.New("git.repository is required"))
 	}
-	if c.Spec.StacksFile == "" {
-		errs = append(errs, errors.New("stacksFile is required"))
-	}
-	if len(c.Spec.Stacks) == 0 {
-		errs = append(errs, errors.New("stacks file must contain at least one stack"))
+	if c.Spec.StacksSource.File == "" {
+		errs = append(errs, errors.New("stacks.file is required"))
 	}
 
 	return errs
 }
 
 func (c *Config) validateStacks() []error {
+	if len(c.Spec.Stacks) == 0 {
+		return nil
+	}
+
+	return validateStacksList(c.Spec.Stacks)
+}
+
+func validateStacksList(stacks []StackSpec) []error {
 	var errs []error
 
 	seen := map[string]struct{}{}
-	for i, stack := range c.Spec.Stacks {
+	for i, stack := range stacks {
 		if stack.Name == "" {
-			errs = append(errs, fmt.Errorf("stacksFile[%d].name is required", i))
+			errs = append(errs, fmt.Errorf("stacks.file[%d].name is required", i))
 		}
 		if stack.ComposeFile == "" {
-			errs = append(errs, fmt.Errorf("stacksFile[%d].composeFile is required", i))
+			errs = append(errs, fmt.Errorf("stacks.file[%d].composeFile is required", i))
 		}
 		if _, exists := seen[stack.Name]; exists {
-			errs = append(errs, fmt.Errorf("stacksFile has duplicated name %q", stack.Name))
+			errs = append(errs, fmt.Errorf("stacks.file has duplicated name %q", stack.Name))
 		}
 		seen[stack.Name] = struct{}{}
 	}

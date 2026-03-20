@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"github.com/artarts36/swarm-deploy/internal/registry"
 	dockerregistry "github.com/docker/docker/api/types/registry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +17,9 @@ func TestBuildInitServiceCreateOptionsUsesAuthFromDockerAuthConfigEnv(t *testing
 	t.Setenv("DOCKER_AUTH_CONFIG", `{"auths":{"wmb-prod.cr.cloud.ru":{"auth":"`+rawAuth+`"}}}`)
 	t.Setenv("DOCKER_CONFIG", t.TempDir())
 
-	deployer := &Deployer{}
+	deployer := &Deployer{
+		authManager: registry.NewAuthManager(),
+	}
 	options, err := deployer.buildInitServiceCreateOptions(privateImage)
 	require.NoError(t, err, "build service create options")
 	require.NotEmpty(t, options.EncodedRegistryAuth, "registry auth must be set for private registry")
@@ -33,7 +36,9 @@ func TestBuildInitServiceCreateOptionsReturnsEmptyWithoutAuthConfig(t *testing.T
 	t.Setenv("DOCKER_AUTH_CONFIG", "")
 	t.Setenv("DOCKER_CONFIG", t.TempDir())
 
-	deployer := &Deployer{}
+	deployer := &Deployer{
+		authManager: registry.NewAuthManager(),
+	}
 	options, err := deployer.buildInitServiceCreateOptions(privateImage)
 	require.NoError(t, err, "build service create options")
 	assert.Empty(t, options.EncodedRegistryAuth, "registry auth must be empty without auth config")
