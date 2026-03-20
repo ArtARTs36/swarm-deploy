@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/artarts36/swarm-deploy/internal/config"
+	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +30,7 @@ func TestReloadStacksUsesRepositoryDirFirst(t *testing.T) {
 		},
 	}
 
-	gitSync, err := gitops.NewSyncer(config.GitSpec{}, dataDir)
+	gitSync, err := gitops.NewSyncer(gitx.NewAuthResolver(), config.GitSpec{}, dataDir)
 	require.NoError(t, err, "create git syncer")
 
 	c := &Controller{

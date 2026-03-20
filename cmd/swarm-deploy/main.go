@@ -14,6 +14,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/healthserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webhookserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webserver"
+	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/notify"
@@ -50,7 +51,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	gitSyncer, err := gitops.NewSyncer(cfg.Spec.Git, cfg.Spec.DataDir)
+	gitSyncer, err := gitops.NewSyncer(gitx.NewAuthResolver(), cfg.Spec.Git, cfg.Spec.DataDir)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to build git syncer", slog.Any("err", err))
 		os.Exit(1)
