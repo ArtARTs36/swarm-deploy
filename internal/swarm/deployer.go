@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/artarts36/swarm-deploy/internal/compose"
+	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/docker/docker/client"
 )
 
@@ -19,6 +20,7 @@ type Deployer struct {
 	initJobTimeout  time.Duration
 	runner          Runner
 	dockerClient    *client.Client
+	authManager     registry.AuthManager
 }
 
 type InitJobSpec struct {
@@ -49,6 +51,7 @@ func NewDeployer(
 		initJobTimeout:  initJobTimeout,
 		runner:          runner,
 		dockerClient:    cli,
+		authManager:     registry.NewAuthManager(),
 	}, nil
 }
 

@@ -5,6 +5,10 @@ globs: ["**/*.go"]
 apply: by file patterns
 ---
 
+# Comments
+- Each interface method must have a comment.
+- Each structure exported field must have a comment.
+
 # Go Logging Rules
 
 - **Primary Library**: Always use the `log/slog` standard library for all logging needs.
