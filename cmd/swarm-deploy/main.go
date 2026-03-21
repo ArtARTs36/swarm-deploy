@@ -149,7 +149,6 @@ func main() {
 
 func buildEventDispatcher(cfg *config.Config) (dispatcher.Dispatcher, error) {
 	subs := map[events.Type][]dispatcher.Subscriber{}
-	hasSubs := false
 
 	for eventType, channels := range cfg.Spec.Notifications.On {
 		for _, tg := range channels.Telegram {
@@ -172,26 +171,22 @@ func buildEventDispatcher(cfg *config.Config) (dispatcher.Dispatcher, error) {
 			}
 
 			subs[eventType] = append(subs[eventType], notify2.NewSubscriber(tgNotifier))
-			hasSubs = true
 		}
 
 		for _, custom := range channels.Custom {
 			notifier := notifiers.NewCustomWebhookNotifier(custom.Name, custom.ResolveURL(), custom.Method, custom.Header)
 
 			subs[eventType] = append(subs[eventType], notify2.NewSubscriber(notifier))
-			hasSubs = true
 		}
 	}
 
 	if len(subs) == 0 {
 		slog.Info("event subscribers not found")
-	} else {
-		slog.Info("found event subscribers", slog.Int("subscribers", len(subs)))
+
+		return &dispatcher.NopDispatcher{}, nil
 	}
 
-	if hasSubs {
-		return dispatcher.NewQueueDispatcher(subs), nil
-	}
+	slog.Info("found event subscribers", slog.Int("subscribers", len(subs)))
 
-	return &dispatcher.NopDispatcher{}, nil
+	return dispatcher.NewQueueDispatcher(subs), nil
 }
