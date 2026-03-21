@@ -13,7 +13,7 @@ type Image struct {
 }
 
 type Message struct {
-	Payload any
+	Payload any `json:",inline"`
 }
 
 type Notifier interface {

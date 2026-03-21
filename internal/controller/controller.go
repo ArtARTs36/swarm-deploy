@@ -13,7 +13,6 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
-	"github.com/artarts36/swarm-deploy/internal/notify"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
@@ -52,7 +51,7 @@ type Controller struct {
 	gitSync  *gitops.Syncer
 	deployer *swarm.Deployer
 	metrics  *metrics.Recorder
-	event    *dispatcher.Dispatcher
+	event    dispatcher.Dispatcher
 
 	stateStore      *runtimeStateStore
 	stackReconciler *stackReconciler
@@ -65,14 +64,14 @@ func New(
 	gitSync *gitops.Syncer,
 	deployer *swarm.Deployer,
 	metricRecorder *metrics.Recorder,
-	notifier *notify.Manager,
+	eventDispatcher dispatcher.Dispatcher,
 ) *Controller {
 	return &Controller{
 		cfg:        cfg,
 		gitSync:    gitSync,
 		deployer:   deployer,
 		metrics:    metricRecorder,
-		event:      dispatcher.NewDispatcher(notifier),
+		event:      eventDispatcher,
 		stateStore: newRuntimeStateStore(),
 		stackReconciler: newStackReconciler(
 			cfg,

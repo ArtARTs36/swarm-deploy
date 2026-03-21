@@ -14,6 +14,9 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/healthserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webhookserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webserver"
+	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
+	"github.com/artarts36/swarm-deploy/internal/event/events"
+	notify2 "github.com/artarts36/swarm-deploy/internal/event/notify"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
@@ -69,9 +72,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	notifier, err := buildNotifiers(cfg)
+	eventDispatcher, err := buildEventDispatcher(cfg)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to build notifiers", slog.Any("err", err))
+		slog.ErrorContext(ctx, "failed to build event dispatcher", slog.Any("err", err))
 		os.Exit(1)
 	}
 	deployer, err := swarm.NewDeployer(
@@ -91,7 +94,7 @@ func main() {
 		gitSyncer,
 		deployer,
 		metricRecorder,
-		notifier,
+		eventDispatcher,
 	)
 
 	webApplication, err := webserver.NewApplication(
@@ -144,8 +147,9 @@ func main() {
 	}
 }
 
-func buildNotifiers(cfg *config.Config) (*notify.Manager, error) {
-	notifiers := make([]notify.Notifier, 0, len(cfg.Spec.Notifications.Telegram)+len(cfg.Spec.Notifications.Custom))
+func buildEventDispatcher(cfg *config.Config) (dispatcher.Dispatcher, error) {
+	subs := map[events.Type][]dispatcher.Subscriber{}
+	hasSubs := false
 
 	for _, tg := range cfg.Spec.Notifications.Telegram {
 		token, err := tg.ResolveToken()
@@ -165,15 +169,23 @@ func buildNotifiers(cfg *config.Config) (*notify.Manager, error) {
 		if err != nil {
 			return nil, fmt.Errorf("build telegram notifier %q: %w", tg.Name, err)
 		}
-		notifiers = append(notifiers, tgNotifier)
+
+		subs[events.TypeDeploySuccess] = append(subs[events.TypeDeploySuccess], notify2.NewSubscriber(tgNotifier))
+		subs[events.TypeDeployFailed] = append(subs[events.TypeDeployFailed], notify2.NewSubscriber(tgNotifier))
+		hasSubs = true
 	}
 
 	for _, custom := range cfg.Spec.Notifications.Custom {
-		notifiers = append(
-			notifiers,
-			notify.NewCustomWebhookNotifier(custom.Name, custom.ResolveURL(), custom.Method, custom.Header),
-		)
+		notifier := notify.NewCustomWebhookNotifier(custom.Name, custom.ResolveURL(), custom.Method, custom.Header)
+
+		subs[events.TypeDeploySuccess] = append(subs[events.TypeDeploySuccess], notify2.NewSubscriber(notifier))
+		subs[events.TypeDeployFailed] = append(subs[events.TypeDeployFailed], notify2.NewSubscriber(notifier))
+		hasSubs = true
 	}
 
-	return notify.NewManager(notifiers...), nil
+	if hasSubs {
+		return dispatcher.NewQueueDispatcher(subs), nil
+	}
+
+	return &dispatcher.NopDispatcher{}, nil
 }
