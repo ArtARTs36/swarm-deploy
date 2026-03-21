@@ -183,6 +183,12 @@ func buildEventDispatcher(cfg *config.Config) (dispatcher.Dispatcher, error) {
 		}
 	}
 
+	if len(subs) == 0 {
+		slog.Info("event subscribers not found")
+	} else {
+		slog.Info("found event subscribers", slog.Int("subscribers", len(subs)))
+	}
+
 	if hasSubs {
 		return dispatcher.NewQueueDispatcher(subs), nil
 	}

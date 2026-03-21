@@ -272,7 +272,7 @@ func (c *Controller) syncStack(ctx context.Context, stackCfg config.StackSpec, c
 		}
 	})
 
-	c.event.Dispatch(&events.DeploySuccess{
+	c.event.Dispatch(ctx, &events.DeploySuccess{
 		StackName: stackCfg.Name,
 		Commit:    commit,
 		Services:  reconcileResult.Services,
@@ -306,7 +306,7 @@ func (c *Controller) recordStackFailure(stackName, commit string, services []com
 		}
 	})
 
-	c.event.Dispatch(&events.DeployFailed{
+	c.event.Dispatch(context.Background(), &events.DeployFailed{
 		StackName: stackName,
 		Commit:    commit,
 		Services:  services,

@@ -11,11 +11,11 @@ type Event interface {
 }
 
 type Dispatcher interface {
-	Dispatch(event Event)
+	Dispatch(ctx context.Context, event Event)
 	Shutdown(ctx context.Context) error
 }
 
 type NopDispatcher struct{}
 
-func (*NopDispatcher) Dispatch(Event)                 {}
-func (*NopDispatcher) Shutdown(context.Context) error { return nil }
+func (*NopDispatcher) Dispatch(_ context.Context, _ Event) {}
+func (*NopDispatcher) Shutdown(context.Context) error      { return nil }

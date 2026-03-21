@@ -39,12 +39,16 @@ func NewQueueDispatcher(subscribers map[events.Type][]Subscriber) *QueueDispatch
 	return d
 }
 
-func (d *QueueDispatcher) Dispatch(event Event) {
+func (d *QueueDispatcher) Dispatch(ctx context.Context, event Event) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	if d.closed {
+		slog.InfoContext(ctx, "[event] event not dispatched, channel closed", slog.Any("event", event))
+
 		return
 	}
+
+	slog.InfoContext(ctx, "[event] dispatching event", slog.Any("event", event))
 
 	d.queue <- event
 }
