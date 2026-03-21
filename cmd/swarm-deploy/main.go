@@ -110,6 +110,7 @@ func main() {
 		control,
 		inspector,
 		eventHistory,
+		eventDispatcher,
 		cfg.Spec.Web.Security.Authentication,
 	)
 	if err != nil {
@@ -212,4 +213,5 @@ func addEventHistorySubscriber(subs map[events.Type][]dispatcher.Subscriber, sto
 	subs[events.TypeDeploySuccess] = append(subs[events.TypeDeploySuccess], store)
 	subs[events.TypeDeployFailed] = append(subs[events.TypeDeployFailed], store)
 	subs[events.TypeSyncManualStarted] = append(subs[events.TypeSyncManualStarted], store)
+	subs[events.TypeUserAuthenticated] = append(subs[events.TypeUserAuthenticated], store)
 }

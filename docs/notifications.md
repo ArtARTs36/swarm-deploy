@@ -15,6 +15,7 @@ Available template fields:
 - `.event.services.*.image`
 - `.event.commit`
 - `.event.error`
+- `.event.username` (for `userAuthenticated`)
 
 Example:
 
@@ -57,4 +58,16 @@ notifications:
             ---
             {{ end }}
             error: {{.error}}
+
+    userAuthenticated:
+      telegram:
+        - name: ops-auth
+          # Path to file with bot token.
+          botTokenPath: /run/secrets/telegram_bot_token
+          # Chat/channel ID.
+          chatId: "-1001234567890"
+          # Message text template.
+          message: |
+            user authenticated
+            username: {{.event.username}}
 ```

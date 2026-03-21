@@ -1,7 +1,11 @@
 package dispatcher
 
-import "context"
+import (
+	"context"
+
+	"github.com/artarts36/swarm-deploy/internal/event/events"
+)
 
 type Subscriber interface {
-	Handle(ctx context.Context, event Event) error
+	Handle(ctx context.Context, event events.Event) error
 }

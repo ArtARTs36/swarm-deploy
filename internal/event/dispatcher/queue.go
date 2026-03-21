@@ -19,7 +19,7 @@ type QueueDispatcher struct {
 	subscribers map[events.Type][]Subscriber
 
 	now   func() time.Time
-	queue chan Event
+	queue chan events.Event
 
 	mu     sync.RWMutex
 	closed bool
@@ -29,7 +29,7 @@ type QueueDispatcher struct {
 func NewQueueDispatcher(subscribers map[events.Type][]Subscriber) *QueueDispatcher {
 	d := &QueueDispatcher{
 		now:         time.Now,
-		queue:       make(chan Event, defaultEventsQueueLen),
+		queue:       make(chan events.Event, defaultEventsQueueLen),
 		subscribers: subscribers,
 	}
 
@@ -39,7 +39,7 @@ func NewQueueDispatcher(subscribers map[events.Type][]Subscriber) *QueueDispatch
 	return d
 }
 
-func (d *QueueDispatcher) Dispatch(ctx context.Context, event Event) {
+func (d *QueueDispatcher) Dispatch(ctx context.Context, event events.Event) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	if d.closed {
@@ -56,7 +56,7 @@ func (d *QueueDispatcher) Dispatch(ctx context.Context, event Event) {
 func (d *QueueDispatcher) runWorker() {
 	defer d.wg.Done()
 
-	handle := func(subscriber Subscriber, event Event) {
+	handle := func(subscriber Subscriber, event events.Event) {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultSubscribeHandleTimeout)
 		defer cancel()
 

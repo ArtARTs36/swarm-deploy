@@ -3,7 +3,7 @@ package notify
 import (
 	"context"
 
-	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
+	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/artarts36/swarm-deploy/internal/event/notifiers"
 )
 
@@ -17,7 +17,7 @@ func NewSubscriber(notifier notifiers.Notifier) *Subscriber {
 	}
 }
 
-func (s *Subscriber) Handle(ctx context.Context, event dispatcher.Event) error {
+func (s *Subscriber) Handle(ctx context.Context, event events.Event) error {
 	return s.notifier.Notify(ctx, notifiers.Message{
 		Payload: event,
 	})

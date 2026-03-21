@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/events"
 )
 
@@ -61,7 +60,7 @@ func NewStore(path string, capacity int) (*Store, error) {
 }
 
 // Handle appends event to history and persists updated file.
-func (s *Store) Handle(_ context.Context, event dispatcher.Event) error {
+func (s *Store) Handle(_ context.Context, event events.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -134,7 +133,7 @@ func (s *Store) flushLocked() error {
 	return nil
 }
 
-func toEntry(now time.Time, event dispatcher.Event) Entry {
+func toEntry(now time.Time, event events.Event) Entry {
 	e := Entry{
 		Type:      event.Type(),
 		CreatedAt: now,
@@ -155,6 +154,11 @@ func toEntry(now time.Time, event dispatcher.Event) Entry {
 		}
 	case *events.SyncManualStarted:
 		e.Message = "Manual sync started"
+	case *events.UserAuthenticated:
+		e.Message = "User authenticated"
+		if typed.Username != "" {
+			e.Message = fmt.Sprintf("User %s authenticated", typed.Username)
+		}
 	}
 
 	return e

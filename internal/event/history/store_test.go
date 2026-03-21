@@ -47,3 +47,22 @@ func TestStoreHandlePersistsAndRotates(t *testing.T) {
 	require.Len(t, reloadedItems, 2, "expected persisted rotated history size")
 	assert.Equal(t, items, reloadedItems, "expected persisted entries")
 }
+
+func TestStoreHandleUserAuthenticated(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "event-history.json")
+
+	store, err := NewStore(path, 10)
+	require.NoError(t, err, "new store")
+
+	store.now = func() time.Time { return time.Date(2026, 3, 22, 10, 3, 0, 0, time.UTC) }
+	require.NoError(
+		t,
+		store.Handle(context.Background(), &events.UserAuthenticated{Username: "admin"}),
+		"save user authenticated event",
+	)
+
+	items := store.List()
+	require.Len(t, items, 1, "expected single event")
+	assert.Equal(t, events.Type(events.TypeUserAuthenticated), items[0].Type, "expected userAuthenticated type")
+	assert.Equal(t, "User admin authenticated", items[0].Message, "expected auth message with username")
+}

@@ -11,6 +11,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/authenticator"
 	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/middlewares"
+	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/artarts36/swarm-deploy/ui"
@@ -27,6 +28,7 @@ func NewApplication(
 	control *controller.Controller,
 	inspector *swarm.Inspector,
 	eventHistory *history.Store,
+	eventDispatcher dispatcher.Dispatcher,
 	authCfg config.AuthenticationSpec,
 ) (*Application, error) {
 	h := NewHandler(control, inspector, eventHistory)
@@ -54,8 +56,11 @@ func NewApplication(
 
 	return &Application{
 		server: &http.Server{
-			Addr:              address,
-			Handler:           middlewares.NewLog(middlewares.Authorize(rootHandler, auth), apiHandler.FindRoute),
+			Addr: address,
+			Handler: middlewares.NewLog(
+				middlewares.Authorize(rootHandler, auth, eventDispatcher),
+				apiHandler.FindRoute,
+			),
 			ReadHeaderTimeout: readHeaderTimeout,
 		},
 	}, nil

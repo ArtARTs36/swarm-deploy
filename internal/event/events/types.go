@@ -6,4 +6,9 @@ const (
 	TypeDeploySuccess     = "deploySuccess"
 	TypeDeployFailed      = "deployFailed"
 	TypeSyncManualStarted = "syncManualStarted"
+	TypeUserAuthenticated = "userAuthenticated"
 )
+
+type Event interface {
+	Type() Type
+}
