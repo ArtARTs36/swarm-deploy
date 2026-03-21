@@ -151,36 +151,36 @@ func buildEventDispatcher(cfg *config.Config) (dispatcher.Dispatcher, error) {
 	subs := map[events.Type][]dispatcher.Subscriber{}
 	hasSubs := false
 
-	for _, tg := range cfg.Spec.Notifications.Telegram {
-		token, err := tg.ResolveToken()
-		if err != nil {
-			return nil, fmt.Errorf("resolve telegram token for %q: %w", tg.Name, err)
+	for eventType, channels := range cfg.Spec.Notifications.On {
+		for _, tg := range channels.Telegram {
+			token, err := tg.ResolveToken()
+			if err != nil {
+				return nil, fmt.Errorf("resolve telegram token for %q: %w", tg.Name, err)
+			}
+
+			tgNotifier, err := notifiers.NewTelegramNotifier(
+				tg.Name,
+				token,
+				tg.ChatID,
+				notifiers.TelegramOptions{
+					ChatThreadID: tg.ResolveChatThreadID(),
+					Message:      tg.Message,
+				},
+			)
+			if err != nil {
+				return nil, fmt.Errorf("build telegram notifier %q: %w", tg.Name, err)
+			}
+
+			subs[eventType] = append(subs[eventType], notify2.NewSubscriber(tgNotifier))
+			hasSubs = true
 		}
 
-		tgNotifier, err := notifiers.NewTelegramNotifier(
-			tg.Name,
-			token,
-			tg.ChatID,
-			notifiers.TelegramOptions{
-				ChatThreadID: tg.ResolveChatThreadID(),
-				Message:      tg.Message,
-			},
-		)
-		if err != nil {
-			return nil, fmt.Errorf("build telegram notifier %q: %w", tg.Name, err)
+		for _, custom := range channels.Custom {
+			notifier := notifiers.NewCustomWebhookNotifier(custom.Name, custom.ResolveURL(), custom.Method, custom.Header)
+
+			subs[eventType] = append(subs[eventType], notify2.NewSubscriber(notifier))
+			hasSubs = true
 		}
-
-		subs[events.TypeDeploySuccess] = append(subs[events.TypeDeploySuccess], notify2.NewSubscriber(tgNotifier))
-		subs[events.TypeDeployFailed] = append(subs[events.TypeDeployFailed], notify2.NewSubscriber(tgNotifier))
-		hasSubs = true
-	}
-
-	for _, custom := range cfg.Spec.Notifications.Custom {
-		notifier := notifiers.NewCustomWebhookNotifier(custom.Name, custom.ResolveURL(), custom.Method, custom.Header)
-
-		subs[events.TypeDeploySuccess] = append(subs[events.TypeDeploySuccess], notify2.NewSubscriber(notifier))
-		subs[events.TypeDeployFailed] = append(subs[events.TypeDeployFailed], notify2.NewSubscriber(notifier))
-		hasSubs = true
 	}
 
 	if hasSubs {
