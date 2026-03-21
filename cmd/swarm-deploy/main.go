@@ -16,11 +16,11 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webserver"
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/events"
+	"github.com/artarts36/swarm-deploy/internal/event/notifiers"
 	notify2 "github.com/artarts36/swarm-deploy/internal/event/notify"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
-	"github.com/artarts36/swarm-deploy/internal/notify"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/cappuccinotm/slogx"
 	"github.com/cappuccinotm/slogx/slogm"
@@ -157,11 +157,11 @@ func buildEventDispatcher(cfg *config.Config) (dispatcher.Dispatcher, error) {
 			return nil, fmt.Errorf("resolve telegram token for %q: %w", tg.Name, err)
 		}
 
-		tgNotifier, err := notify.NewTelegramNotifier(
+		tgNotifier, err := notifiers.NewTelegramNotifier(
 			tg.Name,
 			token,
 			tg.ChatID,
-			notify.TelegramOptions{
+			notifiers.TelegramOptions{
 				ChatThreadID: tg.ResolveChatThreadID(),
 				Message:      tg.Message,
 			},
@@ -176,7 +176,7 @@ func buildEventDispatcher(cfg *config.Config) (dispatcher.Dispatcher, error) {
 	}
 
 	for _, custom := range cfg.Spec.Notifications.Custom {
-		notifier := notify.NewCustomWebhookNotifier(custom.Name, custom.ResolveURL(), custom.Method, custom.Header)
+		notifier := notifiers.NewCustomWebhookNotifier(custom.Name, custom.ResolveURL(), custom.Method, custom.Header)
 
 		subs[events.TypeDeploySuccess] = append(subs[events.TypeDeploySuccess], notify2.NewSubscriber(notifier))
 		subs[events.TypeDeployFailed] = append(subs[events.TypeDeployFailed], notify2.NewSubscriber(notifier))

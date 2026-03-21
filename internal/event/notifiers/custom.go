@@ -1,4 +1,4 @@
-package notify
+package notifiers
 
 import (
 	"bytes"
