@@ -45,7 +45,7 @@ func TestTelegramNotifierSendsThreadAndRenderedTemplate(t *testing.T) {
 		}),
 	}
 
-	err = notifier.Notify(context.Background(), Event{
+	err = notifier.Notify(context.Background(), Message{
 		Status:    "success",
 		StackName: "app",
 		Service:   "api",
