@@ -3,6 +3,7 @@ package webserver
 import (
 	"github.com/artarts36/swarm-deploy/internal/controller"
 	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
 func toGeneratedStacks(stacks []controller.StackView) []generated.StackView {
@@ -63,4 +64,18 @@ func toGeneratedServices(services []controller.ServiceView) []generated.ServiceV
 	}
 
 	return mapped
+}
+
+func toGeneratedServiceStatus(status swarm.ServiceStatus) *generated.ServiceStatusResponse {
+	resp := &generated.ServiceStatusResponse{
+		Stack:             status.Stack,
+		Service:           status.Service,
+		Image:             status.Image,
+		RequestedRAMBytes: status.RequestedRAMBytes,
+		RequestedCPUNano:  status.RequestedCPUNano,
+		LimitRAMBytes:     status.LimitRAMBytes,
+		LimitCPUNano:      status.LimitCPUNano,
+	}
+
+	return resp
 }

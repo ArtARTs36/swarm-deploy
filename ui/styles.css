@@ -145,6 +145,98 @@ button:hover {
   font-size: 0.88rem;
 }
 
+.service-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.service-item > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.service-status-btn {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 12, 18, 0.7);
+}
+
+.modal-card {
+  position: relative;
+  width: min(900px, 94vw);
+  margin: 7vh auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(7, 17, 27, 0.95);
+  padding: 14px;
+  max-height: 84vh;
+  overflow: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.modal-close {
+  padding: 6px 10px;
+}
+
+.modal-body {
+  display: grid;
+  gap: 12px;
+}
+
+.service-metrics {
+  display: grid;
+  gap: 4px;
+}
+
+.service-metrics p {
+  margin: 0;
+}
+
+.container-status-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.container-status-table th,
+.container-status-table td {
+  border-top: 1px solid rgba(161, 192, 204, 0.2);
+  text-align: left;
+  padding: 8px 6px;
+  vertical-align: top;
+}
+
 .bg-shape {
   position: fixed;
   border-radius: 999px;

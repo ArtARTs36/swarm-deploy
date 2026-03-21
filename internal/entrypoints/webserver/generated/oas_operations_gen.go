@@ -6,6 +6,7 @@ package api
 type OperationName = string
 
 const (
-	ListStacksOperation  OperationName = "ListStacks"
-	TriggerSyncOperation OperationName = "TriggerSync"
+	GetServiceStatusOperation OperationName = "GetServiceStatus"
+	ListStacksOperation       OperationName = "ListStacks"
+	TriggerSyncOperation      OperationName = "TriggerSync"
 )

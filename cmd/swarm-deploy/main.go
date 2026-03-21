@@ -89,6 +89,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	inspector, err := swarm.NewInspector()
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to init service inspector", slog.Any("err", err))
+		os.Exit(1)
+	}
+
 	control := controller.New(
 		cfg,
 		gitSyncer,
@@ -100,6 +106,7 @@ func main() {
 	webApplication, err := webserver.NewApplication(
 		cfg.Spec.Web.Address,
 		control,
+		inspector,
 		cfg.Spec.Web.Security.Authentication,
 	)
 	if err != nil {

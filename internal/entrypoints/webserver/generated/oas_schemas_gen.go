@@ -113,6 +113,87 @@ func (s *QueueResponse) SetQueued(val bool) {
 	s.Queued = val
 }
 
+// Ref: #/components/schemas/ServiceStatusResponse
+type ServiceStatusResponse struct {
+	Stack             string `json:"stack"`
+	Service           string `json:"service"`
+	Image             string `json:"image"`
+	RequestedRAMBytes int64  `json:"requested_ram_bytes"`
+	RequestedCPUNano  int64  `json:"requested_cpu_nano"`
+	LimitRAMBytes     int64  `json:"limit_ram_bytes"`
+	LimitCPUNano      int64  `json:"limit_cpu_nano"`
+}
+
+// GetStack returns the value of Stack.
+func (s *ServiceStatusResponse) GetStack() string {
+	return s.Stack
+}
+
+// GetService returns the value of Service.
+func (s *ServiceStatusResponse) GetService() string {
+	return s.Service
+}
+
+// GetImage returns the value of Image.
+func (s *ServiceStatusResponse) GetImage() string {
+	return s.Image
+}
+
+// GetRequestedRAMBytes returns the value of RequestedRAMBytes.
+func (s *ServiceStatusResponse) GetRequestedRAMBytes() int64 {
+	return s.RequestedRAMBytes
+}
+
+// GetRequestedCPUNano returns the value of RequestedCPUNano.
+func (s *ServiceStatusResponse) GetRequestedCPUNano() int64 {
+	return s.RequestedCPUNano
+}
+
+// GetLimitRAMBytes returns the value of LimitRAMBytes.
+func (s *ServiceStatusResponse) GetLimitRAMBytes() int64 {
+	return s.LimitRAMBytes
+}
+
+// GetLimitCPUNano returns the value of LimitCPUNano.
+func (s *ServiceStatusResponse) GetLimitCPUNano() int64 {
+	return s.LimitCPUNano
+}
+
+// SetStack sets the value of Stack.
+func (s *ServiceStatusResponse) SetStack(val string) {
+	s.Stack = val
+}
+
+// SetService sets the value of Service.
+func (s *ServiceStatusResponse) SetService(val string) {
+	s.Service = val
+}
+
+// SetImage sets the value of Image.
+func (s *ServiceStatusResponse) SetImage(val string) {
+	s.Image = val
+}
+
+// SetRequestedRAMBytes sets the value of RequestedRAMBytes.
+func (s *ServiceStatusResponse) SetRequestedRAMBytes(val int64) {
+	s.RequestedRAMBytes = val
+}
+
+// SetRequestedCPUNano sets the value of RequestedCPUNano.
+func (s *ServiceStatusResponse) SetRequestedCPUNano(val int64) {
+	s.RequestedCPUNano = val
+}
+
+// SetLimitRAMBytes sets the value of LimitRAMBytes.
+func (s *ServiceStatusResponse) SetLimitRAMBytes(val int64) {
+	s.LimitRAMBytes = val
+}
+
+// SetLimitCPUNano sets the value of LimitCPUNano.
+func (s *ServiceStatusResponse) SetLimitCPUNano(val int64) {
+	s.LimitCPUNano = val
+}
+
 // Ref: #/components/schemas/ServiceView
 type ServiceView struct {
 	Name         string      `json:"name"`
