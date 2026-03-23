@@ -50,7 +50,11 @@ func (f *fakeTools) Execute(_ context.Context, name string, _ map[string]any) (s
 }
 
 func TestServiceChatReturnsCompletedResponse(t *testing.T) {
+	const organizationID = "org-test"
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, organizationID, r.Header.Get("OpenAI-Organization"), "expected organization header")
+
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/embeddings":
@@ -78,13 +82,14 @@ func TestServiceChatReturnsCompletedResponse(t *testing.T) {
 
 	serviceInstance, err := NewService(
 		Config{
-			Enabled:      true,
-			ModelName:    "gpt-4o-mini",
-			BaseURL:      server.URL,
-			APIToken:     "test-token",
-			Temperature:  0.2,
-			MaxTokens:    64,
-			SystemPrompt: "debug helper",
+			Enabled:        true,
+			ModelName:      "gpt-4o-mini",
+			BaseURL:        server.URL,
+			APIToken:       "test-token",
+			OrganizationID: organizationID,
+			Temperature:    0.2,
+			MaxTokens:      64,
+			SystemPrompt:   "debug helper",
 		},
 		&fakeStore{services: []service.Info{{Name: "api", Stack: "app", Image: "example/api:v1"}}},
 		&fakeTools{},

@@ -546,6 +546,7 @@ assistant:
     name: gpt-4o-mini
     openai:
       apiTokenPath: ./assistant_token
+      organizationId: " org-test "
 `)
 	require.NoError(t, os.WriteFile(configPath, configPayload, 0o600), "write config file")
 
@@ -553,6 +554,7 @@ assistant:
 	require.NoError(t, err, "load config")
 	assert.Equal(t, tokenPath, cfg.Spec.Assistant.Model.OpenAI.APITokenPath, "expected resolved apiTokenPath")
 	assert.Equal(t, defaultAssistantOpenAIBaseURL, cfg.Spec.Assistant.Model.OpenAI.BaseURL, "expected default baseUrl")
+	assert.Equal(t, "org-test", cfg.Spec.Assistant.Model.OpenAI.OrganizationID, "expected trimmed organizationId")
 	assert.Equal(
 		t,
 		defaultAssistantTemperature,

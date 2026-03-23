@@ -35,7 +35,7 @@ type Service struct {
 
 // NewService creates assistant service with OpenAI-compatible clients.
 func NewService(config Config, store ServiceStore, tools ToolExecutor) (*Service, error) {
-	modelClient := newOpenAIClient(config.BaseURL, config.APIToken)
+	modelClient := newOpenAIClient(config.BaseURL, config.APIToken, config.OrganizationID)
 
 	return newService(config, store, tools, modelClient)
 }

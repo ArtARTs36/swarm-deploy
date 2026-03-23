@@ -9,15 +9,16 @@ import (
 	"time"
 
 	"github.com/go-faster/errors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/ogen-go/ogen/conv"
 	ht "github.com/ogen-go/ogen/http"
 	"github.com/ogen-go/ogen/otelogen"
 	"github.com/ogen-go/ogen/uri"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.39.0"
-	"go.opentelemetry.io/otel/trace"
 )
 
 func trimTrailingSlashes(u *url.URL) {
@@ -58,6 +59,10 @@ type Client struct {
 	serverURL *url.URL
 	baseClient
 }
+
+var _ Handler = struct {
+	*Client
+}{}
 
 // NewClient initializes new Client defined by OAS.
 func NewClient(serverURL string, opts ...ClientOption) (*Client, error) {
@@ -104,9 +109,8 @@ func (c *Client) sendAssistantChat(ctx context.Context, request *AssistantChatRe
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("assistantChat"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/api/v1/assistant/chat"),
+		semconv.HTTPRouteKey.String("/api/v1/assistant/chat"),
 	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
@@ -155,8 +159,7 @@ func (c *Client) sendAssistantChat(ctx context.Context, request *AssistantChatRe
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	body := resp.Body
-	defer body.Close()
+	defer resp.Body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeAssistantChatResponse(resp)
@@ -179,9 +182,8 @@ func (c *Client) sendGetServiceStatus(ctx context.Context, params GetServiceStat
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("getServiceStatus"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/api/v1/stacks/{stack}/services/{service}/status"),
+		semconv.HTTPRouteKey.String("/api/v1/stacks/{stack}/services/{service}/status"),
 	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
@@ -265,8 +267,7 @@ func (c *Client) sendGetServiceStatus(ctx context.Context, params GetServiceStat
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	body := resp.Body
-	defer body.Close()
+	defer resp.Body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetServiceStatusResponse(resp)
@@ -289,9 +290,8 @@ func (c *Client) sendListEvents(ctx context.Context) (res *EventHistoryResponse,
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listEvents"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/api/v1/events"),
+		semconv.HTTPRouteKey.String("/api/v1/events"),
 	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
@@ -337,8 +337,7 @@ func (c *Client) sendListEvents(ctx context.Context) (res *EventHistoryResponse,
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	body := resp.Body
-	defer body.Close()
+	defer resp.Body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListEventsResponse(resp)
@@ -361,9 +360,8 @@ func (c *Client) sendListServices(ctx context.Context) (res *ServicesResponse, e
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listServices"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/api/v1/services"),
+		semconv.HTTPRouteKey.String("/api/v1/services"),
 	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
@@ -409,8 +407,7 @@ func (c *Client) sendListServices(ctx context.Context) (res *ServicesResponse, e
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	body := resp.Body
-	defer body.Close()
+	defer resp.Body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListServicesResponse(resp)
@@ -433,9 +430,8 @@ func (c *Client) sendListStacks(ctx context.Context) (res *StacksResponse, err e
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listStacks"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/api/v1/stacks"),
+		semconv.HTTPRouteKey.String("/api/v1/stacks"),
 	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
@@ -481,8 +477,7 @@ func (c *Client) sendListStacks(ctx context.Context) (res *StacksResponse, err e
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	body := resp.Body
-	defer body.Close()
+	defer resp.Body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListStacksResponse(resp)
@@ -505,9 +500,8 @@ func (c *Client) sendTriggerSync(ctx context.Context) (res *QueueResponse, err e
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("triggerSync"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/api/v1/sync"),
+		semconv.HTTPRouteKey.String("/api/v1/sync"),
 	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
@@ -553,8 +547,7 @@ func (c *Client) sendTriggerSync(ctx context.Context) (res *QueueResponse, err e
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	body := resp.Body
-	defer body.Close()
+	defer resp.Body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeTriggerSyncResponse(resp)

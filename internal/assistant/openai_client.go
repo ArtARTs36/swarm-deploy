@@ -14,14 +14,16 @@ import (
 const defaultOpenAIRequestTimeout = 45 * time.Second
 
 type openAIClient struct {
-	baseURL string
-	token   string
-	client  openai.Client
+	baseURL        string
+	token          string
+	organizationID string
+	client         openai.Client
 }
 
-func newOpenAIClient(baseURL, token string) *openAIClient {
+func newOpenAIClient(baseURL, token, organizationID string) *openAIClient {
 	baseURL = strings.TrimSpace(baseURL)
 	token = strings.TrimSpace(token)
+	organizationID = strings.TrimSpace(organizationID)
 
 	options := []option.RequestOption{
 		option.WithAPIKey(token),
@@ -30,11 +32,15 @@ func newOpenAIClient(baseURL, token string) *openAIClient {
 	if baseURL != "" {
 		options = append(options, option.WithBaseURL(baseURL))
 	}
+	if organizationID != "" {
+		options = append(options, option.WithOrganization(organizationID))
+	}
 
 	return &openAIClient{
-		baseURL: baseURL,
-		token:   token,
-		client:  openai.NewClient(options...),
+		baseURL:        baseURL,
+		token:          token,
+		organizationID: organizationID,
+		client:         openai.NewClient(options...),
 	}
 }
 

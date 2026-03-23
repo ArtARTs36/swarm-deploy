@@ -19,7 +19,7 @@ sync:
 # AI assistant settings.
 assistant:
   # Enable assistant API and UI.
-  enabled: false
+  enabled: true
   # Allowed tool list. Empty means all built-in tools.
   tools: []
   # Extra project-specific prompt.
@@ -29,9 +29,11 @@ assistant:
     name: gpt-4o-mini
     openai:
       # OpenAI-compatible API base URL.
-      baseUrl: https://api.openai.com/v1
+      baseUrl: https://foundation-models.api.cloud.ru/v1
       # Path to file containing API token.
       apiTokenPath: /run/secrets/openai_api_token
+      # Optional OpenAI organization identifier.
+      organizationId: ""
       # Sampling temperature in range [0, 2].
       temperature: "0.2"
       # Max generated tokens for response.
@@ -83,6 +85,7 @@ notifications:
           chatId: "-1001234567890"
           message: |
             sync started manually
+
 
 # Secret/config name rotation settings.
 secretRotation:

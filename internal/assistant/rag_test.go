@@ -46,7 +46,7 @@ func TestRetrieverRanksByEmbeddingSimilarity(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newOpenAIClient(server.URL, "test-token")
+	client := newOpenAIClient(server.URL, "test-token", "")
 	retriever := newRetriever(&fakeServiceStore{services: services}, client, "model")
 	selected, err := retriever.retrieve(context.Background(), "database service", 2)
 	require.NoError(t, err, "retrieve services")
@@ -68,7 +68,7 @@ func TestRetrieverFallsBackToLexicalSearch(t *testing.T) {
 
 	retriever := newRetriever(
 		&fakeServiceStore{services: services},
-		newOpenAIClient(server.URL, "test-token"),
+		newOpenAIClient(server.URL, "test-token", ""),
 		"model",
 	)
 

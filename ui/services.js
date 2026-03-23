@@ -1,5 +1,6 @@
 const servicesStatusEl = document.getElementById("services-status");
 const servicesListEl = document.getElementById("services-list");
+const assistantChat = window.createAssistantChat();
 
 function escapeHtml(value) {
   return String(value)
@@ -42,7 +43,7 @@ function renderServices(services) {
     .join("");
 }
 
-async function refresh() {
+async function refreshServices() {
   renderStatus("Loading services...");
   try {
     const response = await fetch("/api/v1/services");
@@ -60,5 +61,18 @@ async function refresh() {
   }
 }
 
-refresh();
-setInterval(refresh, 10000);
+async function refreshAssistantAvailability() {
+  try {
+    const assistantEnabled = await window.getAssistantEnabled({ maxAgeMs: 30000 });
+    assistantChat.setEnabled(assistantEnabled);
+  } catch (err) {
+    assistantChat.setEnabled(false);
+  }
+}
+
+async function refreshAll() {
+  await Promise.all([refreshServices(), refreshAssistantAvailability()]);
+}
+
+refreshAll();
+setInterval(refreshAll, 10000);

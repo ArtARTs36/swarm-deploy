@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/go-faster/errors"
+
 	"github.com/ogen-go/ogen/validate"
 )
 
@@ -27,7 +28,6 @@ func (s *AssistantChatRequest) Validate() error {
 					MaxExclusive:  false,
 					MultipleOfSet: false,
 					MultipleOf:    0,
-					Pattern:       nil,
 				}).Validate(int64(value)); err != nil {
 					return errors.Wrap(err, "int")
 				}
@@ -78,7 +78,6 @@ func (s *AssistantChatResponse) Validate() error {
 					MaxExclusive:  false,
 					MultipleOfSet: false,
 					MultipleOf:    0,
-					Pattern:       nil,
 				}).Validate(int64(value)); err != nil {
 					return errors.Wrap(err, "int")
 				}
@@ -196,7 +195,6 @@ func (s *ServiceStatusResponse) Validate() error {
 			MaxExclusive:  false,
 			MultipleOfSet: false,
 			MultipleOf:    0,
-			Pattern:       nil,
 		}).Validate(int64(s.RequestedRAMBytes)); err != nil {
 			return errors.Wrap(err, "int")
 		}
@@ -217,7 +215,6 @@ func (s *ServiceStatusResponse) Validate() error {
 			MaxExclusive:  false,
 			MultipleOfSet: false,
 			MultipleOf:    0,
-			Pattern:       nil,
 		}).Validate(int64(s.RequestedCPUNano)); err != nil {
 			return errors.Wrap(err, "int")
 		}
@@ -238,7 +235,6 @@ func (s *ServiceStatusResponse) Validate() error {
 			MaxExclusive:  false,
 			MultipleOfSet: false,
 			MultipleOf:    0,
-			Pattern:       nil,
 		}).Validate(int64(s.LimitRAMBytes)); err != nil {
 			return errors.Wrap(err, "int")
 		}
@@ -259,7 +255,6 @@ func (s *ServiceStatusResponse) Validate() error {
 			MaxExclusive:  false,
 			MultipleOfSet: false,
 			MultipleOf:    0,
-			Pattern:       nil,
 		}).Validate(int64(s.LimitCPUNano)); err != nil {
 			return errors.Wrap(err, "int")
 		}

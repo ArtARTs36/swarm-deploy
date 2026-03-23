@@ -201,14 +201,15 @@ func buildAssistantService(
 	toolExecutor := mcpserver.NewTools(eventHistory, control)
 
 	return assistant.NewService(assistant.Config{
-		Enabled:      cfg.Spec.Assistant.Enabled,
-		ModelName:    cfg.Spec.Assistant.Model.Name,
-		BaseURL:      cfg.Spec.Assistant.Model.OpenAI.BaseURL,
-		APIToken:     apiToken,
-		Temperature:  temperature,
-		MaxTokens:    maxTokens,
-		SystemPrompt: cfg.Spec.Assistant.SystemPrompt,
-		AllowedTools: cfg.Spec.Assistant.Tools,
+		Enabled:        cfg.Spec.Assistant.Enabled,
+		ModelName:      cfg.Spec.Assistant.Model.Name,
+		BaseURL:        cfg.Spec.Assistant.Model.OpenAI.BaseURL,
+		APIToken:       apiToken,
+		OrganizationID: cfg.Spec.Assistant.Model.OpenAI.OrganizationID,
+		Temperature:    temperature,
+		MaxTokens:      maxTokens,
+		SystemPrompt:   cfg.Spec.Assistant.SystemPrompt,
+		AllowedTools:   cfg.Spec.Assistant.Tools,
 	}, serviceStore, toolExecutor)
 }
 

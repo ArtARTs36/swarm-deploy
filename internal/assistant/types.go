@@ -74,6 +74,8 @@ type Config struct {
 	BaseURL string
 	// APIToken is an OpenAI-compatible bearer token.
 	APIToken string
+	// OrganizationID is an optional OpenAI organization identifier.
+	OrganizationID string
 	// Temperature controls model sampling temperature.
 	Temperature float64
 	// MaxTokens limits model output size.
