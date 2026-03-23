@@ -64,9 +64,9 @@ func NewTelegramNotifier(name, token, chatID string, options TelegramOptions) (*
 
 func (n *TelegramNotifier) Name() string {
 	if n.name != "" {
-		return n.name
+		return "notifier-telegram-" + n.name
 	}
-	return "telegram"
+	return "notifier-telegram"
 }
 
 func (*TelegramNotifier) Kind() string {

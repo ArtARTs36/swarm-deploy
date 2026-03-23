@@ -39,9 +39,9 @@ func NewCustomWebhookNotifier(name, url, method string, headers map[string]strin
 
 func (n *CustomWebhookNotifier) Name() string {
 	if n.name != "" {
-		return n.name
+		return "notifier-custom-" + n.name
 	}
-	return "custom"
+	return "notifier-custom"
 }
 
 func (*CustomWebhookNotifier) Kind() string {

@@ -48,7 +48,9 @@ func (d *QueueDispatcher) Dispatch(ctx context.Context, event events.Event) {
 		return
 	}
 
-	slog.InfoContext(ctx, "[event] dispatching event", slog.Any("event", event))
+	slog.InfoContext(ctx, "[event] dispatching event", slog.Any("event", event),
+		slog.String("event.type", string(event.Type())),
+	)
 
 	d.queue <- event
 }
@@ -59,6 +61,11 @@ func (d *QueueDispatcher) runWorker() {
 	handle := func(subscriber Subscriber, event events.Event) {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultSubscribeHandleTimeout)
 		defer cancel()
+
+		slog.DebugContext(ctx, "[event] running subscriber",
+			slog.String("subscriber.name", subscriber.Name()),
+			slog.String("event.type", string(event.Type())),
+		)
 
 		err := subscriber.Handle(context.Background(), event)
 		if err != nil {

@@ -31,6 +31,10 @@ func NewSubscriber(store *Store, inspector LabelsInspector, metadata *MetadataEx
 	}
 }
 
+func (s *Subscriber) Name() string {
+	return "save-service-metadata"
+}
+
 // Handle processes deploySuccess events and persists resolved services snapshot.
 func (s *Subscriber) Handle(ctx context.Context, event events.Event) error {
 	deploySuccess, ok := event.(*events.DeploySuccess)

@@ -55,6 +55,10 @@ func NewStore(path string, capacity int) (*Store, error) {
 	return s, nil
 }
 
+func (s *Store) Name() string {
+	return "save-event-history"
+}
+
 // Handle appends event to history and persists updated file.
 func (s *Store) Handle(_ context.Context, event events.Event) error {
 	s.mu.Lock()
