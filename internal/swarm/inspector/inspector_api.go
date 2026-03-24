@@ -1,8 +1,7 @@
-package swarm
+package inspector
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 
@@ -11,10 +10,6 @@ import (
 )
 
 func (i *Inspector) InspectServiceStatus(ctx context.Context, stackName, serviceName string) (ServiceStatus, error) {
-	if i.dockerClient == nil {
-		return ServiceStatus{}, errors.New("docker api client is not initialized")
-	}
-
 	fullServiceName := fmt.Sprintf("%s_%s", stackName, serviceName)
 	service, _, err := i.dockerClient.ServiceInspectWithRaw(ctx, fullServiceName, dockerswarm.ServiceInspectOptions{})
 	if err != nil {

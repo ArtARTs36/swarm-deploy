@@ -1,7 +1,8 @@
-package swarm
+package inspector
 
 import (
 	"sort"
+	"strings"
 )
 
 // NodeInfo is a persisted/read model of Docker Swarm node.
@@ -20,6 +21,18 @@ type NodeInfo struct {
 	EngineVersion string `json:"engine_version"`
 	// Addr is a node address from node status.
 	Addr string `json:"addr"`
+}
+
+func normalizeNodeInfo(node NodeInfo) NodeInfo {
+	node.ID = strings.TrimSpace(node.ID)
+	node.Hostname = strings.TrimSpace(node.Hostname)
+	node.Status = strings.TrimSpace(node.Status)
+	node.Availability = strings.TrimSpace(node.Availability)
+	node.ManagerStatus = strings.TrimSpace(node.ManagerStatus)
+	node.EngineVersion = strings.TrimSpace(node.EngineVersion)
+	node.Addr = strings.TrimSpace(node.Addr)
+
+	return node
 }
 
 func sortNodeInfos(nodes []NodeInfo) {

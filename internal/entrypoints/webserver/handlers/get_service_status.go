@@ -8,19 +8,19 @@ import (
 	"net/http"
 
 	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 func (h *handler) GetServiceStatus(
 	ctx context.Context,
 	params generated.GetServiceStatusParams,
 ) (*generated.ServiceStatusResponse, error) {
-	status, err := h.inspector.InspectServiceStatus(ctx, params.Stack, params.Service)
+	status, err := h.inspectorSvc.InspectServiceStatus(ctx, params.Stack, params.Service)
 	if err == nil {
 		return toGeneratedServiceStatus(status), nil
 	}
 
-	if errors.Is(err, swarm.ErrServiceNotFound) {
+	if errors.Is(err, swarminspector.ErrServiceNotFound) {
 		return nil, withStatusError(
 			http.StatusNotFound,
 			fmt.Errorf("service %s/%s not found", params.Stack, params.Service),

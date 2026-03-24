@@ -6,13 +6,13 @@ import (
 	"log/slog"
 
 	"github.com/artarts36/swarm-deploy/internal/event/events"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 // LabelsInspector provides labels from service, container and image inspect.
 type LabelsInspector interface {
 	// InspectServiceLabels returns labels for a service and its image.
-	InspectServiceLabels(ctx context.Context, stackName, serviceName string) (swarm.ServiceLabels, error)
+	InspectServiceLabels(ctx context.Context, stackName, serviceName string) (swarminspector.ServiceLabels, error)
 }
 
 // Subscriber persists service metadata on deploySuccess events.

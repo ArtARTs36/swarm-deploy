@@ -1,4 +1,4 @@
-package swarm
+package inspector
 
 import (
 	"errors"
@@ -42,7 +42,8 @@ type ServiceLabels struct {
 	Image map[string]string
 }
 
-func NewInspector() (*Inspector, error) {
+// New creates swarm inspector.
+func New() (*Inspector, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, fmt.Errorf("create docker api client: %w", err)

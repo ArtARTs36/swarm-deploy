@@ -28,6 +28,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
+	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/cappuccinotm/slogx"
 	"github.com/cappuccinotm/slogx/slogm"
 	"github.com/prometheus/client_golang/prometheus"
@@ -90,20 +91,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	inspector, err := swarm.NewInspector()
+	inspectorSvc, err := swarminspector.New()
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to init service inspector", slog.Any("err", err))
 		os.Exit(1)
 	}
 
-	nodeStore, err := swarm.NewNodeStore(filepath.Join(cfg.Spec.DataDir, "nodes.json"))
+	nodeStore, err := swarminspector.NewNodeStore(filepath.Join(cfg.Spec.DataDir, "nodes.json"))
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to init node store", slog.Any("err", err))
 		os.Exit(1)
 	}
-	nodeCollector := swarm.NewNodeCollector(inspector, nodeStore)
+	nodeCollector := swarminspector.NewNodeCollector(inspectorSvc, nodeStore)
 
-	eventDispatcher, eventHistory, serviceStore, err := buildEventDispatcher(cfg, inspector)
+	eventDispatcher, eventHistory, serviceStore, err := buildEventDispatcher(cfg, inspectorSvc)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to build event dispatcher", slog.Any("err", err))
 		os.Exit(1)
@@ -133,7 +134,7 @@ func main() {
 	webApplication, err := webserver.NewApplication(
 		cfg.Spec.Web.Address,
 		control,
-		inspector,
+		inspectorSvc,
 		eventHistory,
 		serviceStore,
 		nodeStore,
@@ -198,7 +199,7 @@ func buildAssistantService(
 	cfg *config.Config,
 	serviceStore *service.Store,
 	eventHistory *history.Store,
-	nodeStore *swarm.NodeStore,
+	nodeStore *swarminspector.NodeStore,
 	control *controller.Controller,
 	eventDispatcher dispatcher.Dispatcher,
 ) (assistant.Assistant, error) {
@@ -242,7 +243,7 @@ func buildAssistantService(
 
 func buildEventDispatcher(
 	cfg *config.Config,
-	inspector *swarm.Inspector,
+	inspectorSvc *swarminspector.Inspector,
 ) (*dispatcher.QueueDispatcher, *history.Store, *service.Store, error) {
 	subs := map[events.Type][]dispatcher.Subscriber{}
 
@@ -260,7 +261,7 @@ func buildEventDispatcher(
 	}
 	subs[events.TypeDeploySuccess] = append(
 		subs[events.TypeDeploySuccess],
-		service.NewSubscriber(serviceStore, inspector, service.NewMetadataExtractor()),
+		service.NewSubscriber(serviceStore, inspectorSvc, service.NewMetadataExtractor()),
 	)
 
 	eventDispatcher := dispatcher.NewQueueDispatcher()
@@ -307,9 +308,12 @@ func buildEventDispatcher(
 }
 
 func subscribeOnAllEvents(dispatcher dispatcher.Dispatcher, subscriber dispatcher.Subscriber) {
-	for _, typ := range events.AllTypes {
-		dispatcher.Subscribe(typ, subscriber)
-	}
+	dispatcher.Subscribe(events.TypeDeploySuccess, subscriber)
+	dispatcher.Subscribe(events.TypeDeployFailed, subscriber)
+	dispatcher.Subscribe(events.TypeSendNotificationFailed, subscriber)
+	dispatcher.Subscribe(events.TypeSyncManualStarted, subscriber)
+	dispatcher.Subscribe(events.TypeUserAuthenticated, subscriber)
+	dispatcher.Subscribe(events.TypeAssistantPromptInjectionDetected, subscriber)
 }
 
 type dispatcherProxy struct {

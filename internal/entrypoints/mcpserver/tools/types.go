@@ -3,7 +3,7 @@ package tools
 import (
 	"github.com/artarts36/swarm-deploy/internal/controller"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 // HistoryReader reads current event history snapshot.
@@ -21,5 +21,5 @@ type SyncTrigger interface {
 // NodesReader reads current Swarm nodes snapshot.
 type NodesReader interface {
 	// List returns current nodes snapshot.
-	List() []swarm.NodeInfo
+	List() []inspector.NodeInfo
 }

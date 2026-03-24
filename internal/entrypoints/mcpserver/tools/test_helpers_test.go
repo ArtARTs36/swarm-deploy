@@ -3,7 +3,7 @@ package tools
 import (
 	"github.com/artarts36/swarm-deploy/internal/controller"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 type fakeHistoryStore struct {
@@ -29,11 +29,11 @@ func (f *fakeSyncControl) Trigger(_ controller.TriggerReason) bool {
 }
 
 type fakeNodeStore struct {
-	nodes []swarm.NodeInfo
+	nodes []inspector.NodeInfo
 }
 
-func (f *fakeNodeStore) List() []swarm.NodeInfo {
-	out := make([]swarm.NodeInfo, len(f.nodes))
+func (f *fakeNodeStore) List() []inspector.NodeInfo {
+	out := make([]inspector.NodeInfo, len(f.nodes))
 	copy(out, f.nodes)
 
 	return out

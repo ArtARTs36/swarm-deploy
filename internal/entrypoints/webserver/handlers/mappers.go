@@ -8,7 +8,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/event/history"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	serviceType "github.com/artarts36/swarm-deploy/internal/service/stype"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 func toGeneratedStacks(stacks []controller.StackView) []generated.StackView {
@@ -72,7 +72,7 @@ func toOptDateTime(value time.Time) generated.OptDateTime {
 	return generated.NewOptDateTime(value)
 }
 
-func toGeneratedServiceStatus(status swarm.ServiceStatus) *generated.ServiceStatusResponse {
+func toGeneratedServiceStatus(status swarminspector.ServiceStatus) *generated.ServiceStatusResponse {
 	resp := &generated.ServiceStatusResponse{
 		Stack:             status.Stack,
 		Service:           status.Service,
@@ -123,7 +123,7 @@ func toGeneratedServiceInfos(services []service.Info) []generated.ServiceInfo {
 	return mapped
 }
 
-func toGeneratedNodes(nodes []swarm.NodeInfo) []generated.NodeInfo {
+func toGeneratedNodes(nodes []swarminspector.NodeInfo) []generated.NodeInfo {
 	mapped := make([]generated.NodeInfo, 0, len(nodes))
 	for _, node := range nodes {
 		mapped = append(mapped, generated.NodeInfo{

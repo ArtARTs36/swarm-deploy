@@ -1,4 +1,4 @@
-package swarm
+package inspector
 
 import (
 	"context"
@@ -6,20 +6,36 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	dockerevents "github.com/docker/docker/api/types/events"
 )
 
 const defaultNodeCollectorReconnectDelay = 5 * time.Second
 
 // NodeCollector collects and persists swarm nodes snapshot.
 type NodeCollector struct {
-	inspector *Inspector
-	store     *NodeStore
+	inspector nodeInspector
+	store     nodeStoreWriter
 
 	reconnectDelay time.Duration
 }
 
+// nodeInspector inspects nodes and watches docker node events.
+type nodeInspector interface {
+	// InspectNodes returns current swarm nodes snapshot.
+	InspectNodes(ctx context.Context) ([]NodeInfo, error)
+	// WatchNodeEvents subscribes to Docker node events stream.
+	WatchNodeEvents(ctx context.Context) (<-chan dockerevents.Message, <-chan error, error)
+}
+
+// nodeStoreWriter saves nodes snapshot.
+type nodeStoreWriter interface {
+	// Replace replaces current nodes snapshot.
+	Replace(nodes []NodeInfo) error
+}
+
 // NewNodeCollector creates node collector.
-func NewNodeCollector(inspector *Inspector, store *NodeStore) *NodeCollector {
+func NewNodeCollector(inspector nodeInspector, store nodeStoreWriter) *NodeCollector {
 	return &NodeCollector{
 		inspector:      inspector,
 		store:          store,
@@ -60,7 +76,6 @@ func (c *NodeCollector) refresh(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("inspect nodes: %w", err)
 	}
-
 	if err = c.store.Replace(nodes); err != nil {
 		return fmt.Errorf("save nodes snapshot: %w", err)
 	}

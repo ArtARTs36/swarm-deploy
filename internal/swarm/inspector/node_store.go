@@ -1,4 +1,4 @@
-package swarm
+package inspector
 
 import (
 	"encoding/json"
@@ -46,7 +46,14 @@ func (s *NodeStore) Replace(nodes []NodeInfo) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	updated := nodes
+	updated := make([]NodeInfo, 0, len(nodes))
+	for _, node := range nodes {
+		normalized := normalizeNodeInfo(node)
+		if normalized.ID == "" {
+			continue
+		}
+		updated = append(updated, normalized)
+	}
 
 	sortNodeInfos(updated)
 	s.rows = updated
@@ -76,7 +83,14 @@ func (s *NodeStore) load() error {
 		return fmt.Errorf("decode nodes file: %w", unmarshalErr)
 	}
 
-	s.rows = rows
+	s.rows = make([]NodeInfo, 0, len(rows))
+	for _, row := range rows {
+		normalized := normalizeNodeInfo(row)
+		if normalized.ID == "" {
+			continue
+		}
+		s.rows = append(s.rows, normalized)
+	}
 
 	sortNodeInfos(s.rows)
 	return nil

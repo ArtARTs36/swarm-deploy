@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/artarts36/swarm-deploy/internal/assistant"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 // ListNodes returns current Docker Swarm nodes snapshot.
@@ -37,7 +37,7 @@ func (l *ListNodes) Execute(_ map[string]any) (string, error) {
 	}
 
 	payload := struct {
-		Nodes []swarm.NodeInfo `json:"nodes"`
+		Nodes []inspector.NodeInfo `json:"nodes"`
 	}{
 		Nodes: l.nodes.List(),
 	}

@@ -1,7 +1,8 @@
-package swarm
+package inspector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	dockerevents "github.com/docker/docker/api/types/events"
@@ -11,14 +12,18 @@ import (
 
 // InspectNodes returns current swarm nodes snapshot.
 func (i *Inspector) InspectNodes(ctx context.Context) ([]NodeInfo, error) {
+	if i.dockerClient == nil {
+		return nil, errors.New("docker api client is not initialized")
+	}
+
 	nodes, err := i.dockerClient.NodeList(ctx, dockerswarm.NodeListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("list swarm nodes: %w", err)
 	}
 
-	mapped := make([]NodeInfo, len(nodes))
-	for i, node := range nodes {
-		mapped[i] = toNodeInfo(node)
+	mapped := make([]NodeInfo, 0, len(nodes))
+	for _, node := range nodes {
+		mapped = append(mapped, toNodeInfo(node))
 	}
 	sortNodeInfos(mapped)
 
@@ -29,6 +34,10 @@ func (i *Inspector) InspectNodes(ctx context.Context) ([]NodeInfo, error) {
 func (i *Inspector) WatchNodeEvents(
 	ctx context.Context,
 ) (<-chan dockerevents.Message, <-chan error, error) {
+	if i.dockerClient == nil {
+		return nil, nil, errors.New("docker api client is not initialized")
+	}
+
 	eventsFilter := filters.NewArgs(filters.Arg("type", string(dockerevents.NodeEventType)))
 	messages, errs := i.dockerClient.Events(ctx, dockerevents.ListOptions{
 		Filters: eventsFilter,
@@ -45,10 +54,12 @@ func toNodeInfo(node dockerswarm.Node) NodeInfo {
 			managerStatus = "leader"
 		case node.ManagerStatus.Reachability != "":
 			managerStatus = string(node.ManagerStatus.Reachability)
+		default:
+			managerStatus = "manager"
 		}
 	}
 
-	return NodeInfo{
+	return normalizeNodeInfo(NodeInfo{
 		ID:            node.ID,
 		Hostname:      node.Description.Hostname,
 		Status:        string(node.Status.State),
@@ -56,5 +67,5 @@ func toNodeInfo(node dockerswarm.Node) NodeInfo {
 		ManagerStatus: managerStatus,
 		EngineVersion: node.Description.Engine.EngineVersion,
 		Addr:          node.Status.Addr,
-	}
+	})
 }

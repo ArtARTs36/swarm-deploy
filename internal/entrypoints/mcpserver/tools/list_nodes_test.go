@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListNodesExecute(t *testing.T) {
 	tool := NewListNodes(&fakeNodeStore{
-		nodes: []swarm.NodeInfo{
+		nodes: []inspector.NodeInfo{
 			{
 				ID:            "node-1",
 				Hostname:      "manager-1",
@@ -28,7 +28,7 @@ func TestListNodesExecute(t *testing.T) {
 	require.NoError(t, err, "execute list_nodes tool")
 
 	var payload struct {
-		Nodes []swarm.NodeInfo `json:"nodes"`
+		Nodes []inspector.NodeInfo `json:"nodes"`
 	}
 
 	require.NoError(t, json.Unmarshal([]byte(raw), &payload), "decode response")
