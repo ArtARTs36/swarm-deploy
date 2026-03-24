@@ -1,8 +1,9 @@
-package assistant
+package rag
 
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"sort"
 	"strings"
@@ -10,49 +11,65 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/service"
 )
 
-type retriever struct {
+// Retriever returns services relevant to a user query.
+type Retriever struct {
 	store     ServiceStore
-	embedder  *openAIClient
+	embedder  Embedder
 	modelName string
+	index     *Index
+	observer  Observer
 }
 
-func newRetriever(store ServiceStore, embedder *openAIClient, modelName string) *retriever {
-	return &retriever{
+// NewRetriever creates retriever with precomputed-document index support.
+func NewRetriever(store ServiceStore, embedder Embedder, modelName string, index *Index, observer Observer) *Retriever {
+	return &Retriever{
 		store:     store,
 		embedder:  embedder,
 		modelName: strings.TrimSpace(modelName),
+		index:     index,
+		observer:  observer,
 	}
 }
 
-func (r *retriever) retrieve(ctx context.Context, query string) ([]service.Info, error) {
+// Retrieve returns services ordered by relevance.
+func (r *Retriever) Retrieve(ctx context.Context, query string) ([]service.Info, error) {
 	services := r.store.List()
 	if len(services) == 0 {
 		return nil, nil
 	}
 
-	documents := make([]string, 0, len(services))
-	for _, serviceInfo := range services {
-		documents = append(documents, serviceToDocument(serviceInfo))
-	}
-
-	inputs := append([]string{query}, documents...)
-	embeddings, err := r.embedder.embed(ctx, r.modelName, inputs)
-	if err != nil {
+	indexed := r.index.get()
+	if !sameServices(indexed.services, services) {
+		r.recordFallback("index_stale")
+		slog.DebugContext(ctx, "[assistant-rag] fallback to lexical: stale index snapshot")
 		return r.retrieveLexical(query, services), nil
 	}
-	if len(embeddings) != len(inputs) {
-		return nil, fmt.Errorf("invalid embeddings size: got %d, expected %d", len(embeddings), len(inputs))
+
+	if len(indexed.services) == 0 || len(indexed.embeddings) == 0 {
+		r.recordFallback("index_empty")
+		slog.DebugContext(ctx, "[assistant-rag] fallback to lexical: empty index")
+		return r.retrieveLexical(query, services), nil
 	}
 
-	queryVector := embeddings[0]
+	queryEmbeddings, err := r.embedder.Embed(ctx, r.modelName, []string{query})
+	if err != nil {
+		r.recordFallback("query_embedding_error")
+		slog.WarnContext(ctx, "[assistant-rag] fallback to lexical: query embedding failed", slog.Any("err", err))
+		return r.retrieveLexical(query, services), nil
+	}
+	if len(queryEmbeddings) != 1 {
+		return nil, fmt.Errorf("invalid query embeddings size: got %d, expected 1", len(queryEmbeddings))
+	}
+
+	queryVector := queryEmbeddings[0]
 	type scoredService struct {
 		service service.Info
 		score   float64
 	}
 
-	scored := make([]scoredService, 0, len(services))
-	for i, serviceInfo := range services {
-		score := cosineSimilarity(queryVector, embeddings[i+1])
+	scored := make([]scoredService, 0, len(indexed.services))
+	for idx, serviceInfo := range indexed.services {
+		score := cosineSimilarity(queryVector, indexed.embeddings[idx])
 		scored = append(scored, scoredService{
 			service: serviceInfo,
 			score:   score,
@@ -68,8 +85,7 @@ func (r *retriever) retrieve(ctx context.Context, query string) ([]service.Info,
 		}
 		return scored[i].service.Name < scored[j].service.Name
 	})
-
-	selected := make([]service.Info, 0)
+	selected := make([]service.Info, 0, len(scored))
 	for _, item := range scored {
 		selected = append(selected, item.service)
 	}
@@ -77,7 +93,7 @@ func (r *retriever) retrieve(ctx context.Context, query string) ([]service.Info,
 	return selected, nil
 }
 
-func (r *retriever) retrieveLexical(query string, services []service.Info) []service.Info {
+func (r *Retriever) retrieveLexical(query string, services []service.Info) []service.Info {
 	normalizedQuery := strings.ToLower(strings.TrimSpace(query))
 	if normalizedQuery == "" {
 		return services
@@ -114,7 +130,7 @@ func (r *retriever) retrieveLexical(query string, services []service.Info) []ser
 		return scored[i].service.Name < scored[j].service.Name
 	})
 
-	selected := make([]service.Info, 0)
+	selected := make([]service.Info, 0, len(scored))
 	for _, item := range scored {
 		selected = append(selected, item.service)
 	}
@@ -143,14 +159,40 @@ func cosineSimilarity(left, right []float64) float64 {
 	var dot float64
 	var leftNorm float64
 	var rightNorm float64
-	for i := range left {
-		dot += left[i] * right[i]
-		leftNorm += left[i] * left[i]
-		rightNorm += right[i] * right[i]
+	for idx := range left {
+		dot += left[idx] * right[idx]
+		leftNorm += left[idx] * left[idx]
+		rightNorm += right[idx] * right[idx]
 	}
 	if leftNorm == 0 || rightNorm == 0 {
 		return 0
 	}
 
 	return dot / (math.Sqrt(leftNorm) * math.Sqrt(rightNorm))
+}
+
+func sameServices(left, right []service.Info) bool {
+	if len(left) != len(right) {
+		return false
+	}
+
+	for idx := range left {
+		if left[idx].Stack != right[idx].Stack ||
+			left[idx].Name != right[idx].Name ||
+			left[idx].Type != right[idx].Type ||
+			left[idx].Image != right[idx].Image ||
+			left[idx].Description != right[idx].Description {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (r *Retriever) recordFallback(reason string) {
+	if r.observer == nil {
+		return
+	}
+
+	r.observer.RecordRetrieveFallback(reason)
 }

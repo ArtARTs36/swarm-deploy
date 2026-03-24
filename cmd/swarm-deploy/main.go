@@ -11,6 +11,7 @@ import (
 
 	entrypoint "github.com/artarts36/go-entrypoint"
 	"github.com/artarts36/swarm-deploy/internal/assistant"
+	assistantmetrics "github.com/artarts36/swarm-deploy/internal/assistant/metrics"
 	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/artarts36/swarm-deploy/internal/controller"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/healthserver"
@@ -77,6 +78,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	assistantMetricRecorder, err := assistantmetrics.New(prometheus.DefaultRegisterer)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to init assistant metrics", slog.Any("err", err))
+		os.Exit(1)
+	}
+
 	deployer, err := swarm.NewDeployer(
 		cfg.Spec.Swarm.Command,
 		cfg.Spec.Swarm.StackDeployArgs,
@@ -109,7 +116,14 @@ func main() {
 		eventDispatcher,
 	)
 
-	assistantService, err := buildAssistantService(cfg, serviceStore, eventHistory, control, eventDispatcher)
+	assistantService, err := buildAssistantService(
+		cfg,
+		serviceStore,
+		eventHistory,
+		control,
+		eventDispatcher,
+		assistantMetricRecorder,
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to build assistant service", slog.Any("err", err))
 		os.Exit(1)
@@ -179,6 +193,7 @@ func buildAssistantService(
 	eventHistory *history.Store,
 	control *controller.Controller,
 	eventDispatcher dispatcher.Dispatcher,
+	ragObserver assistant.RAGObserver,
 ) (*assistant.Service, error) {
 	if !cfg.Spec.Assistant.Enabled {
 		return nil, nil
@@ -207,13 +222,13 @@ func buildAssistantService(
 		SystemPrompt:            cfg.Spec.Assistant.SystemPrompt,
 		AllowedTools:            cfg.Spec.Assistant.Tools,
 		ConversationInMemoryTTL: cfg.Spec.Assistant.Conversation.Storage.InMemory.TTL.Value,
-	}, serviceStore, toolExecutor, eventDispatcher)
+	}, serviceStore, toolExecutor, eventDispatcher, ragObserver)
 }
 
 func buildEventDispatcher(
 	cfg *config.Config,
 	inspector *swarm.Inspector,
-) (dispatcher.Dispatcher, *history.Store, *service.Store, error) {
+) (*dispatcher.QueueDispatcher, *history.Store, *service.Store, error) {
 	subs := map[events.Type][]dispatcher.Subscriber{}
 
 	historyStore, err := history.NewStore(

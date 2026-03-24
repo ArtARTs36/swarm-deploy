@@ -9,6 +9,7 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/assistant/conversation"
 	"github.com/artarts36/swarm-deploy/internal/assistant/guard"
+	"github.com/artarts36/swarm-deploy/internal/assistant/rag"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/tmc/langchaingo/llms"
 	langgraph "github.com/tmc/langgraphgo/graph"
@@ -30,7 +31,7 @@ var (
 type graph struct {
 	config         Config
 	guard          *guard.InjectionChecker
-	retriever      *retriever
+	retriever      *rag.Retriever
 	chat           *openAIClient
 	tools          ToolExecutor
 	allowedToolSet map[string]struct{}
@@ -48,7 +49,7 @@ type graphExecutionState struct {
 func newGraph(
 	config Config,
 	guard *guard.InjectionChecker,
-	retriever *retriever,
+	retriever *rag.Retriever,
 	chat *openAIClient,
 	tools ToolExecutor,
 	allowedToolSet map[string]struct{},
@@ -93,7 +94,7 @@ func (g *graph) compile(executionState *graphExecutionState) (*langgraph.Runnabl
 		return messages, nil
 	})
 	messageGraph.AddNode(graphNodeRetrieve, func(ctx context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
-		relevantServices, err := g.retriever.retrieve(ctx, executionState.userMessage)
+		relevantServices, err := g.retriever.Retrieve(ctx, executionState.userMessage)
 		if err != nil {
 			return messages, fmt.Errorf("retrieve context: %w", err)
 		}
@@ -268,9 +269,22 @@ func buildServicesContextMessage(services []service.Info) string {
 	builder.WriteString("Relevant service metadata from service.store:\n")
 	for _, serviceInfo := range services {
 		builder.WriteString("- ")
-		builder.WriteString(serviceToDocument(serviceInfo))
+		builder.WriteString(serviceToContextDocument(serviceInfo))
 		builder.WriteByte('\n')
 	}
 
 	return strings.TrimSpace(builder.String())
+}
+
+func serviceToContextDocument(serviceInfo service.Info) string {
+	return strings.TrimSpace(
+		fmt.Sprintf(
+			"stack=%s service=%s type=%s image=%s description=%s",
+			serviceInfo.Stack,
+			serviceInfo.Name,
+			serviceInfo.Type,
+			serviceInfo.Image,
+			serviceInfo.Description,
+		),
+	)
 }

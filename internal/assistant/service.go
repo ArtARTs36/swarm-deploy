@@ -10,6 +10,7 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/assistant/conversation"
 	"github.com/artarts36/swarm-deploy/internal/assistant/guard"
+	"github.com/artarts36/swarm-deploy/internal/assistant/rag"
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/google/uuid"
@@ -37,17 +38,31 @@ type Service struct {
 	event dispatcher.Dispatcher
 }
 
+// RAGObserver records RAG indexing and retrieval telemetry.
+type RAGObserver = rag.Observer
+
 // NewService creates assistant service with OpenAI-compatible clients.
 func NewService(
 	config Config,
 	store ServiceStore,
 	tools ToolExecutor,
 	eventDispatcher dispatcher.Dispatcher,
+	ragObserver RAGObserver,
 ) (*Service, error) {
 	modelClient := newOpenAIClient(config.BaseURL, config.APIToken, config.OrganizationID)
 
-	retriever := newRetriever(store, modelClient, strings.TrimSpace(config.ModelName))
+	ragIndex := rag.NewIndex()
+	retriever := rag.NewRetriever(store, modelClient, strings.TrimSpace(config.ModelName), ragIndex, ragObserver)
+	ragSubscriber := rag.NewIndexSubscriber(store, modelClient, strings.TrimSpace(config.ModelName), ragIndex, ragObserver)
 	allowedTools := normalizeAllowedTools(config.AllowedTools)
+
+	type subscriberAdder interface {
+		AddSubscriber(eventType events.Type, subscriber dispatcher.Subscriber)
+	}
+
+	if adder, ok := eventDispatcher.(subscriberAdder); ok {
+		adder.AddSubscriber(events.TypeDeploySuccess, ragSubscriber)
+	}
 
 	return &Service{
 		config: config,

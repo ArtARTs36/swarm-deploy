@@ -100,7 +100,7 @@ func (c *openAIClient) complete(ctx context.Context, req modelRequest) (modelRes
 	}, nil
 }
 
-func (c *openAIClient) embed(ctx context.Context, model string, inputs []string) ([][]float64, error) {
+func (c *openAIClient) Embed(ctx context.Context, model string, inputs []string) ([][]float64, error) {
 	response, err := c.client.Embeddings.New(ctx, openai.EmbeddingNewParams{
 		Model: strings.TrimSpace(model),
 		Input: openai.EmbeddingNewParamsInputUnion{

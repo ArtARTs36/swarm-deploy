@@ -97,6 +97,7 @@ func TestServiceChatReturnsCompletedResponse(t *testing.T) {
 		&fakeStore{services: []service.Info{{Name: "api", Stack: "app", Image: "example/api:v1"}}},
 		&fakeTools{},
 		&dispatcher.NopDispatcher{},
+		nil,
 	)
 	require.NoError(t, err, "create assistant service")
 
@@ -124,6 +125,7 @@ func TestServiceChatRejectsPromptInjection(t *testing.T) {
 		&fakeStore{},
 		&fakeTools{},
 		&dispatcher.NopDispatcher{},
+		nil,
 	)
 	require.NoError(t, err, "create assistant service")
 
@@ -201,6 +203,7 @@ func TestServiceChatHandlesToolCalls(t *testing.T) {
 		&fakeStore{services: []service.Info{{Name: "api", Stack: "app", Image: "example/api:v1"}}},
 		tools,
 		&dispatcher.NopDispatcher{},
+		nil,
 	)
 	require.NoError(t, err, "create assistant service")
 
@@ -226,6 +229,7 @@ func TestServiceChatFailsOnUnknownPollRequestID(t *testing.T) {
 		&fakeStore{},
 		&fakeTools{},
 		&dispatcher.NopDispatcher{},
+		nil,
 	)
 	require.NoError(t, err, "create assistant service")
 
