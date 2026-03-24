@@ -2,6 +2,7 @@ package assistant
 
 import (
 	"context"
+	"time"
 
 	"github.com/artarts36/swarm-deploy/internal/service"
 )
@@ -82,6 +83,8 @@ type Config struct {
 	SystemPrompt string
 	// AllowedTools restricts available tool names. Empty means all tools.
 	AllowedTools []string
+	// ConversationInMemoryTTL is a retention time for in-memory conversations.
+	ConversationInMemoryTTL time.Duration
 }
 
 // ServiceStore reads current service metadata used by RAG retrieval.

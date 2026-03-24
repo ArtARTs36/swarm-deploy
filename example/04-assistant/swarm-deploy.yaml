@@ -20,6 +20,11 @@ sync:
 assistant:
   # Enable assistant API and UI.
   enabled: true
+  conversation:
+    storage:
+      inMemory:
+        # Dialog retention in in-memory storage.
+        ttl: 1h
   # Allowed tool list. Empty means all built-in tools.
   tools: []
   # Extra project-specific prompt.

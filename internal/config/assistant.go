@@ -12,6 +12,8 @@ type AssistantSpec struct {
 	SystemPrompt string `yaml:"systemPrompt"`
 	// Model contains LLM provider configuration.
 	Model AssistantModelSpec `yaml:"model"`
+	// Conversation contains assistant conversation storage settings.
+	Conversation AssistantConversationSpec `yaml:"conversation"`
 }
 
 // AssistantModelSpec contains model-level settings.
@@ -34,4 +36,22 @@ type AssistantOpenAISpec struct {
 	Temperature string `yaml:"temperature"`
 	// MaxTokens is a max generated token count.
 	MaxTokens string `yaml:"maxTokens"`
+}
+
+// AssistantConversationSpec contains conversation settings.
+type AssistantConversationSpec struct {
+	// Storage configures conversation storage implementation.
+	Storage AssistantConversationStorageSpec `yaml:"storage"`
+}
+
+// AssistantConversationStorageSpec contains storage configuration.
+type AssistantConversationStorageSpec struct {
+	// InMemory configures in-memory conversation storage.
+	InMemory AssistantConversationInMemoryStorageSpec `yaml:"inMemory"`
+}
+
+// AssistantConversationInMemoryStorageSpec contains in-memory storage settings.
+type AssistantConversationInMemoryStorageSpec struct {
+	// TTL is a dialog retention duration for in-memory storage.
+	TTL specw.Duration `yaml:"ttl"`
 }

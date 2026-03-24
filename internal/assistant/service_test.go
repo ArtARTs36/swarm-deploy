@@ -8,7 +8,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -82,17 +84,19 @@ func TestServiceChatReturnsCompletedResponse(t *testing.T) {
 
 	serviceInstance, err := NewService(
 		Config{
-			Enabled:        true,
-			ModelName:      "gpt-4o-mini",
-			BaseURL:        server.URL,
-			APIToken:       "test-token",
-			OrganizationID: organizationID,
-			Temperature:    0.2,
-			MaxTokens:      64,
-			SystemPrompt:   "debug helper",
+			Enabled:                 true,
+			ModelName:               "gpt-4o-mini",
+			BaseURL:                 server.URL,
+			APIToken:                "test-token",
+			OrganizationID:          organizationID,
+			Temperature:             0.2,
+			MaxTokens:               64,
+			SystemPrompt:            "debug helper",
+			ConversationInMemoryTTL: time.Hour,
 		},
 		&fakeStore{services: []service.Info{{Name: "api", Stack: "app", Image: "example/api:v1"}}},
 		&fakeTools{},
+		&dispatcher.NopDispatcher{},
 	)
 	require.NoError(t, err, "create assistant service")
 
@@ -108,16 +112,18 @@ func TestServiceChatReturnsCompletedResponse(t *testing.T) {
 func TestServiceChatRejectsPromptInjection(t *testing.T) {
 	serviceInstance, err := NewService(
 		Config{
-			Enabled:      true,
-			ModelName:    "gpt-4o-mini",
-			BaseURL:      "http://127.0.0.1:1",
-			APIToken:     "test-token",
-			Temperature:  0.2,
-			MaxTokens:    64,
-			SystemPrompt: "debug helper",
+			Enabled:                 true,
+			ModelName:               "gpt-4o-mini",
+			BaseURL:                 "http://127.0.0.1:1",
+			APIToken:                "test-token",
+			Temperature:             0.2,
+			MaxTokens:               64,
+			SystemPrompt:            "debug helper",
+			ConversationInMemoryTTL: time.Hour,
 		},
 		&fakeStore{},
 		&fakeTools{},
+		&dispatcher.NopDispatcher{},
 	)
 	require.NoError(t, err, "create assistant service")
 
@@ -183,16 +189,18 @@ func TestServiceChatHandlesToolCalls(t *testing.T) {
 
 	serviceInstance, err := NewService(
 		Config{
-			Enabled:      true,
-			ModelName:    "gpt-4o-mini",
-			BaseURL:      server.URL,
-			APIToken:     "test-token",
-			Temperature:  0.2,
-			MaxTokens:    64,
-			SystemPrompt: "debug helper",
+			Enabled:                 true,
+			ModelName:               "gpt-4o-mini",
+			BaseURL:                 server.URL,
+			APIToken:                "test-token",
+			Temperature:             0.2,
+			MaxTokens:               64,
+			SystemPrompt:            "debug helper",
+			ConversationInMemoryTTL: time.Hour,
 		},
 		&fakeStore{services: []service.Info{{Name: "api", Stack: "app", Image: "example/api:v1"}}},
 		tools,
+		&dispatcher.NopDispatcher{},
 	)
 	require.NoError(t, err, "create assistant service")
 
@@ -206,16 +214,18 @@ func TestServiceChatHandlesToolCalls(t *testing.T) {
 func TestServiceChatFailsOnUnknownPollRequestID(t *testing.T) {
 	serviceInstance, err := NewService(
 		Config{
-			Enabled:      true,
-			ModelName:    "gpt-4o-mini",
-			BaseURL:      "http://127.0.0.1:1",
-			APIToken:     "test-token",
-			Temperature:  0.2,
-			MaxTokens:    64,
-			SystemPrompt: "debug helper",
+			Enabled:                 true,
+			ModelName:               "gpt-4o-mini",
+			BaseURL:                 "http://127.0.0.1:1",
+			APIToken:                "test-token",
+			Temperature:             0.2,
+			MaxTokens:               64,
+			SystemPrompt:            "debug helper",
+			ConversationInMemoryTTL: time.Hour,
 		},
 		&fakeStore{},
 		&fakeTools{},
+		&dispatcher.NopDispatcher{},
 	)
 	require.NoError(t, err, "create assistant service")
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/artarts36/swarm-deploy/internal/assistant/conversation"
 	"github.com/artarts36/swarm-deploy/internal/assistant/guard"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/tmc/langchaingo/llms"
@@ -26,11 +27,6 @@ var (
 	errPromptInjection = errors.New("request rejected by prompt injection guard")
 )
 
-type conversationTurn struct {
-	role    string
-	content string
-}
-
 type graph struct {
 	config         Config
 	guard          *guard.InjectionChecker
@@ -41,7 +37,7 @@ type graph struct {
 }
 
 type graphExecutionState struct {
-	history            []conversationTurn
+	history            []conversation.Turn
 	userMessage        string
 	relevantServices   []service.Info
 	modelMessages      []modelMessage
@@ -67,7 +63,7 @@ func newGraph(
 	}
 }
 
-func (g *graph) run(ctx context.Context, history []conversationTurn, userMessage string) (string, []ToolCall, error) {
+func (g *graph) run(ctx context.Context, history []conversation.Turn, userMessage string) (string, []ToolCall, error) {
 	executionState := &graphExecutionState{
 		history:            history,
 		userMessage:        userMessage,
@@ -121,8 +117,8 @@ func (g *graph) compile(executionState *graphExecutionState) (*langgraph.Runnabl
 
 		for _, turn := range executionState.history {
 			messages = append(messages, modelMessage{
-				Role:    turn.role,
-				Content: turn.content,
+				Role:    turn.Role,
+				Content: turn.Content,
 			})
 		}
 		messages = append(messages, modelMessage{

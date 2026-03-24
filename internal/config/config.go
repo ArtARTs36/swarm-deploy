@@ -33,9 +33,10 @@ const (
 	defaultInitJobMaxDuration = 10 * time.Minute
 	defaultInitJobsTimeout    = 10 * time.Minute
 
-	defaultAssistantOpenAIBaseURL = "https://api.openai.com/v1"
-	defaultAssistantTemperature   = "0.2"
-	defaultAssistantMaxTokens     = "800"
+	defaultAssistantOpenAIBaseURL           = "https://api.openai.com/v1"
+	defaultAssistantTemperature             = "0.2"
+	defaultAssistantMaxTokens               = "800"
+	defaultAssistantConversationInMemoryTTL = 1 * time.Hour
 )
 
 type Config struct {
@@ -347,6 +348,11 @@ func (c *Config) applyAssistantDefaults() {
 	openaiCfg.MaxTokens = strings.TrimSpace(openaiCfg.MaxTokens)
 	if openaiCfg.MaxTokens == "" {
 		openaiCfg.MaxTokens = defaultAssistantMaxTokens
+	}
+
+	inMemoryStorageCfg := &c.Spec.Assistant.Conversation.Storage.InMemory
+	if inMemoryStorageCfg.TTL.Value <= 0 {
+		inMemoryStorageCfg.TTL.Value = defaultAssistantConversationInMemoryTTL
 	}
 }
 

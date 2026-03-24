@@ -72,8 +72,8 @@ func TestRetrieverFallsBackToLexicalSearch(t *testing.T) {
 		"model",
 	)
 
-	selected, err := retriever.retrieve(context.Background(), "jobs", 1)
+	selected, err := retriever.retrieve(context.Background(), "jobs")
 	require.NoError(t, err, "lexical fallback must still succeed")
-	require.Len(t, selected, 1, "expected single service")
-	assert.Equal(t, "queue", selected[0].Name, "expected lexical best match")
+	assert.Equal(t, "api", selected[0].Name, "expected lexical best match")
+	assert.Equal(t, "queue", selected[1].Name, "expected lexical best match")
 }
