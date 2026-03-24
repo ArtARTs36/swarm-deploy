@@ -1,0 +1,38 @@
+package tools
+
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestListNodesExecute(t *testing.T) {
+	tool := NewListNodes(&fakeNodeStore{
+		nodes: []swarm.NodeInfo{
+			{
+				ID:            "node-1",
+				Hostname:      "manager-1",
+				Status:        "ready",
+				Availability:  "active",
+				ManagerStatus: "leader",
+				EngineVersion: "28.3.0",
+				Addr:          "10.0.0.1",
+			},
+		},
+	})
+
+	raw, err := tool.Execute(nil)
+	require.NoError(t, err, "execute list_nodes tool")
+
+	var payload struct {
+		Nodes []swarm.NodeInfo `json:"nodes"`
+	}
+
+	require.NoError(t, json.Unmarshal([]byte(raw), &payload), "decode response")
+	require.Len(t, payload.Nodes, 1, "expected one node")
+	assert.Equal(t, "node-1", payload.Nodes[0].ID, "unexpected node id")
+	assert.Equal(t, "manager-1", payload.Nodes[0].Hostname, "unexpected hostname")
+}
