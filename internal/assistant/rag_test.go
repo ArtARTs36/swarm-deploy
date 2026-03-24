@@ -48,7 +48,7 @@ func TestRetrieverRanksByEmbeddingSimilarity(t *testing.T) {
 
 	client := newOpenAIClient(server.URL, "test-token", "")
 	retriever := newRetriever(&fakeServiceStore{services: services}, client, "model")
-	selected, err := retriever.retrieve(context.Background(), "database service", 2)
+	selected, err := retriever.retrieve(context.Background(), "database service")
 	require.NoError(t, err, "retrieve services")
 	require.Len(t, selected, 2, "expected top-k services")
 	assert.Equal(t, "db", selected[0].Name, "expected nearest service first")

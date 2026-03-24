@@ -11,7 +11,7 @@ import (
 	"github.com/openai/openai-go/v3/option"
 )
 
-const defaultOpenAIRequestTimeout = 45 * time.Second
+const defaultOpenAIRequestTimeout = 60 * time.Second
 
 type openAIClient struct {
 	baseURL        string
@@ -45,13 +45,6 @@ func newOpenAIClient(baseURL, token, organizationID string) *openAIClient {
 }
 
 func (c *openAIClient) complete(ctx context.Context, req modelRequest) (modelResponse, error) {
-	if strings.TrimSpace(c.baseURL) == "" {
-		return modelResponse{}, fmt.Errorf("openai base URL is empty")
-	}
-	if strings.TrimSpace(c.token) == "" {
-		return modelResponse{}, fmt.Errorf("openai api token is empty")
-	}
-
 	messages := make([]openai.ChatCompletionMessageParamUnion, 0, len(req.Messages))
 	for _, message := range req.Messages {
 		converted, err := toOpenAIMessage(message)
@@ -112,13 +105,6 @@ func (c *openAIClient) complete(ctx context.Context, req modelRequest) (modelRes
 }
 
 func (c *openAIClient) embed(ctx context.Context, model string, inputs []string) ([][]float64, error) {
-	if strings.TrimSpace(c.baseURL) == "" {
-		return nil, fmt.Errorf("openai base URL is empty")
-	}
-	if strings.TrimSpace(c.token) == "" {
-		return nil, fmt.Errorf("openai api token is empty")
-	}
-
 	response, err := c.client.Embeddings.New(ctx, openai.EmbeddingNewParams{
 		Model: strings.TrimSpace(model),
 		Input: openai.EmbeddingNewParamsInputUnion{

@@ -9,9 +9,18 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/assistant/guard"
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/tmc/langchaingo/llms"
+	langgraph "github.com/tmc/langgraphgo/graph"
 )
 
 const maxToolIterations = 3
+
+const (
+	graphNodeGuard          = "guard"
+	graphNodeRetrieve       = "retrieve_context"
+	graphNodePrepare        = "prepare_messages"
+	graphNodeGenerateAnswer = "generate_answer"
+)
 
 var (
 	errPromptInjection = errors.New("request rejected by prompt injection guard")
@@ -29,6 +38,15 @@ type graph struct {
 	chat           *openAIClient
 	tools          ToolExecutor
 	allowedToolSet map[string]struct{}
+}
+
+type graphExecutionState struct {
+	history            []conversationTurn
+	userMessage        string
+	relevantServices   []service.Info
+	modelMessages      []modelMessage
+	collectedToolCalls []ToolCall
+	answer             string
 }
 
 func newGraph(
@@ -50,102 +68,148 @@ func newGraph(
 }
 
 func (g *graph) run(ctx context.Context, history []conversationTurn, userMessage string) (string, []ToolCall, error) {
-	if hasInjections := g.guard.Check(userMessage); hasInjections {
-		return "", nil, errPromptInjection
+	executionState := &graphExecutionState{
+		history:            history,
+		userMessage:        userMessage,
+		collectedToolCalls: make([]ToolCall, 0, 2),
 	}
 
-	relevantServices, err := g.retriever.retrieve(ctx, userMessage)
+	runnable, err := g.compile(executionState)
 	if err != nil {
-		return "", nil, fmt.Errorf("retrieve context: %w", err)
+		return "", executionState.collectedToolCalls, err
 	}
 
-	messages := make([]modelMessage, 0, len(history)+4)
-	messages = append(messages, modelMessage{
-		Role:    "system",
-		Content: buildSystemPrompt(g.config.SystemPrompt, g.allowedToolNames()),
-	})
+	if _, err := runnable.Invoke(ctx, nil); err != nil {
+		return "", executionState.collectedToolCalls, err
+	}
 
-	if contextMessage := buildServicesContextMessage(relevantServices); contextMessage != "" {
+	return executionState.answer, executionState.collectedToolCalls, nil
+}
+
+func (g *graph) compile(executionState *graphExecutionState) (*langgraph.Runnable, error) {
+	messageGraph := langgraph.NewMessageGraph()
+
+	messageGraph.AddNode(graphNodeGuard, func(_ context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
+		if hasInjections := g.guard.Check(executionState.userMessage); hasInjections {
+			return messages, errPromptInjection
+		}
+
+		return messages, nil
+	})
+	messageGraph.AddNode(graphNodeRetrieve, func(ctx context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
+		relevantServices, err := g.retriever.retrieve(ctx, executionState.userMessage)
+		if err != nil {
+			return messages, fmt.Errorf("retrieve context: %w", err)
+		}
+
+		executionState.relevantServices = relevantServices
+		return messages, nil
+	})
+	messageGraph.AddNode(graphNodePrepare, func(_ context.Context, state []llms.MessageContent) ([]llms.MessageContent, error) {
+		messages := make([]modelMessage, 0, len(executionState.history)+4)
 		messages = append(messages, modelMessage{
 			Role:    "system",
-			Content: contextMessage,
+			Content: buildSystemPrompt(g.config.SystemPrompt, g.allowedToolNames()),
 		})
-	}
 
-	for _, turn := range history {
+		if contextMessage := buildServicesContextMessage(executionState.relevantServices); contextMessage != "" {
+			messages = append(messages, modelMessage{
+				Role:    "system",
+				Content: contextMessage,
+			})
+		}
+
+		for _, turn := range executionState.history {
+			messages = append(messages, modelMessage{
+				Role:    turn.role,
+				Content: turn.content,
+			})
+		}
 		messages = append(messages, modelMessage{
-			Role:    turn.role,
-			Content: turn.content,
+			Role:    "user",
+			Content: strings.TrimSpace(executionState.userMessage),
 		})
-	}
-	messages = append(messages, modelMessage{
-		Role:    "user",
-		Content: strings.TrimSpace(userMessage),
+
+		executionState.modelMessages = messages
+
+		return state, nil
 	})
+	messageGraph.AddNode(
+		graphNodeGenerateAnswer,
+		func(ctx context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
+			allowedToolDefinitions := g.allowedToolDefinitions()
 
-	collectedToolCalls := make([]ToolCall, 0, 2)
-	allowedToolDefinitions := g.allowedToolDefinitions()
+			for i := 0; i < maxToolIterations; i++ {
+				completion, completionErr := g.chat.complete(ctx, modelRequest{
+					Model:       g.config.ModelName,
+					Temperature: g.config.Temperature,
+					MaxTokens:   g.config.MaxTokens,
+					Messages:    executionState.modelMessages,
+					Tools:       allowedToolDefinitions,
+				})
+				if completionErr != nil {
+					return messages, fmt.Errorf("chat completion: %w", completionErr)
+				}
 
-	for i := 0; i < maxToolIterations; i++ {
-		completion, completionErr := g.chat.complete(ctx, modelRequest{
-			Model:       g.config.ModelName,
-			Temperature: g.config.Temperature,
-			MaxTokens:   g.config.MaxTokens,
-			Messages:    messages,
-			Tools:       allowedToolDefinitions,
-		})
-		if completionErr != nil {
-			return "", collectedToolCalls, fmt.Errorf("chat completion: %w", completionErr)
-		}
+				if len(completion.ToolCalls) == 0 {
+					executionState.answer = strings.TrimSpace(completion.Content)
+					return messages, nil
+				}
 
-		if len(completion.ToolCalls) == 0 {
-			return strings.TrimSpace(completion.Content), collectedToolCalls, nil
-		}
+				executionState.modelMessages = append(executionState.modelMessages, modelMessage{
+					Role:      "assistant",
+					Content:   completion.Content,
+					ToolCalls: completion.ToolCalls,
+				})
 
-		messages = append(messages, modelMessage{
-			Role:      "assistant",
-			Content:   completion.Content,
-			ToolCalls: completion.ToolCalls,
-		})
-
-		for _, modelToolCall := range completion.ToolCalls {
-			toolCallInfo := ToolCall{
-				Name:      modelToolCall.Name,
-				Arguments: modelToolCall.Arguments,
-			}
-
-			toolResultMessage := ""
-			if !g.isToolAllowed(modelToolCall.Name) {
-				toolCallInfo.Error = "tool is not allowed by assistant.tools configuration"
-				toolResultMessage = toolCallInfo.Error
-			} else {
-				arguments, decodeErr := decodeToolArguments(modelToolCall.Arguments)
-				if decodeErr != nil {
-					toolCallInfo.Error = decodeErr.Error()
-					toolResultMessage = decodeErr.Error()
-				} else {
-					result, runErr := g.tools.Execute(ctx, modelToolCall.Name, arguments)
-					if runErr != nil {
-						toolCallInfo.Error = runErr.Error()
-						toolResultMessage = runErr.Error()
-					} else {
-						toolCallInfo.Result = result
-						toolResultMessage = result
+				for _, modelToolCall := range completion.ToolCalls {
+					toolCallInfo := ToolCall{
+						Name:      modelToolCall.Name,
+						Arguments: modelToolCall.Arguments,
 					}
+
+					toolResultMessage := ""
+					if !g.isToolAllowed(modelToolCall.Name) {
+						toolCallInfo.Error = "tool is not allowed by assistant.tools configuration"
+						toolResultMessage = toolCallInfo.Error
+					} else {
+						arguments, decodeErr := decodeToolArguments(modelToolCall.Arguments)
+						if decodeErr != nil {
+							toolCallInfo.Error = decodeErr.Error()
+							toolResultMessage = decodeErr.Error()
+						} else {
+							result, runErr := g.tools.Execute(ctx, modelToolCall.Name, arguments)
+							if runErr != nil {
+								toolCallInfo.Error = runErr.Error()
+								toolResultMessage = runErr.Error()
+							} else {
+								toolCallInfo.Result = result
+								toolResultMessage = result
+							}
+						}
+					}
+
+					executionState.collectedToolCalls = append(executionState.collectedToolCalls, toolCallInfo)
+					executionState.modelMessages = append(executionState.modelMessages, modelMessage{
+						Role:       "tool",
+						Name:       modelToolCall.Name,
+						ToolCallID: modelToolCall.ID,
+						Content:    strings.TrimSpace(toolResultMessage),
+					})
 				}
 			}
 
-			collectedToolCalls = append(collectedToolCalls, toolCallInfo)
-			messages = append(messages, modelMessage{
-				Role:       "tool",
-				Name:       modelToolCall.Name,
-				ToolCallID: modelToolCall.ID,
-				Content:    strings.TrimSpace(toolResultMessage),
-			})
-		}
-	}
+			return messages, fmt.Errorf("tool iteration limit exceeded")
+		},
+	)
 
-	return "", collectedToolCalls, fmt.Errorf("tool iteration limit exceeded")
+	messageGraph.AddEdge(graphNodeGuard, graphNodeRetrieve)
+	messageGraph.AddEdge(graphNodeRetrieve, graphNodePrepare)
+	messageGraph.AddEdge(graphNodePrepare, graphNodeGenerateAnswer)
+	messageGraph.AddEdge(graphNodeGenerateAnswer, langgraph.END)
+	messageGraph.SetEntryPoint(graphNodeGuard)
+
+	return messageGraph.Compile()
 }
 
 func (g *graph) allowedToolDefinitions() []ToolDefinition {
