@@ -72,10 +72,10 @@ func (s *IndexSubscriber) Handle(ctx context.Context, event events.Event) error 
 		return fmt.Errorf("build rag embeddings: %w", err)
 	}
 
-	if err := s.index.Replace(services, embeddings); err != nil {
+	if replaceErr := s.index.Replace(services, embeddings); replaceErr != nil {
 		s.recordRebuild("error", 0, startedAt, time.Now())
-		slog.WarnContext(ctx, "[assistant-rag] failed to replace index snapshot", slog.Any("err", err))
-		return fmt.Errorf("update rag index: %w", err)
+		slog.WarnContext(ctx, "[assistant-rag] failed to replace index snapshot", slog.Any("err", replaceErr))
+		return fmt.Errorf("update rag index: %w", replaceErr)
 	}
 
 	updatedAt := time.Now()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -34,6 +35,8 @@ import (
 )
 
 const shutdownTimeout = 30 * time.Second
+
+var errAssistantDisabled = errors.New("assistant is disabled")
 
 //nolint:funlen//not need
 func main() {
@@ -124,7 +127,7 @@ func main() {
 		eventDispatcher,
 		assistantMetricRecorder,
 	)
-	if err != nil {
+	if err != nil && !errors.Is(err, errAssistantDisabled) {
 		slog.ErrorContext(ctx, "failed to build assistant service", slog.Any("err", err))
 		os.Exit(1)
 	}
@@ -196,7 +199,7 @@ func buildAssistantService(
 	ragObserver assistant.RAGObserver,
 ) (*assistant.Service, error) {
 	if !cfg.Spec.Assistant.Enabled {
-		return nil, nil
+		return nil, errAssistantDisabled
 	}
 
 	temperature, err := cfg.Spec.Assistant.Model.OpenAI.ResolveTemperature()

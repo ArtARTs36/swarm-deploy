@@ -10,7 +10,9 @@ var injectionPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(system prompt|developer message|hidden prompt)`),
 
 	// Russian
-	regexp.MustCompile(`(системный промпт|системное сообщение|скрытую инструкцию|сообщение разработчика|скрытый промпт|системный запрос)`),
+	regexp.MustCompile(
+		`(системный промпт|системное сообщение|скрытую инструкцию|сообщение разработчика|скрытый промпт|системный запрос)`,
+	),
 }
 
 func NewInjectionChecker() *InjectionChecker {

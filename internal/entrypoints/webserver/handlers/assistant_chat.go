@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"math"
 
 	"github.com/artarts36/swarm-deploy/internal/assistant"
 	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
@@ -43,7 +44,12 @@ func toGeneratedAssistantChatResponse(resp assistant.ChatResponse) *generated.As
 		ErrorMessage:   toOptString(resp.ErrorMessage),
 	}
 	if resp.PollAfterMS > 0 {
-		generatedResp.PollAfterMs = generated.NewOptInt32(int32(resp.PollAfterMS))
+		pollAfterMS := resp.PollAfterMS
+		if pollAfterMS > math.MaxInt32 {
+			pollAfterMS = math.MaxInt32
+		}
+
+		generatedResp.PollAfterMs = generated.NewOptInt32(int32(pollAfterMS))
 	}
 
 	return generatedResp
