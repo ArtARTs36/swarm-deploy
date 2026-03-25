@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/artarts36/swarm-deploy/internal/event/events"
+	"github.com/artarts36/swarm-deploy/internal/event/logx"
 )
 
 const (
@@ -69,16 +70,15 @@ func (d *QueueDispatcher) runWorker() {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultSubscribeHandleTimeout)
 		defer cancel()
 
+		ctx = logx.ContextWithEventType(ctx, event.Type())
+
 		slog.DebugContext(ctx, "[event] running subscriber",
 			slog.String("subscriber.name", subscriber.Name()),
-			slog.String("event.type", string(event.Type())),
 		)
 
 		err := subscriber.Handle(context.Background(), event)
 		if err != nil {
-			slog.WarnContext(ctx, "[event] subscriber failed", slog.Any("err", err),
-				slog.String("event.type", string(event.Type())),
-			)
+			slog.WarnContext(ctx, "[event] subscriber failed", slog.Any("err", err))
 		}
 	}
 

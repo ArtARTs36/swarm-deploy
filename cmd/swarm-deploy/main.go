@@ -20,6 +20,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
+	"github.com/artarts36/swarm-deploy/internal/event/logx"
 	eventmetrics "github.com/artarts36/swarm-deploy/internal/event/metrics"
 	"github.com/artarts36/swarm-deploy/internal/event/notifiers"
 	notify2 "github.com/artarts36/swarm-deploy/internal/event/notify"
@@ -54,6 +55,7 @@ func main() {
 	slog.SetDefault(slog.New(slogx.NewChain(
 		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.Spec.Log.Level.Level()}),
 		slogm.RequestID(),
+		logx.EventType(),
 	)))
 
 	err = os.MkdirAll(cfg.Spec.DataDir, 0o755)
