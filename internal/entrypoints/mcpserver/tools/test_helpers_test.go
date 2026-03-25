@@ -3,6 +3,7 @@ package tools
 import (
 	"github.com/artarts36/swarm-deploy/internal/controller"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
+	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
@@ -35,6 +36,17 @@ type fakeNodeStore struct {
 func (f *fakeNodeStore) List() []inspector.NodeInfo {
 	out := make([]inspector.NodeInfo, len(f.nodes))
 	copy(out, f.nodes)
+
+	return out
+}
+
+type fakeServiceStore struct {
+	services []service.Info
+}
+
+func (f *fakeServiceStore) List() []service.Info {
+	out := make([]service.Info, len(f.services))
+	copy(out, f.services)
 
 	return out
 }

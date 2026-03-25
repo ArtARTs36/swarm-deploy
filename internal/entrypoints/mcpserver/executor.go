@@ -23,6 +23,7 @@ type Executor struct {
 func NewExecutor(
 	historyStore mcpTools.HistoryReader,
 	nodesStore mcpTools.NodesReader,
+	serviceStore mcpTools.ServicesReader,
 	control mcpTools.SyncTrigger,
 	eventDispatcher dispatcher.Dispatcher,
 	mcpMetrics metrics.MCP,
@@ -31,6 +32,7 @@ func NewExecutor(
 		mcpTools.NewListHistoryEvents(historyStore),
 		mcpTools.NewSync(control),
 		mcpTools.NewListNodes(nodesStore),
+		mcpTools.NewPingWebRoutes(serviceStore),
 		mcpTools.NewReportPromptInjection(eventDispatcher),
 	}
 

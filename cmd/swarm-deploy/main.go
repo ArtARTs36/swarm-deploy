@@ -227,7 +227,7 @@ func buildAssistantService(
 		return nil, fmt.Errorf("resolve assistant maxTokens: %w", err)
 	}
 
-	toolExecutor := mcpserver.NewExecutor(eventHistory, nodeStore, control, eventDispatcher, mcpMetrics)
+	toolExecutor := mcpserver.NewExecutor(eventHistory, nodeStore, serviceStore, control, eventDispatcher, mcpMetrics)
 
 	return assistant.NewService(assistant.Config{
 		Enabled:                 cfg.Spec.Assistant.Enabled,

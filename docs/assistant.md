@@ -51,6 +51,8 @@ The endpoint supports start and poll with the same route.
 
 - `list_history_events` - returns recent events from event history
 - `sync` - triggers manual sync (same as `POST /api/v1/sync`)
+- `list_nodes` - returns current Docker Swarm nodes snapshot
+- `ping_web_routes` - checks web routes for a specific service from `service.store` and returns HTTP results for each route
 
 Tool access is controlled by `assistant.tools`:
 

@@ -8,6 +8,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
+	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,10 +47,22 @@ func (f *fakeNodeStore) List() []inspector.NodeInfo {
 	return out
 }
 
+type fakeServiceStore struct {
+	services []service.Info
+}
+
+func (f *fakeServiceStore) List() []service.Info {
+	out := make([]service.Info, len(f.services))
+	copy(out, f.services)
+
+	return out
+}
+
 func TestExecutorExecuteUnknownTool(t *testing.T) {
 	executor := NewExecutor(
 		&fakeHistoryStore{},
 		&fakeNodeStore{},
+		&fakeServiceStore{},
 		&fakeSyncControl{},
 		&dispatcher.NopDispatcher{},
 		metrics.NewGroup(metrics.CreateGroupParams{

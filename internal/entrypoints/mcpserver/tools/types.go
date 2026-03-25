@@ -3,6 +3,7 @@ package tools
 import (
 	"github.com/artarts36/swarm-deploy/internal/controller"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
+	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
@@ -22,4 +23,10 @@ type SyncTrigger interface {
 type NodesReader interface {
 	// List returns current nodes snapshot.
 	List() []inspector.NodeInfo
+}
+
+// ServicesReader reads current service metadata snapshot.
+type ServicesReader interface {
+	// List returns current services metadata snapshot.
+	List() []service.Info
 }
