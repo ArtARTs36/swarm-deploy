@@ -38,6 +38,8 @@ type ServiceLabels struct {
 	Service map[string]string
 	// Container contains container labels from task template.
 	Container map[string]string
+	// ContainerEnv contains environment variables from task container spec.
+	ContainerEnv []string
 	// Image contains OCI labels from image config.
 	Image map[string]string
 }

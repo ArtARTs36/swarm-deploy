@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/artarts36/swarm-deploy/internal/event/events"
+	"github.com/artarts36/swarm-deploy/internal/service/webroute"
 	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
@@ -17,17 +18,19 @@ type LabelsInspector interface {
 
 // Subscriber persists service metadata on deploySuccess events.
 type Subscriber struct {
-	store     *Store
-	inspector LabelsInspector
-	metadata  *MetadataExtractor
+	store            *Store
+	inspector        LabelsInspector
+	metadata         *MetadataExtractor
+	webRouteResolver *webroute.Resolver
 }
 
 // NewSubscriber creates a service metadata event subscriber.
 func NewSubscriber(store *Store, inspector LabelsInspector, metadata *MetadataExtractor) *Subscriber {
 	return &Subscriber{
-		store:     store,
-		inspector: inspector,
-		metadata:  metadata,
+		store:            store,
+		inspector:        inspector,
+		metadata:         metadata,
+		webRouteResolver: webroute.NewResolver(),
 	}
 }
 
@@ -76,6 +79,7 @@ func (s *Subscriber) Handle(ctx context.Context, event events.Event) error {
 			Description: resolved.Description,
 			Type:        resolved.Type,
 			Image:       deployedService.Image,
+			WebRoutes:   s.webRouteResolver.Resolve(inspectedLabels.ContainerEnv),
 		})
 	}
 

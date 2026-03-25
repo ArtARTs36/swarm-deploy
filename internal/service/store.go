@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/artarts36/swarm-deploy/internal/service/webroute"
 )
 
 const fileModePrivate = 0o600
@@ -127,8 +129,43 @@ func normalizeInfo(info Info) Info {
 	info.Stack = strings.TrimSpace(info.Stack)
 	info.Description = strings.TrimSpace(info.Description)
 	info.Image = strings.TrimSpace(info.Image)
+	info.WebRoutes = normalizeWebRoutes(info.WebRoutes)
 
 	return info
+}
+
+func normalizeWebRoutes(routes []webroute.Route) []webroute.Route {
+	if len(routes) == 0 {
+		return nil
+	}
+
+	normalized := make([]webroute.Route, 0, len(routes))
+	for _, route := range routes {
+		normalizedRoute := webroute.Route{
+			Domain:  strings.TrimSpace(route.Domain),
+			Address: strings.TrimSpace(route.Address),
+			Port:    strings.TrimSpace(route.Port),
+		}
+		if normalizedRoute.Domain == "" && normalizedRoute.Address == "" && normalizedRoute.Port == "" {
+			continue
+		}
+		normalized = append(normalized, normalizedRoute)
+	}
+	if len(normalized) == 0 {
+		return nil
+	}
+
+	sort.Slice(normalized, func(i, j int) bool {
+		if normalized[i].Domain != normalized[j].Domain {
+			return normalized[i].Domain < normalized[j].Domain
+		}
+		if normalized[i].Address != normalized[j].Address {
+			return normalized[i].Address < normalized[j].Address
+		}
+		return normalized[i].Port < normalized[j].Port
+	})
+
+	return normalized
 }
 
 func sortInfos(rows []Info) {

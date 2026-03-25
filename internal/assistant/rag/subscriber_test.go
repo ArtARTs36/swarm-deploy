@@ -2,11 +2,13 @@ package rag
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/artarts36/swarm-deploy/internal/service/webroute"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +42,19 @@ func (*subscriberObserverCapture) RecordRetrieveFallback(string) {}
 
 func TestIndexSubscriberBuildsIndexOnDeploySuccess(t *testing.T) {
 	services := []service.Info{
-		{Name: "api", Stack: "app", Type: "application", Image: "example/api:v1"},
+		{
+			Name:  "api",
+			Stack: "app",
+			Type:  "application",
+			Image: "example/api:v1",
+			WebRoutes: []webroute.Route{
+				{
+					Domain:  "api.example.com",
+					Address: "api.example.com/v1",
+					Port:    "8080",
+				},
+			},
+		},
 		{Name: "db", Stack: "app", Type: "database", Image: "postgres:16"},
 	}
 	store := &fakeServiceStore{services: services}
@@ -60,6 +74,11 @@ func TestIndexSubscriberBuildsIndexOnDeploySuccess(t *testing.T) {
 	assert.Equal(t, []string{"success"}, observer.rebuildStatuses, "expected rebuild metric")
 	require.Len(t, embedder.inputs, 1, "expected index embeddings build")
 	assert.Len(t, embedder.inputs[0], 2, "expected one embedding input per service")
+	assert.True(
+		t,
+		strings.Contains(embedder.inputs[0][0], "web_route_address=api.example.com/v1"),
+		"expected web route fields in embedding document",
+	)
 
 	retriever := NewRetriever(
 		store,

@@ -564,6 +564,7 @@ type ServiceInfo struct {
 	Description OptString       `json:"description"`
 	Type        ServiceInfoType `json:"type"`
 	Image       string          `json:"image"`
+	WebRoutes   []WebRoute      `json:"web_routes"`
 }
 
 // GetName returns the value of Name.
@@ -591,6 +592,11 @@ func (s *ServiceInfo) GetImage() string {
 	return s.Image
 }
 
+// GetWebRoutes returns the value of WebRoutes.
+func (s *ServiceInfo) GetWebRoutes() []WebRoute {
+	return s.WebRoutes
+}
+
 // SetName sets the value of Name.
 func (s *ServiceInfo) SetName(val string) {
 	s.Name = val
@@ -614,6 +620,11 @@ func (s *ServiceInfo) SetType(val ServiceInfoType) {
 // SetImage sets the value of Image.
 func (s *ServiceInfo) SetImage(val string) {
 	s.Image = val
+}
+
+// SetWebRoutes sets the value of WebRoutes.
+func (s *ServiceInfo) SetWebRoutes(val []WebRoute) {
+	s.WebRoutes = val
 }
 
 type ServiceInfoType string
@@ -961,4 +972,41 @@ func (s *SyncInfo) init() SyncInfo {
 		*s = m
 	}
 	return m
+}
+
+// Ref: #/components/schemas/WebRoute
+type WebRoute struct {
+	Domain  string `json:"domain"`
+	Address string `json:"address"`
+	Port    string `json:"port"`
+}
+
+// GetDomain returns the value of Domain.
+func (s *WebRoute) GetDomain() string {
+	return s.Domain
+}
+
+// GetAddress returns the value of Address.
+func (s *WebRoute) GetAddress() string {
+	return s.Address
+}
+
+// GetPort returns the value of Port.
+func (s *WebRoute) GetPort() string {
+	return s.Port
+}
+
+// SetDomain sets the value of Domain.
+func (s *WebRoute) SetDomain(val string) {
+	s.Domain = val
+}
+
+// SetAddress sets the value of Address.
+func (s *WebRoute) SetAddress(val string) {
+	s.Address = val
+}
+
+// SetPort sets the value of Port.
+func (s *WebRoute) SetPort(val string) {
+	s.Port = val
 }

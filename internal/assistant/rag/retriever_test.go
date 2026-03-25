@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/artarts36/swarm-deploy/internal/service/webroute"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -100,4 +101,43 @@ func TestRetrieverFallsBackToLexicalSearchWhenQueryEmbeddingFails(t *testing.T) 
 	assert.Equal(t, "queue", selected[0].Name, "expected lexical best match")
 	assert.Equal(t, "api", selected[1].Name, "expected second lexical match")
 	assert.Equal(t, []string{"query_embedding_error"}, observer.reasons, "expected fallback reason metric")
+}
+
+func TestRetrieverLexicalMatchesWebRouteFields(t *testing.T) {
+	services := []service.Info{
+		{
+			Name:  "api",
+			Stack: "app",
+			WebRoutes: []webroute.Route{
+				{
+					Domain:  "api.example.com",
+					Address: "api.example.com/v1",
+					Port:    "8080",
+				},
+			},
+		},
+		{
+			Name:  "queue",
+			Stack: "infra",
+		},
+	}
+
+	index := NewIndex()
+	require.NoError(t, index.Replace(services, [][]float64{{0.1, 0.2}, {0.2, 0.1}}), "seed index")
+
+	retriever := NewRetriever(
+		&fakeServiceStore{services: services},
+		&fakeEmbedder{
+			embedFn: func(_ context.Context, _ string, _ []string) ([][]float64, error) {
+				return nil, errors.New("embeddings unavailable")
+			},
+		},
+		"model",
+		index,
+		nil,
+	)
+
+	selected, err := retriever.Retrieve(context.Background(), "api.example.com")
+	require.NoError(t, err, "lexical fallback must still succeed")
+	assert.Equal(t, "api", selected[0].Name, "expected service match by web route domain")
 }

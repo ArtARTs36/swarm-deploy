@@ -258,6 +258,19 @@ button:hover,
   font-size: 0.88rem;
 }
 
+.route-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.route-list li {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .service-item {
   display: flex;
   align-items: center;
@@ -659,4 +672,3 @@ button:hover,
     grid-template-columns: 1fr;
   }
 }
-

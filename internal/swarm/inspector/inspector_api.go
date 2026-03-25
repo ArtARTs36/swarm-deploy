@@ -57,8 +57,16 @@ func (i *Inspector) InspectServiceLabels(
 		Service: cloneStringMap(service.Spec.Labels),
 	}
 
-	labels.Container = cloneStringMap(service.Spec.TaskTemplate.ContainerSpec.Labels)
-	imageRef := service.Spec.TaskTemplate.ContainerSpec.Image
+	containerSpec := service.Spec.TaskTemplate.ContainerSpec
+	if containerSpec != nil {
+		labels.Container = cloneStringMap(containerSpec.Labels)
+		labels.ContainerEnv = cloneStringSlice(containerSpec.Env)
+	}
+
+	imageRef := ""
+	if containerSpec != nil {
+		imageRef = containerSpec.Image
+	}
 
 	slog.DebugContext(ctx, "[swarm] inspecting image", slog.String("image_ref", imageRef))
 
@@ -92,5 +100,16 @@ func cloneStringMap(in map[string]string) map[string]string {
 	for key, value := range in {
 		out[key] = value
 	}
+	return out
+}
+
+func cloneStringSlice(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+
+	out := make([]string, len(in))
+	copy(out, in)
+
 	return out
 }

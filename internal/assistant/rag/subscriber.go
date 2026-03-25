@@ -17,6 +17,7 @@ type IndexSubscriber struct {
 	modelName string
 	index     *Index
 	observer  Observer
+	documents *ServiceDocumentBuilder
 }
 
 // NewIndexSubscriber creates deploySuccess subscriber for RAG index updates.
@@ -37,6 +38,7 @@ func NewIndexSubscriber(
 		modelName: strings.TrimSpace(modelName),
 		index:     index,
 		observer:  observer,
+		documents: NewServiceDocumentBuilder(),
 	}
 }
 
@@ -62,7 +64,7 @@ func (s *IndexSubscriber) Handle(ctx context.Context, event events.Event) error 
 
 	documents := make([]string, 0, len(services))
 	for _, serviceInfo := range services {
-		documents = append(documents, serviceToDocument(serviceInfo))
+		documents = append(documents, s.documents.Build(serviceInfo))
 	}
 
 	embeddings, err := s.embedder.Embed(ctx, s.modelName, documents)
@@ -84,6 +86,7 @@ func (s *IndexSubscriber) Handle(ctx context.Context, event events.Event) error 
 		"[assistant-rag] rebuilt embeddings index",
 		slog.Int("services", len(services)),
 		slog.Duration("duration", time.Since(startedAt)),
+		slog.Any("documents", documents),
 	)
 	s.recordRebuild("success", len(services), startedAt, updatedAt)
 
@@ -91,9 +94,5 @@ func (s *IndexSubscriber) Handle(ctx context.Context, event events.Event) error 
 }
 
 func (s *IndexSubscriber) recordRebuild(status string, size int, startedAt time.Time, updatedAt time.Time) {
-	if s.observer == nil {
-		return
-	}
-
 	s.observer.RecordIndexRebuild(status, size, time.Since(startedAt), updatedAt)
 }

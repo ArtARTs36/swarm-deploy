@@ -297,6 +297,7 @@ func buildServicesContextMessage(services []service.Info) string {
 		return "No service metadata is available in service.store."
 	}
 
+	documentBuilder := rag.NewServiceDocumentBuilder()
 	builder := strings.Builder{}
 	builder.WriteString("Relevant service metadata from service.store (RAG retrieval, sorted by relevance):\n")
 	limited := services
@@ -305,7 +306,7 @@ func buildServicesContextMessage(services []service.Info) string {
 	}
 	for _, serviceInfo := range limited {
 		builder.WriteString("- ")
-		builder.WriteString(serviceToContextDocument(serviceInfo))
+		builder.WriteString(documentBuilder.Build(serviceInfo))
 		builder.WriteByte('\n')
 	}
 	if len(limited) < len(services) {
@@ -313,17 +314,4 @@ func buildServicesContextMessage(services []service.Info) string {
 	}
 
 	return strings.TrimSpace(builder.String())
-}
-
-func serviceToContextDocument(serviceInfo service.Info) string {
-	return strings.TrimSpace(
-		fmt.Sprintf(
-			"stack=%s service=%s type=%s image=%s description=%s",
-			serviceInfo.Stack,
-			serviceInfo.Name,
-			serviceInfo.Type,
-			serviceInfo.Image,
-			serviceInfo.Description,
-		),
-	)
 }

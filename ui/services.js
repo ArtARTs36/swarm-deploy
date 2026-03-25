@@ -15,6 +15,27 @@ function renderStatus(message) {
   servicesStatusEl.textContent = message;
 }
 
+function renderWebRoutes(webRoutes) {
+  if (!Array.isArray(webRoutes) || webRoutes.length === 0) {
+    return `<p class="meta"><strong>urls:</strong> n/a</p>`;
+  }
+
+  const items = webRoutes
+    .map((route) => {
+      const address = route?.address || "n/a";
+      const port = route?.port ? ` (port: ${escapeHtml(route.port)})` : "";
+      return `<li>${escapeHtml(address)}${port}</li>`;
+    })
+    .join("");
+
+  return `
+    <div class="meta">
+      <strong>urls:</strong>
+      <ul class="route-list">${items}</ul>
+    </div>
+  `;
+}
+
 function renderServices(services) {
   if (!Array.isArray(services) || services.length === 0) {
     servicesListEl.innerHTML = `
@@ -37,6 +58,7 @@ function renderServices(services) {
           <p class="meta"><strong>stack:</strong> ${escapeHtml(service.stack || "n/a")}</p>
           <p class="meta"><strong>image:</strong> ${escapeHtml(service.image || "n/a")}</p>
           <p class="meta"><strong>description:</strong> ${escapeHtml(service.description || "n/a")}</p>
+          ${renderWebRoutes(service.web_routes)}
         </article>
       `;
     })

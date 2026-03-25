@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/artarts36/swarm-deploy/internal/service/webroute"
 )
 
 // Retriever returns services relevant to a user query.
@@ -18,6 +19,7 @@ type Retriever struct {
 	modelName string
 	index     *Index
 	observer  Observer
+	documents *ServiceDocumentBuilder
 }
 
 // NewRetriever creates retriever with precomputed-document index support.
@@ -28,6 +30,7 @@ func NewRetriever(store ServiceStore, embedder Embedder, modelName string, index
 		modelName: strings.TrimSpace(modelName),
 		index:     index,
 		observer:  observer,
+		documents: NewServiceDocumentBuilder(),
 	}
 }
 
@@ -107,7 +110,7 @@ func (r *Retriever) retrieveLexical(query string, services []service.Info) []ser
 	scored := make([]scoredService, 0, len(services))
 
 	for _, serviceInfo := range services {
-		doc := strings.ToLower(serviceToDocument(serviceInfo))
+		doc := strings.ToLower(r.documents.Build(serviceInfo))
 		score := 0
 		for _, term := range terms {
 			if strings.Contains(doc, term) {
@@ -138,19 +141,8 @@ func (r *Retriever) retrieveLexical(query string, services []service.Info) []ser
 	return selected
 }
 
-func serviceToDocument(serviceInfo service.Info) string {
-	return strings.TrimSpace(
-		fmt.Sprintf(
-			"stack=%s service=%s type=%s image=%s description=%s",
-			serviceInfo.Stack,
-			serviceInfo.Name,
-			serviceInfo.Type,
-			serviceInfo.Image,
-			serviceInfo.Description,
-		),
-	)
-}
-
+// cosineSimilarity returns semantic closeness between two embedding vectors.
+// The value is in [-1..1], where larger means vectors point to a similar direction.
 func cosineSimilarity(left, right []float64) float64 {
 	if len(left) == 0 || len(right) == 0 || len(left) != len(right) {
 		return 0
@@ -160,14 +152,18 @@ func cosineSimilarity(left, right []float64) float64 {
 	var leftNorm float64
 	var rightNorm float64
 	for idx := range left {
+		// Dot product measures directional alignment.
 		dot += left[idx] * right[idx]
+		// Norms are vector lengths, used to normalize by magnitude.
 		leftNorm += left[idx] * left[idx]
 		rightNorm += right[idx] * right[idx]
 	}
+	// Zero-length vectors are invalid for cosine similarity.
 	if leftNorm == 0 || rightNorm == 0 {
 		return 0
 	}
 
+	// cos(theta) = (A·B) / (|A|*|B|).
 	return dot / (math.Sqrt(leftNorm) * math.Sqrt(rightNorm))
 }
 
@@ -181,7 +177,24 @@ func sameServices(left, right []service.Info) bool {
 			left[idx].Name != right[idx].Name ||
 			left[idx].Type != right[idx].Type ||
 			left[idx].Image != right[idx].Image ||
-			left[idx].Description != right[idx].Description {
+			left[idx].Description != right[idx].Description ||
+			!sameWebRoutes(left[idx].WebRoutes, right[idx].WebRoutes) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func sameWebRoutes(left, right []webroute.Route) bool {
+	if len(left) != len(right) {
+		return false
+	}
+
+	for idx := range left {
+		if left[idx].Domain != right[idx].Domain ||
+			left[idx].Address != right[idx].Address ||
+			left[idx].Port != right[idx].Port {
 			return false
 		}
 	}

@@ -182,6 +182,20 @@ components:
           enum: [application, monitoring, delivery, reverseProxy, database]
         image:
           type: string
+        web_routes:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebRoute'
+    WebRoute:
+      type: object
+      required: [domain, address, port]
+      properties:
+        domain:
+          type: string
+        address:
+          type: string
+        port:
+          type: string
     NodesResponse:
       type: object
       required: [nodes]

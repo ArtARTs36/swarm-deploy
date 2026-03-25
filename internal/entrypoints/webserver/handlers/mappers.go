@@ -8,6 +8,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/event/history"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	serviceType "github.com/artarts36/swarm-deploy/internal/service/stype"
+	"github.com/artarts36/swarm-deploy/internal/service/webroute"
 	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
@@ -116,10 +117,28 @@ func toGeneratedServiceInfos(services []service.Info) []generated.ServiceInfo {
 			Type:        toGeneratedServiceType(serviceInfo.Type),
 			Image:       serviceInfo.Image,
 			Description: toOptString(serviceInfo.Description),
+			WebRoutes:   toGeneratedWebRoutes(serviceInfo.WebRoutes),
 		}
 
 		mapped = append(mapped, mappedItem)
 	}
+	return mapped
+}
+
+func toGeneratedWebRoutes(routes []webroute.Route) []generated.WebRoute {
+	if len(routes) == 0 {
+		return nil
+	}
+
+	mapped := make([]generated.WebRoute, 0, len(routes))
+	for _, route := range routes {
+		mapped = append(mapped, generated.WebRoute{
+			Domain:  route.Domain,
+			Address: route.Address,
+			Port:    route.Port,
+		})
+	}
+
 	return mapped
 }
 
