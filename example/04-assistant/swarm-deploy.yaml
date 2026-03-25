@@ -32,6 +32,8 @@ assistant:
   model:
     # Chat model name.
     name: gpt-4o-mini
+    # Embeddings model name. Falls back to model.name when empty.
+    embeddingName: ""
     openai:
       # OpenAI-compatible API base URL.
       baseUrl: https://foundation-models.api.cloud.ru/v1

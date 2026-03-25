@@ -65,6 +65,7 @@ func wrapStackReconcileError(op string, services []compose.Service, err error) e
 
 func failedServicesFromReconcileError(err error) []compose.Service {
 	var reconcileErr *stackReconcileError
+	// Preserve detailed service context when the caller receives wrapped errors.
 	if errors.As(err, &reconcileErr) {
 		return reconcileErr.FailedServices()
 	}
@@ -92,6 +93,7 @@ func (r *stackReconciler) Reconcile(
 		return result, wrapStackReconcileError("compute digest", result.Services, err)
 	}
 
+	// Skip reconciliation when source compose content is unchanged since last successful apply.
 	if hasPrev && prevDigest == digest {
 		result.SourceDigest = digest
 		result.Skipped = true
@@ -100,6 +102,8 @@ func (r *stackReconciler) Reconcile(
 
 	deployComposePath := composePath
 	if r.cfg.Spec.SecretRotation.Enabled {
+		// Rotation mutates secret/config object names in the in-memory compose model.
+		// We keep digest based on original source, but deploy a rendered, rotated file.
 		_, err = stackFile.ApplyObjectRotation(
 			stackCfg.Name,
 			composePath,
@@ -117,6 +121,8 @@ func (r *stackReconciler) Reconcile(
 		deployComposePath = renderedPath
 	}
 
+	// Init jobs are executed before stack deployment to satisfy runtime prerequisites
+	// (for example schema/bootstrap tasks expected by service startup).
 	err = r.runInitJobs(ctx, stackCfg.Name, stackFile.Services)
 	if err != nil {
 		return result, wrapStackReconcileError("init jobs", result.Services, err)
@@ -133,6 +139,7 @@ func (r *stackReconciler) Reconcile(
 
 func (r *stackReconciler) runInitJobs(ctx context.Context, stackName string, services []compose.Service) error {
 	for _, service := range services {
+		// Jobs are run in declaration order per service to keep behavior deterministic.
 		for _, job := range service.InitJobs {
 			err := r.deployer.RunInitJob(ctx, swarm.InitJobSpec{
 				StackName:      stackName,
@@ -152,6 +159,7 @@ func (r *stackReconciler) runInitJobs(ctx context.Context, stackName string, ser
 
 func (r *stackReconciler) writeRenderedCompose(stackName string, stackFile *compose.File) (string, error) {
 	renderedDir := filepath.Join(r.cfg.Spec.DataDir, "rendered")
+	// Persist rendered files under data dir so deploy step can use a stable path.
 	if err := os.MkdirAll(renderedDir, 0o755); err != nil {
 		return "", fmt.Errorf("create rendered dir: %w", err)
 	}

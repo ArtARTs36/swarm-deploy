@@ -83,10 +83,6 @@ func (f *File) MarshalYAML() ([]byte, error) {
 }
 
 func (f *File) ComputeDigest(composePath string) (string, error) {
-	if f == nil {
-		return "", errors.New("compose file is nil")
-	}
-
 	baseDir := filepath.Dir(composePath)
 	hasher := sha256.New()
 	hasher.Write(f.RawBytes)

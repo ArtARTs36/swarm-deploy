@@ -307,6 +307,10 @@ func (c *Config) applySecurityDefaults(configDir string) {
 func (c *Config) applyAssistantDefaults() {
 	c.Spec.Assistant.SystemPrompt = strings.TrimSpace(c.Spec.Assistant.SystemPrompt)
 	c.Spec.Assistant.Model.Name = strings.TrimSpace(c.Spec.Assistant.Model.Name)
+	c.Spec.Assistant.Model.EmbeddingName = strings.TrimSpace(c.Spec.Assistant.Model.EmbeddingName)
+	if c.Spec.Assistant.Model.EmbeddingName == "" {
+		c.Spec.Assistant.Model.EmbeddingName = c.Spec.Assistant.Model.Name
+	}
 
 	for i, tool := range c.Spec.Assistant.Tools {
 		c.Spec.Assistant.Tools[i] = strings.TrimSpace(tool)

@@ -68,8 +68,10 @@ type ChatResponse struct {
 type Config struct {
 	// Enabled toggles assistant execution.
 	Enabled bool
-	// ModelName is the model identifier used for chat and embeddings.
+	// ModelName is the model identifier used for chat completion.
 	ModelName string
+	// EmbeddingModelName is the model identifier used for embeddings generation.
+	EmbeddingModelName string
 	// BaseURL is an OpenAI-compatible API base URL.
 	BaseURL string
 	// APIToken is an OpenAI-compatible bearer token.

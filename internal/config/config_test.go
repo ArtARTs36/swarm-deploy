@@ -516,6 +516,12 @@ assistant:
 		cfg.Spec.Assistant.Conversation.Storage.InMemory.TTL.Value,
 		"expected default assistant conversation storage ttl",
 	)
+	assert.Equal(
+		t,
+		cfg.Spec.Assistant.Model.Name,
+		cfg.Spec.Assistant.Model.EmbeddingName,
+		"expected assistant embedding model name fallback to assistant.model.name",
+	)
 }
 
 func TestLoadUsesAssistantConversationInMemoryTTLSpecifiedInConfig(t *testing.T) {
@@ -558,5 +564,45 @@ assistant:
 		90*time.Minute,
 		cfg.Spec.Assistant.Conversation.Storage.InMemory.TTL.Value,
 		"expected assistant conversation storage ttl from config",
+	)
+}
+
+func TestLoadUsesAssistantEmbeddingModelNameFromConfig(t *testing.T) {
+	dir := t.TempDir()
+
+	stacksPath := filepath.Join(dir, "stacks.yaml")
+	stacksPayload := []byte(`
+stacks:
+  - name: app
+    composeFile: app/docker-compose.yml
+`)
+	require.NoError(t, os.WriteFile(stacksPath, stacksPayload, 0o600), "write stacks file")
+
+	tokenPath := filepath.Join(dir, "assistant_token")
+	require.NoError(t, os.WriteFile(tokenPath, []byte("token-value"), 0o600), "write assistant token")
+
+	configPath := filepath.Join(dir, "swarm-deploy.yaml")
+	configPayload := []byte(fmt.Sprintf(`
+git:
+  repository: https://example.com/repo.git
+stacks:
+  file: ./stacks.yaml
+assistant:
+  enabled: true
+  model:
+    name: gpt-4o-mini
+    embeddingName: text-embedding-3-small
+    openai:
+      apiTokenPath: %s
+`, tokenPath))
+	require.NoError(t, os.WriteFile(configPath, configPayload, 0o600), "write config file")
+
+	cfg, err := Load(configPath)
+	require.NoError(t, err, "load config")
+	assert.Equal(
+		t,
+		"text-embedding-3-small",
+		cfg.Spec.Assistant.Model.EmbeddingName,
+		"expected assistant embedding model name from config",
 	)
 }

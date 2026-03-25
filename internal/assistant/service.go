@@ -50,10 +50,14 @@ func NewService(
 	ragObserver RAGObserver,
 ) (*Service, error) {
 	modelClient := newOpenAIClient(config.BaseURL, config.APIToken, config.OrganizationID)
+	embeddingModelName := config.EmbeddingModelName
+	if embeddingModelName == "" {
+		embeddingModelName = config.ModelName
+	}
 
 	ragIndex := rag.NewIndex()
-	retriever := rag.NewRetriever(store, modelClient, strings.TrimSpace(config.ModelName), ragIndex, ragObserver)
-	ragSubscriber := rag.NewIndexSubscriber(store, modelClient, strings.TrimSpace(config.ModelName), ragIndex, ragObserver)
+	retriever := rag.NewRetriever(store, modelClient, embeddingModelName, ragIndex, ragObserver)
+	ragSubscriber := rag.NewIndexSubscriber(store, modelClient, embeddingModelName, ragIndex, ragObserver)
 	allowedTools := normalizeAllowedTools(config.AllowedTools)
 	eventDispatcher.Subscribe(events.TypeDeploySuccess, ragSubscriber)
 

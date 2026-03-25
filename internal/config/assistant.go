@@ -18,8 +18,10 @@ type AssistantSpec struct {
 
 // AssistantModelSpec contains model-level settings.
 type AssistantModelSpec struct {
-	// Name is a model identifier used for chat and embeddings.
+	// Name is a model identifier used for chat completion.
 	Name string `yaml:"name"`
+	// EmbeddingName is a model identifier used for embeddings generation.
+	EmbeddingName string `yaml:"embeddingName"`
 	// OpenAI contains OpenAI-compatible endpoint and auth settings.
 	OpenAI AssistantOpenAISpec `yaml:"openai"`
 }
