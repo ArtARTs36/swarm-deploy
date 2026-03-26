@@ -100,7 +100,7 @@
               "options": {
                 "mode": "exclude",
                 "names": [
-                  "{__name__=\"swarm_deploy_events_total\", instance=\"10.0.1.45:8081\", job=\"swarm-deploy\", namespace=\"infra-swarm-deploy\", node=\"vm-7fbb97\", service=\"infra-swarm-deploy_swarm-deploy\", type=\"assistantPromptInjectionDetected\"}"
+                  "events"
                 ],
                 "prefix": "All except:",
                 "readOnly": true
@@ -131,7 +131,7 @@
           "calcs": [],
           "displayMode": "table",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -143,13 +143,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "swarm_deploy_events_total{type=\"assistantPromptInjectionDetected\"}",
-          "legendFormat": "__auto",
+          "expr": "sum(increase(swarm_deploy_events_total{type=\"assistantPromptInjectionDetected\"}[1m]))",
+          "legendFormat": "events",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Events: Prompt Injection",
+      "title": "Prompt Injection Attempts",
       "type": "timeseries"
     },
     {
@@ -971,12 +971,12 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Swarm Deploy - Assistant & MCP",
   "uid": "swarm-deploy-assistant-mcp",
-  "version": 14
+  "version": 15
 }

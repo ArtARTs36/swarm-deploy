@@ -147,4 +147,9 @@ notifications:
 
 - Метрики для MCP: [internal/metrics/mcp.go](../../internal/metrics/mcp.go)
 - Метрики для RAG: [internal/metrics/assistant.go](../../internal/metrics/assistant.go)
-- Конфигурации для дашборда в Grafana: [monitoring](./../../monitoring)
+- Конфигурации для Prometheus/Grafana: [monitoring](./../../monitoring)
+
+Пример реального дашборда
+
+![](./../../monitoring/example_1.png)
+![](./../../monitoring/example_2.png)

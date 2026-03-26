@@ -18,7 +18,7 @@ func newPrometheusGit(namespace string) *prometheusGit {
 			prometheus.CounterOpts{
 				Namespace: namespace,
 				Subsystem: "git",
-				Name:      "git_updates_total",
+				Name:      "updates_total",
 				Help:      "Number of git update checks grouped by repo and result.",
 			},
 			[]string{"repo", "result"},
