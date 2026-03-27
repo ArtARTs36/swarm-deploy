@@ -44,6 +44,8 @@ type ImageVersionResolver interface {
 
 // GitRepository reads commit metadata and per-file diffs.
 type GitRepository interface {
+	// List returns latest commits from HEAD up to the provided limit.
+	List(ctx context.Context, limit int) ([]gitx.CommitMeta, error)
 	// Show returns commit metadata and per-file diff for a given commit hash.
 	Show(ctx context.Context, commitHash string) (gitx.Commit, error)
 }

@@ -79,20 +79,38 @@ func (f *fakeImageVersionResolver) ResolveActualVersion(
 }
 
 type fakeGitRepository struct {
-	commit gitx.Commit
-	err    error
-	called int
-	hash   string
+	commit  gitx.Commit
+	commits []gitx.CommitMeta
+	err     error
+
+	showCalled int
+	showHash   string
+
+	listCalled int
+	listLimit  int
 }
 
 func (f *fakeGitRepository) Show(_ context.Context, hash string) (gitx.Commit, error) {
-	f.called++
-	f.hash = hash
+	f.showCalled++
+	f.showHash = hash
 	if f.err != nil {
 		return gitx.Commit{}, f.err
 	}
 
 	return f.commit, nil
+}
+
+func (f *fakeGitRepository) List(_ context.Context, limit int) ([]gitx.CommitMeta, error) {
+	f.listCalled++
+	f.listLimit = limit
+	if f.err != nil {
+		return nil, f.err
+	}
+
+	out := make([]gitx.CommitMeta, len(f.commits))
+	copy(out, f.commits)
+
+	return out, nil
 }
 
 type fakeCommitDiffer struct {

@@ -40,6 +40,15 @@ func (p *LazyProxy) Head(ctx context.Context) (string, error) {
 	return repo.Head(ctx)
 }
 
+func (p *LazyProxy) List(ctx context.Context, limit int) ([]CommitMeta, error) {
+	repo, err := p.init(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return repo.List(ctx, limit)
+}
+
 func (p *LazyProxy) Show(ctx context.Context, commitHash string) (Commit, error) {
 	repo, err := p.init(ctx)
 	if err != nil {

@@ -205,6 +205,11 @@ func TestLazyProxyInitializesRepositoryLazily(t *testing.T) {
 	require.NoError(t, err, "show commit via lazy proxy")
 	assert.Equal(t, "test", commit.Author, "unexpected commit author")
 
+	commits, err := proxy.List(t.Context(), 1)
+	require.NoError(t, err, "list commits via lazy proxy")
+	require.Len(t, commits, 1, "expected one latest commit")
+	assert.Equal(t, sourceHead.Hash().String(), commits[0].Hash, "unexpected listed hash")
+
 	err = proxy.Pull(t.Context())
 	require.NoError(t, err, "pull lazy proxy repository")
 }
@@ -288,6 +293,58 @@ func TestGoGitRepositoryShowFailsOnUnknownCommit(t *testing.T) {
 	_, err = repository.Show(t.Context(), "0000000000000000000000000000000000000000")
 	require.Error(t, err, "show unknown commit")
 	assert.Contains(t, err.Error(), "find commit", "unexpected error")
+}
+
+func TestGoGitRepositoryListReturnsLatestCommits(t *testing.T) {
+	sourceRepositoryPath, sourceHead := initSourceRepository(t)
+	sourceRepository, err := gogit.PlainOpen(sourceRepositoryPath)
+	require.NoError(t, err, "open source repository")
+
+	worktree, err := sourceRepository.Worktree()
+	require.NoError(t, err, "open source repository worktree")
+
+	err = os.WriteFile(filepath.Join(sourceRepositoryPath, "README.md"), []byte("hello world"), 0o600)
+	require.NoError(t, err, "rewrite readme")
+	_, err = worktree.Add("README.md")
+	require.NoError(t, err, "git add readme")
+
+	secondCommitTime := time.Date(2026, time.March, 27, 1, 2, 3, 0, time.UTC)
+	_, err = worktree.Commit("second commit", &gogit.CommitOptions{
+		Author: &object.Signature{
+			Name:  "alice",
+			Email: "alice@example.com",
+			When:  secondCommitTime,
+		},
+	})
+	require.NoError(t, err, "commit second revision")
+
+	repository, err := NewGoGitRepository(t.Context(), config.GitSpec{
+		Repository: sourceRepositoryPath,
+		Branch:     sourceHead.Name().Short(),
+	}, sourceRepositoryPath)
+	require.NoError(t, err, "create go-git repository")
+
+	commits, err := repository.List(t.Context(), 2)
+	require.NoError(t, err, "list latest commits")
+	require.Len(t, commits, 2, "expected latest two commits")
+	assert.Equal(t, "second commit", commits[0].Message, "unexpected latest commit message")
+	assert.Equal(t, "alice", commits[0].Author, "unexpected latest commit author")
+	assert.Equal(t, secondCommitTime.Unix(), commits[0].Time.Unix(), "unexpected latest commit time")
+	assert.Equal(t, sourceHead.Hash().String(), commits[1].Hash, "unexpected previous commit hash")
+}
+
+func TestGoGitRepositoryListFailsOnInvalidLimit(t *testing.T) {
+	sourceRepositoryPath, sourceHead := initSourceRepository(t)
+
+	repository, err := NewGoGitRepository(t.Context(), config.GitSpec{
+		Repository: sourceRepositoryPath,
+		Branch:     sourceHead.Name().Short(),
+	}, sourceRepositoryPath)
+	require.NoError(t, err, "create repository")
+
+	_, err = repository.List(t.Context(), 0)
+	require.Error(t, err, "list must fail on invalid limit")
+	assert.Contains(t, err.Error(), "limit must be > 0", "unexpected error")
 }
 
 func writePrivateKeyFile(t *testing.T, dir string) string {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -32,6 +33,20 @@ type Commit struct {
 	Files []CommitFileDiff
 }
 
+// CommitMeta describes lightweight git commit metadata.
+type CommitMeta struct {
+	// Hash is a full commit hash.
+	Hash string
+	// Message is a commit message title/body.
+	Message string
+	// Author is a commit author name.
+	Author string
+	// AuthorEmail is a commit author email.
+	AuthorEmail string
+	// Time is a commit author timestamp.
+	Time time.Time
+}
+
 // CommitFileDiff contains one changed file snapshot in commit diff.
 type CommitFileDiff struct {
 	// OldPath is a file path before change.
@@ -51,6 +66,8 @@ type Repository interface {
 	Pull(ctx context.Context) error
 	// Head resolves current HEAD revision hash.
 	Head(ctx context.Context) (string, error)
+	// List returns latest commits from HEAD up to the provided limit.
+	List(ctx context.Context, limit int) ([]CommitMeta, error)
 	// Show returns commit metadata and per-file diff for a given revision.
 	Show(ctx context.Context, commitHash string) (Commit, error)
 }
@@ -111,6 +128,50 @@ func (r *GoGitRepository) Head(context.Context) (string, error) {
 	}
 
 	return headRef.Hash().String(), nil
+}
+
+func (r *GoGitRepository) List(ctx context.Context, limit int) ([]CommitMeta, error) {
+	if limit <= 0 {
+		return nil, errors.New("limit must be > 0")
+	}
+
+	headRef, err := r.repository.Head()
+	if err != nil {
+		return nil, fmt.Errorf("resolve head: %w", err)
+	}
+
+	commitIterator, err := r.repository.Log(&gogit.LogOptions{
+		From: headRef.Hash(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("read commit log: %w", err)
+	}
+	defer commitIterator.Close()
+
+	commits := make([]CommitMeta, 0, limit)
+	for len(commits) < limit {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+
+		commit, nextErr := commitIterator.Next()
+		if errors.Is(nextErr, io.EOF) {
+			break
+		}
+		if nextErr != nil {
+			return nil, fmt.Errorf("iterate commit log: %w", nextErr)
+		}
+
+		commits = append(commits, CommitMeta{
+			Hash:        commit.Hash.String(),
+			Message:     strings.TrimSpace(commit.Message),
+			Author:      commit.Author.Name,
+			AuthorEmail: commit.Author.Email,
+			Time:        commit.Author.When,
+		})
+	}
+
+	return commits, nil
 }
 
 func (r *GoGitRepository) Show(ctx context.Context, commitHash string) (Commit, error) {

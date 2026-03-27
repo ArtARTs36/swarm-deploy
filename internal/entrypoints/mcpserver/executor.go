@@ -39,6 +39,7 @@ func NewExecutor(
 		mcpTools.NewListNodes(nodesStore),
 		mcpTools.NewPingWebRoutes(serviceStore),
 		mcpTools.NewGetActualImageVersion(imageVersionResolver),
+		mcpTools.NewListGitCommits(gitRepository),
 		mcpTools.NewGitCommitDiff(gitRepository, stacks, commitDiffer),
 		mcpTools.NewReportPromptInjection(eventDispatcher),
 	}

@@ -62,8 +62,8 @@ func TestGitCommitDiffExecute(t *testing.T) {
 		},
 	})
 	require.NoError(t, err, "execute git_commit_diff")
-	assert.Equal(t, 1, repository.called, "repository show should be called once")
-	assert.Equal(t, "abc123", repository.hash, "unexpected repository hash")
+	assert.Equal(t, 1, repository.showCalled, "repository show should be called once")
+	assert.Equal(t, "abc123", repository.showHash, "unexpected repository hash")
 	assert.Equal(t, 1, composeDiffer.called, "compose differ should be called once")
 	require.Len(t, composeDiffer.composeFiles, 1, "only stack compose file should be passed into differ")
 	assert.Equal(t, "core", composeDiffer.composeFiles[0].StackName, "unexpected compose stack")

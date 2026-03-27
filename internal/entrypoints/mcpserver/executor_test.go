@@ -74,6 +74,10 @@ func (f *fakeImageVersionResolver) ResolveActualVersion(
 
 type fakeGitRepository struct{}
 
+func (f *fakeGitRepository) List(_ context.Context, _ int) ([]gitx.CommitMeta, error) {
+	return []gitx.CommitMeta{}, nil
+}
+
 func (f *fakeGitRepository) Show(_ context.Context, _ string) (gitx.Commit, error) {
 	return gitx.Commit{
 		Author: "test",
