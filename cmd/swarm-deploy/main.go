@@ -13,6 +13,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/assistant"
 	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/artarts36/swarm-deploy/internal/controller"
+	"github.com/artarts36/swarm-deploy/internal/differ"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/healthserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webhookserver"
@@ -72,11 +73,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	gitSyncer, err := gitops.NewSyncer(gitx.NewAuthResolver(), cfg.Spec.Git, cfg.Spec.DataDir)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to build git syncer", slog.Any("err", err))
-		os.Exit(1)
-	}
+	gitRepository := gitx.NewRepository(cfg.Spec.Git, filepath.Join(cfg.Spec.DataDir, "repo"))
+
+	gitSyncer := gitops.NewSyncer(gitRepository, cfg.Spec.DataDir)
 
 	metricsGroup := metrics.NewGroup(metrics.CreateGroupParams{
 		Namespace: "swarm_deploy",
@@ -132,6 +131,7 @@ func main() {
 		serviceStore,
 		eventHistory,
 		nodeStore,
+		gitRepository,
 		control,
 		eventDispatcher,
 		metricsGroup.Assistant,
@@ -211,6 +211,7 @@ func buildAssistantService(
 	serviceStore *service.Store,
 	eventHistory *history.Store,
 	nodeStore *swarminspector.NodeStore,
+	gitRepository gitx.Repository,
 	control *controller.Controller,
 	eventDispatcher dispatcher.Dispatcher,
 	ragObserver assistant.RAGObserver,
@@ -235,11 +236,16 @@ func buildAssistantService(
 		return nil, fmt.Errorf("build image version resolver: %w", err)
 	}
 
+	commitDiffer := differ.New()
+
 	toolExecutor := mcpserver.NewExecutor(
 		eventHistory,
 		nodeStore,
 		serviceStore,
 		imageVersionResolver,
+		gitRepository,
+		cfg.Spec.Stacks,
+		commitDiffer,
 		control,
 		eventDispatcher,
 		mcpMetrics,

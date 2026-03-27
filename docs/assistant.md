@@ -55,6 +55,7 @@ The endpoint supports start and poll with the same route.
 - `ping_web_routes` - checks web routes for a specific service from `service.store` and returns HTTP results for each route
 - `get_actual_image_version` - resolves актуальный тег и digest Docker-образа в registry (Docker Hub и совместимые)
   - registry is selected automatically by tool logic
+- `git_list_commits` - returns latest git commits from repository history (`limit` optional, default 10)
 
 Example use-case:
 - Question: `Я использую актуальную версию этого сервиса?`
