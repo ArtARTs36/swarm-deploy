@@ -9,6 +9,8 @@ import (
 type Assistant interface {
 	subsystem
 
+	// RecordChatCreated tracks newly created assistant chats (conversation threads).
+	RecordChatCreated()
 	// RecordIndexRebuild tracks index rebuild outcome and timing.
 	RecordIndexRebuild(status string, size int, duration time.Duration, updatedAt time.Time)
 	// RecordRetrieveFallback tracks fallback reasons during retrieval.
@@ -16,6 +18,7 @@ type Assistant interface {
 }
 
 type prometheusAssistant struct {
+	chatCreatedTotal         prometheus.Counter
 	ragIndexRebuildTotal     *prometheus.CounterVec
 	ragIndexRebuildDuration  *prometheus.HistogramVec
 	ragRetrieveFallbackTotal *prometheus.CounterVec
@@ -23,25 +26,35 @@ type prometheusAssistant struct {
 	ragIndexUpdatedAt        prometheus.Gauge
 }
 
-type nopAssistant struct{}
+type NopAssistant struct{}
 
-func (nopAssistant) collectors() []prometheus.Collector {
+func (NopAssistant) collectors() []prometheus.Collector {
 	return []prometheus.Collector{}
 }
 
-func (nopAssistant) RecordIndexRebuild(string, int, time.Duration, time.Time) {}
+func (NopAssistant) RecordChatCreated() {}
 
-func (nopAssistant) RecordRetrieveFallback(string) {}
+func (NopAssistant) RecordIndexRebuild(string, int, time.Duration, time.Time) {}
+
+func (NopAssistant) RecordRetrieveFallback(string) {}
 
 func newAssistant(namespace string, enabled bool) Assistant {
 	if enabled {
 		return newPrometheusAssistant(namespace)
 	}
-	return &nopAssistant{}
+	return &NopAssistant{}
 }
 
 func newPrometheusAssistant(namespace string) Assistant {
 	return &prometheusAssistant{
+		chatCreatedTotal: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: "assistant",
+				Name:      "chats_total",
+				Help:      "Number of newly created assistant chats (conversation threads).",
+			},
+		),
 		ragIndexRebuildTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: namespace,
@@ -89,6 +102,10 @@ func newPrometheusAssistant(namespace string) Assistant {
 	}
 }
 
+func (m *prometheusAssistant) RecordChatCreated() {
+	m.chatCreatedTotal.Inc()
+}
+
 func (m *prometheusAssistant) RecordIndexRebuild(status string, size int, duration time.Duration, updatedAt time.Time) {
 	m.ragIndexRebuildTotal.WithLabelValues(status).Inc()
 	m.ragIndexRebuildDuration.WithLabelValues(status).Observe(duration.Seconds())
@@ -104,6 +121,7 @@ func (m *prometheusAssistant) RecordRetrieveFallback(reason string) {
 
 func (m *prometheusAssistant) collectors() []prometheus.Collector {
 	return []prometheus.Collector{
+		m.chatCreatedTotal,
 		m.ragIndexRebuildTotal,
 		m.ragIndexRebuildDuration,
 		m.ragRetrieveFallbackTotal,

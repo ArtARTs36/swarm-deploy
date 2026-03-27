@@ -135,8 +135,7 @@ func main() {
 		gitRepository,
 		control,
 		eventDispatcher,
-		metricsGroup.Assistant,
-		metricsGroup.MCP,
+		metricsGroup,
 	)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to build assistant service", slog.Any("err", err))
@@ -216,8 +215,7 @@ func buildAssistantService(
 	gitRepository gitx.Repository,
 	control *controller.Controller,
 	eventDispatcher dispatcher.Dispatcher,
-	ragObserver assistant.RAGObserver,
-	mcpMetrics metrics.MCP,
+	metrics *metrics.Group,
 ) (assistant.Assistant, error) {
 	if !cfg.Spec.Assistant.Enabled {
 		return &assistant.DisabledAssistant{}, nil
@@ -251,7 +249,7 @@ func buildAssistantService(
 		commitDiffer,
 		control,
 		eventDispatcher,
-		mcpMetrics,
+		metrics.MCP,
 	)
 
 	return assistant.NewService(assistant.Config{
@@ -266,7 +264,7 @@ func buildAssistantService(
 		SystemPrompt:            cfg.Spec.Assistant.SystemPrompt,
 		AllowedTools:            cfg.Spec.Assistant.Tools,
 		ConversationInMemoryTTL: cfg.Spec.Assistant.Conversation.Storage.InMemory.TTL.Value,
-	}, serviceStore, toolExecutor, eventDispatcher, ragObserver)
+	}, serviceStore, toolExecutor, eventDispatcher, metrics.Assistant)
 }
 
 func buildEventDispatcher(

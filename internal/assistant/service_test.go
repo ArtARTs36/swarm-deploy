@@ -12,6 +12,7 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
+	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -98,7 +99,7 @@ func TestServiceChatReturnsCompletedResponse(t *testing.T) {
 		&fakeStore{services: []service.Info{{Name: "api", Stack: "app", Image: "example/api:v1"}}},
 		&fakeTools{},
 		&dispatcher.NopDispatcher{},
-		nil,
+		&metrics.NopAssistant{},
 	)
 	require.NoError(t, err, "create assistant service")
 
@@ -126,7 +127,7 @@ func TestServiceChatRejectsPromptInjection(t *testing.T) {
 		&fakeStore{},
 		&fakeTools{},
 		&dispatcher.NopDispatcher{},
-		nil,
+		metrics.NopAssistant{},
 	)
 	require.NoError(t, err, "create assistant service")
 
@@ -204,7 +205,7 @@ func TestServiceChatHandlesToolCalls(t *testing.T) {
 		&fakeStore{services: []service.Info{{Name: "api", Stack: "app", Image: "example/api:v1"}}},
 		tools,
 		&dispatcher.NopDispatcher{},
-		nil,
+		metrics.NopAssistant{},
 	)
 	require.NoError(t, err, "create assistant service")
 

@@ -13,6 +13,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/assistant/rag"
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/events"
+	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/google/uuid"
 )
 
@@ -35,7 +36,8 @@ type Service struct {
 
 	conversationStorage conversation.Storage
 
-	event dispatcher.Dispatcher
+	event        dispatcher.Dispatcher
+	chatObserver metrics.Assistant
 }
 
 // RAGObserver records RAG indexing and retrieval telemetry.
@@ -47,7 +49,7 @@ func NewService(
 	store ServiceStore,
 	tools ToolExecutor,
 	eventDispatcher dispatcher.Dispatcher,
-	ragObserver RAGObserver,
+	metrics metrics.Assistant,
 ) (*Service, error) {
 	modelClient := newOpenAIClient(config.BaseURL, config.APIToken, config.OrganizationID)
 	embeddingModelName := config.EmbeddingModelName
@@ -56,8 +58,8 @@ func NewService(
 	}
 
 	ragIndex := rag.NewIndex()
-	retriever := rag.NewRetriever(store, modelClient, embeddingModelName, ragIndex, ragObserver)
-	ragSubscriber := rag.NewIndexSubscriber(store, modelClient, embeddingModelName, ragIndex, ragObserver)
+	retriever := rag.NewRetriever(store, modelClient, embeddingModelName, ragIndex, metrics)
+	ragSubscriber := rag.NewIndexSubscriber(store, modelClient, embeddingModelName, ragIndex, metrics)
 	allowedTools := normalizeAllowedTools(config.AllowedTools)
 	eventDispatcher.Subscribe(events.TypeDeploySuccess, ragSubscriber)
 
@@ -76,7 +78,8 @@ func NewService(
 			config.ConversationInMemoryTTL,
 			maxConversationTurns,
 		),
-		event: eventDispatcher,
+		event:        eventDispatcher,
+		chatObserver: metrics,
 	}, nil
 }
 
@@ -118,8 +121,11 @@ func (s *Service) Chat(ctx context.Context, request ChatRequest) ChatResponse {
 		requestID = uuid.NewString()
 	}
 
-	run, created := s.getOrCreateRun(requestID, conversationID)
+	run, created, conversationCreated := s.getOrCreateRun(requestID, conversationID)
 	if created {
+		if conversationCreated {
+			s.chatObserver.RecordChatCreated()
+		}
 		go s.runAssistant(context.WithoutCancel(ctx), conversationID, message, run)
 	}
 
@@ -221,19 +227,35 @@ func (s *Service) getRun(requestID string) *chatRun {
 	return s.runs[requestID]
 }
 
-func (s *Service) getOrCreateRun(requestID, conversationID string) (*chatRun, bool) {
+func (s *Service) getOrCreateRun(requestID, conversationID string) (*chatRun, bool, bool) {
 	s.runsMu.Lock()
 	defer s.runsMu.Unlock()
 
 	s.pruneRunsLocked()
 
 	if existing := s.runs[requestID]; existing != nil {
-		return existing, false
+		return existing, false, false
 	}
+
+	conversationCreated := s.isConversationNewLocked(conversationID)
 
 	run := newChatRun(requestID, conversationID)
 	s.runs[requestID] = run
-	return run, true
+	return run, true, conversationCreated
+}
+
+func (s *Service) isConversationNewLocked(conversationID string) bool {
+	if _, ok := s.conversationStorage.Get(conversationID); ok {
+		return false
+	}
+
+	for _, run := range s.runs {
+		if run.conversationID == conversationID {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *Service) pruneRunsLocked() {

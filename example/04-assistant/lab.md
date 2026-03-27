@@ -94,6 +94,12 @@ RAG строится после деплоя сервисов.
 
 Инструменты находятся в: [internal/entrypoints/mcpserver](./../../internal/entrypoints/mcpserver)
 
+# История диалогов 
+
+История диалогов хранится в памяти приложения. Устаревшие диалоги очищаются по расписанию, заданному в конфигурации, по умолчанию: час.
+
+Реализация находится в: [internal/assistant/conversation/storage_inmemory.go](./../../internal/assistant/conversation/storage_inmemory.go)
+
 # Аудит
 
 Приложение хранит историю событий, в том числе события о попытках внедрения Prompt Injection.
