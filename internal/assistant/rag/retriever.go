@@ -2,6 +2,7 @@ package rag
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -10,6 +11,19 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/service/webroute"
+)
+
+const (
+	// RetrievalPlanBranchNone means no services are available for retrieval.
+	RetrievalPlanBranchNone = "none"
+	// RetrievalPlanBranchLexical means lexical ranking should be used.
+	RetrievalPlanBranchLexical = "lexical"
+	// RetrievalPlanBranchSemantic means embedding-based ranking should be used.
+	RetrievalPlanBranchSemantic = "semantic"
+)
+
+var (
+	errNilRetrievalPlan = errors.New("nil retrieval plan")
 )
 
 // Retriever returns services relevant to a user query.
@@ -34,45 +48,94 @@ func NewRetriever(store ServiceStore, embedder Embedder, modelName string, index
 	}
 }
 
-// Retrieve returns services ordered by relevance.
-func (r *Retriever) Retrieve(ctx context.Context, query string) ([]service.Info, error) {
+// RetrievalPlan stores data prepared for retrieval branch execution.
+type RetrievalPlan struct {
+	query       string
+	services    []service.Info
+	indexed     snapshot
+	queryVector []float64
+	branch      string
+}
+
+// Branch returns retrieval branch selected by planner.
+func (p *RetrievalPlan) Branch() string {
+	if p == nil {
+		return RetrievalPlanBranchNone
+	}
+
+	return p.branch
+}
+
+// Plan prepares data and selects retrieval branch.
+func (r *Retriever) Plan(ctx context.Context, query string) (*RetrievalPlan, error) {
 	services := r.store.List()
 	if len(services) == 0 {
-		return nil, nil
+		return &RetrievalPlan{
+			query:    query,
+			services: services,
+			branch:   RetrievalPlanBranchNone,
+		}, nil
 	}
 
 	indexed := r.index.get()
 	if !sameServices(indexed.services, services) {
 		r.recordFallback("index_stale")
 		slog.DebugContext(ctx, "[assistant-rag] fallback to lexical: stale index snapshot")
-		return r.retrieveLexical(query, services), nil
+		return &RetrievalPlan{
+			query:    query,
+			services: services,
+			branch:   RetrievalPlanBranchLexical,
+		}, nil
 	}
 
 	if len(indexed.services) == 0 || len(indexed.embeddings) == 0 {
 		r.recordFallback("index_empty")
 		slog.DebugContext(ctx, "[assistant-rag] fallback to lexical: empty index")
-		return r.retrieveLexical(query, services), nil
+		return &RetrievalPlan{
+			query:    query,
+			services: services,
+			branch:   RetrievalPlanBranchLexical,
+		}, nil
 	}
 
 	queryEmbeddings, err := r.embedder.Embed(ctx, r.modelName, []string{query})
 	if err != nil {
 		r.recordFallback("query_embedding_error")
 		slog.WarnContext(ctx, "[assistant-rag] fallback to lexical: query embedding failed", slog.Any("err", err))
-		return r.retrieveLexical(query, services), nil
+		return &RetrievalPlan{
+			query:    query,
+			services: services,
+			branch:   RetrievalPlanBranchLexical,
+		}, nil
 	}
 	if len(queryEmbeddings) != 1 {
 		return nil, fmt.Errorf("invalid query embeddings size: got %d, expected 1", len(queryEmbeddings))
 	}
 
-	queryVector := queryEmbeddings[0]
+	return &RetrievalPlan{
+		query:       query,
+		services:    services,
+		indexed:     indexed,
+		queryVector: queryEmbeddings[0],
+		branch:      RetrievalPlanBranchSemantic,
+	}, nil
+}
+
+// RetrieveSemantic runs semantic ranking for a semantic plan.
+func (r *Retriever) RetrieveSemantic(plan *RetrievalPlan) ([]service.Info, error) {
+	if plan == nil {
+		return nil, errNilRetrievalPlan
+	}
+
+	queryVector := plan.queryVector
 	type scoredService struct {
 		service service.Info
 		score   float64
 	}
 
-	scored := make([]scoredService, 0, len(indexed.services))
-	for idx, serviceInfo := range indexed.services {
-		score := cosineSimilarity(queryVector, indexed.embeddings[idx])
+	scored := make([]scoredService, 0, len(plan.indexed.services))
+	for idx, serviceInfo := range plan.indexed.services {
+		score := cosineSimilarity(queryVector, plan.indexed.embeddings[idx])
 		scored = append(scored, scoredService{
 			service: serviceInfo,
 			score:   score,
@@ -96,10 +159,15 @@ func (r *Retriever) Retrieve(ctx context.Context, query string) ([]service.Info,
 	return selected, nil
 }
 
-func (r *Retriever) retrieveLexical(query string, services []service.Info) []service.Info {
-	normalizedQuery := strings.ToLower(strings.TrimSpace(query))
+// RetrieveLexical runs lexical ranking for a lexical plan.
+func (r *Retriever) RetrieveLexical(plan *RetrievalPlan) ([]service.Info, error) {
+	if plan == nil {
+		return nil, errNilRetrievalPlan
+	}
+
+	normalizedQuery := strings.ToLower(strings.TrimSpace(plan.query))
 	if normalizedQuery == "" {
-		return services
+		return plan.services, nil
 	}
 
 	terms := strings.Fields(normalizedQuery)
@@ -107,9 +175,9 @@ func (r *Retriever) retrieveLexical(query string, services []service.Info) []ser
 		service service.Info
 		score   int
 	}
-	scored := make([]scoredService, 0, len(services))
+	scored := make([]scoredService, 0, len(plan.services))
 
-	for _, serviceInfo := range services {
+	for _, serviceInfo := range plan.services {
 		doc := strings.ToLower(r.documents.Build(serviceInfo))
 		score := 0
 		for _, term := range terms {
@@ -138,7 +206,7 @@ func (r *Retriever) retrieveLexical(query string, services []service.Info) []ser
 		selected = append(selected, item.service)
 	}
 
-	return selected
+	return selected, nil
 }
 
 // cosineSimilarity returns semantic closeness between two embedding vectors.

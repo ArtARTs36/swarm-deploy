@@ -40,6 +40,29 @@ func (o *observerCapture) RecordRetrieveFallback(reason string) {
 	o.reasons = append(o.reasons, reason)
 }
 
+func runPlan(t *testing.T, retriever *Retriever, query string) []service.Info {
+	t.Helper()
+
+	plan, err := retriever.Plan(context.Background(), query)
+	require.NoError(t, err, "plan retrieval")
+
+	switch plan.Branch() {
+	case RetrievalPlanBranchNone:
+		return nil
+	case RetrievalPlanBranchLexical:
+		selected, lexicalErr := retriever.RetrieveLexical(plan)
+		require.NoError(t, lexicalErr, "retrieve lexical")
+		return selected
+	case RetrievalPlanBranchSemantic:
+		selected, semanticErr := retriever.RetrieveSemantic(plan)
+		require.NoError(t, semanticErr, "retrieve semantic")
+		return selected
+	default:
+		t.Fatalf("unknown retrieval branch: %s", plan.Branch())
+		return nil
+	}
+}
+
 func TestRetrieverRanksByEmbeddingSimilarity(t *testing.T) {
 	services := []service.Info{
 		{Name: "api", Stack: "app", Type: "application", Image: "example/api:v1"},
@@ -67,8 +90,7 @@ func TestRetrieverRanksByEmbeddingSimilarity(t *testing.T) {
 		nil,
 	)
 
-	selected, err := retriever.Retrieve(context.Background(), "database service")
-	require.NoError(t, err, "retrieve services")
+	selected := runPlan(t, retriever, "database service")
 	require.Len(t, selected, 3, "expected all services ordered")
 	assert.Equal(t, "db", selected[0].Name, "expected nearest service first")
 	assert.Equal(t, "api", selected[1].Name, "expected second nearest service")
@@ -96,8 +118,7 @@ func TestRetrieverFallsBackToLexicalSearchWhenQueryEmbeddingFails(t *testing.T) 
 		observer,
 	)
 
-	selected, err := retriever.Retrieve(context.Background(), "jobs")
-	require.NoError(t, err, "lexical fallback must still succeed")
+	selected := runPlan(t, retriever, "jobs")
 	assert.Equal(t, "queue", selected[0].Name, "expected lexical best match")
 	assert.Equal(t, "api", selected[1].Name, "expected second lexical match")
 	assert.Equal(t, []string{"query_embedding_error"}, observer.reasons, "expected fallback reason metric")
@@ -137,7 +158,6 @@ func TestRetrieverLexicalMatchesWebRouteFields(t *testing.T) {
 		nil,
 	)
 
-	selected, err := retriever.Retrieve(context.Background(), "api.example.com")
-	require.NoError(t, err, "lexical fallback must still succeed")
+	selected := runPlan(t, retriever, "api.example.com")
 	assert.Equal(t, "api", selected[0].Name, "expected service match by web route domain")
 }

@@ -93,7 +93,6 @@ func TestIndexSubscriberBuildsIndexOnDeploySuccess(t *testing.T) {
 		nil,
 	)
 
-	selected, retrieveErr := retriever.Retrieve(context.Background(), "database")
-	require.NoError(t, retrieveErr, "retrieve")
+	selected := runPlan(t, retriever, "database")
 	assert.Equal(t, "db", selected[0].Name, "expected nearest by precomputed index")
 }

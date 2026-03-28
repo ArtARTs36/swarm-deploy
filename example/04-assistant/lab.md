@@ -71,23 +71,32 @@ assistant:
 
 Узлы графа:
 - `guard` — проверка пользовательского сообщения на Prompt Injection
-- `retrieve_context` — получение релевантных сервисов из RAG
+- `retrieve_plan` — выбор ветки retrieval (none / lexical / semantic)
+- `retrieve_lexical` — лексический поиск по документам сервисов
+- `retrieve_semantic` — семантический поиск по embeddings
 - `prepare_messages` — сборка финального набора сообщений для модели
 - `generate_answer` — генерация ответа и выполнение tool calls
 
 Ветвление после `guard`:
 - Для приветственных сообщений (`привет`, `hello`, `thanks` и т.д.) граф идет по короткому пути `guard -> prepare_messages`
-- Для остальных сообщений используется полный путь `guard -> retrieve_context -> prepare_messages`
+- Для остальных сообщений используется путь `guard -> retrieve_plan`, а затем:
+  - `retrieve_semantic` если индекс актуален и query embedding получен
+  - `retrieve_lexical` если сработал fallback (stale/empty index, ошибка embedding)
+  - сразу `prepare_messages`, если сервисов нет
 
 После этого обе ветки сходятся в `generate_answer`.
 
 ```mermaid
 flowchart TD
-  A[guard] -->|small-talk| C[prepare_messages]
-  A -->|обычный запрос| B[retrieve_context]
-  B --> C
+  A[guard] -->|hello| C[prepare_messages]
+  A -->|обычный запрос| B[retrieve_plan]
+  B -->|semantic| E[retrieve_semantic]
+  B -->|lexical fallback| F[retrieve_lexical]
+  B -->|no services| C
+  E --> C
+  F --> C
   C --> D[generate_answer]
-  D --> E[END]
+  D --> G[END]
 ```
 
 # RAG

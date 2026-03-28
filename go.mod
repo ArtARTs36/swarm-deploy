@@ -98,3 +98,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 )
+
+// Fork with conditional edges: github.com/NirAlon/langgraphgo/tree/feature/add-conditional-edges (b8adbfaa3d82d87e1d1474d985788c91562d8694).
+replace github.com/tmc/langgraphgo => github.com/NirAlon/langgraphgo v0.0.0-20260311231625-b8adbfaa3d82

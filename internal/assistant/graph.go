@@ -28,10 +28,12 @@ const (
 )
 
 const (
-	graphNodeGuard          = "guard"
-	graphNodeRetrieve       = "retrieve_context"
-	graphNodePrepare        = "prepare_messages"
-	graphNodeGenerateAnswer = "generate_answer"
+	graphNodeGuard            = "guard"
+	graphNodeRetrievePlan     = "retrieve_plan"
+	graphNodeRetrieveLexical  = "retrieve_lexical"
+	graphNodeRetrieveSemantic = "retrieve_semantic"
+	graphNodePrepare          = "prepare_messages"
+	graphNodeGenerateAnswer   = "generate_answer"
 )
 
 var helloMessages = map[string]struct{}{
@@ -64,6 +66,7 @@ type graph struct {
 type graphExecutionState struct {
 	history          []conversation.Turn
 	userMessage      string
+	retrievalPlan    *rag.RetrievalPlan
 	relevantServices []service.Info
 	modelMessages    []modelMessage
 	answer           string
@@ -109,17 +112,48 @@ func (g *graph) compile(executionState *graphExecutionState) (*langgraph.Runnabl
 	messageGraph := langgraph.NewMessageGraph()
 
 	messageGraph.AddNode(graphNodeGuard, g.guardNode(executionState))
-	messageGraph.AddNode(graphNodeRetrieve, g.retrieveNode(executionState))
+	messageGraph.AddNode(graphNodeRetrievePlan, g.retrievePlanNode(executionState))
+	messageGraph.AddNode(graphNodeRetrieveLexical, g.retrieveLexicalNode(executionState))
+	messageGraph.AddNode(graphNodeRetrieveSemantic, g.retrieveSemanticNode(executionState))
 	messageGraph.AddNode(graphNodePrepare, g.prepareNode(executionState))
 	messageGraph.AddNode(graphNodeGenerateAnswer, g.generateAnswerNode(executionState))
 
-	if shouldSkipContextRetrieval(executionState.userMessage) {
-		messageGraph.AddEdge(graphNodeGuard, graphNodePrepare)
-	} else {
-		messageGraph.AddEdge(graphNodeGuard, graphNodeRetrieve)
-	}
+	messageGraph.AddConditionalEdges(
+		graphNodeGuard,
+		func(_ context.Context, _ []llms.MessageContent) string {
+			if shouldSkipContextRetrieval(executionState.userMessage) {
+				return graphNodePrepare
+			}
 
-	messageGraph.AddEdge(graphNodeRetrieve, graphNodePrepare)
+			return graphNodeRetrievePlan
+		},
+		map[string]string{
+			graphNodePrepare:      graphNodePrepare,
+			graphNodeRetrievePlan: graphNodeRetrievePlan,
+		},
+	)
+	messageGraph.AddConditionalEdges(
+		graphNodeRetrievePlan,
+		func(_ context.Context, _ []llms.MessageContent) string {
+			switch executionState.retrievalPlan.Branch() {
+			case rag.RetrievalPlanBranchNone:
+				return graphNodePrepare
+			case rag.RetrievalPlanBranchLexical:
+				return graphNodeRetrieveLexical
+			case rag.RetrievalPlanBranchSemantic:
+				return graphNodeRetrieveSemantic
+			default:
+				return graphNodePrepare
+			}
+		},
+		map[string]string{
+			graphNodePrepare:          graphNodePrepare,
+			graphNodeRetrieveLexical:  graphNodeRetrieveLexical,
+			graphNodeRetrieveSemantic: graphNodeRetrieveSemantic,
+		},
+	)
+	messageGraph.AddEdge(graphNodeRetrieveLexical, graphNodePrepare)
+	messageGraph.AddEdge(graphNodeRetrieveSemantic, graphNodePrepare)
 	messageGraph.AddEdge(graphNodePrepare, graphNodeGenerateAnswer)
 	messageGraph.AddEdge(graphNodeGenerateAnswer, langgraph.END)
 	messageGraph.SetEntryPoint(graphNodeGuard)
@@ -139,13 +173,41 @@ func (g *graph) guardNode(
 	}
 }
 
-func (g *graph) retrieveNode(
+func (g *graph) retrievePlanNode(
 	executionState *graphExecutionState,
 ) func(context.Context, []llms.MessageContent) ([]llms.MessageContent, error) {
 	return func(ctx context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
-		relevantServices, err := g.retriever.Retrieve(ctx, executionState.userMessage)
+		plan, err := g.retriever.Plan(ctx, executionState.userMessage)
 		if err != nil {
-			return messages, fmt.Errorf("retrieve context: %w", err)
+			return messages, fmt.Errorf("retrieve plan: %w", err)
+		}
+
+		executionState.retrievalPlan = plan
+		return messages, nil
+	}
+}
+
+func (g *graph) retrieveLexicalNode(
+	executionState *graphExecutionState,
+) func(context.Context, []llms.MessageContent) ([]llms.MessageContent, error) {
+	return func(_ context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
+		relevantServices, err := g.retriever.RetrieveLexical(executionState.retrievalPlan)
+		if err != nil {
+			return messages, fmt.Errorf("retrieve lexical context: %w", err)
+		}
+
+		executionState.relevantServices = relevantServices
+		return messages, nil
+	}
+}
+
+func (g *graph) retrieveSemanticNode(
+	executionState *graphExecutionState,
+) func(context.Context, []llms.MessageContent) ([]llms.MessageContent, error) {
+	return func(_ context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
+		relevantServices, err := g.retriever.RetrieveSemantic(executionState.retrievalPlan)
+		if err != nil {
+			return messages, fmt.Errorf("retrieve semantic context: %w", err)
 		}
 
 		executionState.relevantServices = relevantServices
