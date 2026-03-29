@@ -58,6 +58,55 @@ func (p *LazyProxy) Show(ctx context.Context, commitHash string) (Commit, error)
 	return repo.Show(ctx, commitHash)
 }
 
+func (p *LazyProxy) SyncBranch(ctx context.Context, branch string) error {
+	repo, err := p.init(ctx)
+	if err != nil {
+		return err
+	}
+
+	return repo.SyncBranch(ctx, branch)
+}
+
+func (p *LazyProxy) CreateBranch(ctx context.Context, branch string) error {
+	repo, err := p.init(ctx)
+	if err != nil {
+		return err
+	}
+
+	return repo.CreateBranch(ctx, branch)
+}
+
+func (p *LazyProxy) Add(ctx context.Context, path string) error {
+	repo, err := p.init(ctx)
+	if err != nil {
+		return err
+	}
+
+	return repo.Add(ctx, path)
+}
+
+func (p *LazyProxy) Commit(ctx context.Context, message string, author CommitAuthor) (string, error) {
+	repo, err := p.init(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return repo.Commit(ctx, message, author)
+}
+
+func (p *LazyProxy) Push(ctx context.Context, branch string) error {
+	repo, err := p.init(ctx)
+	if err != nil {
+		return err
+	}
+
+	return repo.Push(ctx, branch)
+}
+
+func (p *LazyProxy) WorkingDir() string {
+	return p.path
+}
+
 func (p *LazyProxy) init(ctx context.Context) (*GoGitRepository, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()

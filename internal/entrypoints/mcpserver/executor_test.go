@@ -14,6 +14,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/artarts36/swarm-deploy/internal/serviceupdater"
 	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -104,6 +105,15 @@ func (f *fakeCommitDiffer) Compare(_ []differ.ComposeFile) (differ.Diff, error) 
 	return differ.Diff{}, nil
 }
 
+type fakeServiceUpdater struct{}
+
+func (f *fakeServiceUpdater) UpdateImageVersion(
+	_ context.Context,
+	_ serviceupdater.UpdateImageVersionInput,
+) (serviceupdater.UpdateImageVersionResult, error) {
+	return serviceupdater.UpdateImageVersionResult{}, nil
+}
+
 func TestExecutorExecuteUnknownTool(t *testing.T) {
 	executor := NewExecutor(
 		&fakeHistoryStore{},
@@ -111,6 +121,7 @@ func TestExecutorExecuteUnknownTool(t *testing.T) {
 		&fakeNetworkInspector{},
 		&fakeServiceStore{},
 		&fakeImageVersionResolver{},
+		&fakeServiceUpdater{},
 		&fakeGitRepository{},
 		[]config.StackSpec{},
 		&fakeCommitDiffer{},
@@ -134,6 +145,7 @@ func TestExecutorDefinitionsContainDate(t *testing.T) {
 		&fakeNetworkInspector{},
 		&fakeServiceStore{},
 		&fakeImageVersionResolver{},
+		&fakeServiceUpdater{},
 		&fakeGitRepository{},
 		[]config.StackSpec{},
 		&fakeCommitDiffer{},
@@ -152,4 +164,5 @@ func TestExecutorDefinitionsContainDate(t *testing.T) {
 
 	assert.Contains(t, toolNames, "date", "expected date tool definition")
 	assert.Contains(t, toolNames, "docker_network_list", "expected docker_network_list tool definition")
+	assert.Contains(t, toolNames, "service_image_update", "expected service_image_update tool definition")
 }

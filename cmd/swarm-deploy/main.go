@@ -26,11 +26,13 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/event/notifiers"
 	notify2 "github.com/artarts36/swarm-deploy/internal/event/notify"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
+	"github.com/artarts36/swarm-deploy/internal/githosting"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/security"
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/artarts36/swarm-deploy/internal/serviceupdater"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
 	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/cappuccinotm/slogx"
@@ -212,7 +214,7 @@ func buildAssistantService(
 	eventHistory *history.Store,
 	nodeStore *swarminspector.NodeStore,
 	inspectorSvc *swarminspector.Inspector,
-	gitRepository gitx.Repository,
+	gitRepository gitx.PullRepository,
 	control *controller.Controller,
 	eventDispatcher dispatcher.Dispatcher,
 	metrics *metrics.Group,
@@ -238,12 +240,35 @@ func buildAssistantService(
 
 	commitDiffer := differ.New()
 
+	pushGitRepository := gitx.NewLazyProxy(
+		buildPushRepositoryGitSpec(cfg.Spec.Git),
+		filepath.Join(cfg.Spec.DataDir, "push-repo"),
+	)
+	stacksProvider := func() []config.StackSpec {
+		stacks := make([]config.StackSpec, len(cfg.Spec.Stacks))
+		copy(stacks, cfg.Spec.Stacks)
+		return stacks
+	}
+	gitHostingProviders := []githosting.Provider{
+		githosting.NewGitHubProvider(),
+	}
+	serviceUpdater := serviceupdater.NewServiceUpdater(
+		stacksProvider,
+		pushGitRepository,
+		imageVersionResolver,
+		cfg.Spec.Git.Push.Repository,
+		cfg.Spec.Git.Push.Branch,
+		string(cfg.Spec.Git.Push.APIToken.Content),
+		gitHostingProviders,
+	)
+
 	toolExecutor := mcpserver.NewExecutor(
 		eventHistory,
 		nodeStore,
 		inspectorSvc,
 		serviceStore,
 		imageVersionResolver,
+		serviceUpdater,
 		gitRepository,
 		cfg.Spec.Stacks,
 		commitDiffer,
@@ -265,6 +290,17 @@ func buildAssistantService(
 		AllowedTools:            cfg.Spec.Assistant.Tools,
 		ConversationInMemoryTTL: cfg.Spec.Assistant.Conversation.Storage.InMemory.TTL.Value,
 	}, serviceStore, toolExecutor, eventDispatcher, metrics.Assistant)
+}
+
+func buildPushRepositoryGitSpec(spec config.GitSpec) config.GitSpec {
+	return config.GitSpec{
+		Pull: config.GitPullSpec{
+			Repository: spec.Push.Repository,
+			Branch:     spec.Push.Branch,
+			Auth:       spec.Push.Auth,
+		},
+		Push: spec.Push,
+	}
 }
 
 func buildEventDispatcher(

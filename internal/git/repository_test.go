@@ -232,6 +232,55 @@ func TestLazyProxyInitializesRepositoryLazily(t *testing.T) {
 	require.NoError(t, err, "pull lazy proxy repository")
 }
 
+func TestGoGitRepositorySyncBranchCommitAndPush(t *testing.T) {
+	sourceRepositoryPath, sourceHead := initSourceRepository(t)
+	targetRepositoryPath := filepath.Join(t.TempDir(), "target")
+
+	repository, err := NewGoGitRepository(t.Context(), config.GitSpec{
+		Pull: config.GitPullSpec{
+			Repository: sourceRepositoryPath,
+			Branch:     sourceHead.Name().Short(),
+		},
+		Push: config.GitPushSpec{
+			Repository: sourceRepositoryPath,
+			Branch:     sourceHead.Name().Short(),
+		},
+	}, targetRepositoryPath)
+	require.NoError(t, err, "create repository")
+
+	err = repository.SyncBranch(t.Context(), sourceHead.Name().Short())
+	require.NoError(t, err, "sync base branch")
+
+	branchName := "api-up-image-2.0.0"
+	err = repository.CreateBranch(t.Context(), branchName)
+	require.NoError(t, err, "create branch")
+
+	composePath := filepath.Join(targetRepositoryPath, "docker-compose.yaml")
+	err = os.WriteFile(composePath, []byte("services:\n  api:\n    image: ghcr.io/acme/api:2.0.0\n"), 0o600)
+	require.NoError(t, err, "write compose file")
+
+	err = repository.Add(t.Context(), "docker-compose.yaml")
+	require.NoError(t, err, "stage compose file")
+
+	commitHash, err := repository.Commit(t.Context(), "chore(api): up image to 2.0.0", CommitAuthor{
+		Name:  "alice",
+		Email: "alice@example.com",
+	})
+	require.NoError(t, err, "commit changes")
+	assert.NotEmpty(t, commitHash, "commit hash should not be empty")
+
+	err = repository.Push(t.Context(), branchName)
+	require.NoError(t, err, "push branch")
+
+	sourceRepository, err := gogit.PlainOpen(sourceRepositoryPath)
+	require.NoError(t, err, "open source repository")
+
+	branchReference, err := sourceRepository.Reference(plumbing.NewBranchReferenceName(branchName), true)
+	require.NoError(t, err, "resolve pushed branch reference")
+	assert.Equal(t, commitHash, branchReference.Hash().String(), "unexpected pushed branch hash")
+	assert.Equal(t, targetRepositoryPath, repository.WorkingDir(), "unexpected working directory")
+}
+
 func TestGoGitRepositoryShowReturnsCommitMetadataAndFileDiff(t *testing.T) {
 	sourceRepositoryPath, sourceHead := initSourceRepository(t)
 	sourceRepository, err := gogit.PlainOpen(sourceRepositoryPath)
