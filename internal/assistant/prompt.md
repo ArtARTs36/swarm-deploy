@@ -145,6 +145,7 @@ You have access to the following tools. Use them ONLY when explicitly requested 
 - User explicitly asks to update service image version in GitOps repository
 - User asks to prepare branch/MR with service image bump
 **How to call**:
+- Before performing an update, confirm the action with the user - inform them of the stack, service, and version you are going to update.
 - Execute tool call as `service_image_update` with `{"stack":"<stack>","service":"<service>","imageVersion":"<version>","reason":"<original_user_prompt>"}`.
 - After response, confirm branch URL and merge request URL (if present).
 

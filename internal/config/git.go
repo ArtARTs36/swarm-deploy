@@ -25,11 +25,11 @@ type GitRepositorySpec struct {
 }
 
 type GitPullSpec struct {
-	GitRepositorySpec
+	GitRepositorySpec `yaml:",inline"`
 }
 
 type GitPushSpec struct {
-	GitRepositorySpec
+	GitRepositorySpec `yaml:",inline"`
 	// APIToken is an optional API token used by push integrations.
 	APIToken specw.File `yaml:"apiTokenPath,omitempty"`
 }

@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -67,6 +65,8 @@ type UpdateImageVersionResult struct {
 	CommitHash string `json:"commit"`
 	// MergeRequestURL is an optional merge request URL.
 	MergeRequestURL string `json:"mergeRequestUrl,omitempty"`
+
+	Warnings []string `json:"warnings"`
 }
 
 // ServiceUpdater updates service image version in push repository and creates merge request.
@@ -86,8 +86,9 @@ type ServiceUpdater struct {
 }
 
 type serviceUpdateStep struct {
-	Name   string
-	Action func(ctx context.Context, session *updateImageVersionSession) error
+	Name              string
+	Action            func(ctx context.Context, session *updateImageVersionSession) error
+	ContinueWhenError bool
 }
 
 // NewServiceUpdater creates service updater component.
@@ -139,8 +140,9 @@ func NewServiceUpdater(
 
 	if pushAPIToken != "" {
 		su.steps = append(su.steps, serviceUpdateStep{
-			Name:   "6. create merge request",
-			Action: su.step6CreateMergeRequest,
+			Name:              "6. create merge request",
+			Action:            su.step6CreateMergeRequest,
+			ContinueWhenError: true,
 		})
 	}
 
@@ -164,19 +166,21 @@ func (s *ServiceUpdater) UpdateImageVersion(
 		input: input,
 	}
 
-	var stepErr error
-
 	for _, step := range s.steps {
 		slog.InfoContext(ctx, "[service-updater] running step", slog.String("step.name", step.Name))
 
-		stepErr = step.Action(ctx, session)
+		stepErr := step.Action(ctx, session)
 		if stepErr != nil {
 			slog.ErrorContext(ctx, "[service-updater] step failed",
 				slog.String("step.name", step.Name),
 				slog.Any("err", stepErr),
 			)
 
-			break
+			if step.ContinueWhenError {
+				continue
+			}
+
+			return UpdateImageVersionResult{}, stepErr
 		}
 	}
 
@@ -189,11 +193,11 @@ func (s *ServiceUpdater) UpdateImageVersion(
 		BranchURL:       session.branchURL,
 		CommitHash:      session.commitHash,
 		MergeRequestURL: session.mergeRequestURL,
-	}, stepErr
+	}, nil
 }
 
 func (s *ServiceUpdater) step0ValidateStackAndService(
-	_ context.Context,
+	ctx context.Context,
 	session *updateImageVersionSession,
 ) error {
 	stackSpec, err := s.resolveStack(session.input.StackName)
@@ -201,10 +205,14 @@ func (s *ServiceUpdater) step0ValidateStackAndService(
 		return err
 	}
 
-	composePath := filepath.Join(s.repository.WorkingDir(), stackSpec.ComposeFile)
-	composeFile, err := compose.Load(composePath)
+	composeContent, err := s.repository.ReadFile(ctx, stackSpec.ComposeFile)
 	if err != nil {
-		return fmt.Errorf("load compose for stack %q: %w", stackSpec.Name, err)
+		return fmt.Errorf("read compose file: %w", err)
+	}
+
+	composeFile, err := compose.Parse(composeContent)
+	if err != nil {
+		return fmt.Errorf("parse compose for stack %q: %w", stackSpec.Name, err)
 	}
 
 	currentImage, err := resolveServiceImage(composeFile, session.input.ServiceName)
@@ -226,7 +234,7 @@ func (s *ServiceUpdater) step0ValidateStackAndService(
 		)
 	}
 
-	session.composePath = composePath
+	session.composePath = stackSpec.ComposeFile
 	session.composeFile = composeFile
 	session.currentImage = currentImage
 	session.newImage = newImage
@@ -274,7 +282,7 @@ func (s *ServiceUpdater) step2CreateBranch(
 }
 
 func (s *ServiceUpdater) step3UpdateComposeImageVersion(
-	_ context.Context,
+	ctx context.Context,
 	session *updateImageVersionSession,
 ) error {
 	err := setServiceImage(session.composeFile, session.input.ServiceName, session.newImage)
@@ -287,17 +295,11 @@ func (s *ServiceUpdater) step3UpdateComposeImageVersion(
 		return fmt.Errorf("marshal compose yaml: %w", err)
 	}
 
-	err = os.WriteFile(session.composePath, payload, 0o600)
+	err = session.branch.AddFile(ctx, session.composePath, payload)
 	if err != nil {
 		return fmt.Errorf("write compose file %q: %w", session.composePath, err)
 	}
 
-	composeRelativePath, err := filepath.Rel(s.repository.WorkingDir(), session.composePath)
-	if err != nil {
-		return fmt.Errorf("resolve compose relative path: %w", err)
-	}
-
-	session.composeRelativePath = filepath.ToSlash(composeRelativePath)
 	return nil
 }
 
@@ -305,11 +307,7 @@ func (s *ServiceUpdater) step4CommitChanges(
 	ctx context.Context,
 	session *updateImageVersionSession,
 ) error {
-	if err := s.repository.Add(ctx, session.composeRelativePath); err != nil {
-		return fmt.Errorf("stage compose file %q: %w", session.composeRelativePath, err)
-	}
-
-	commitHash, err := s.repository.Commit(
+	commitHash, err := session.branch.Commit(
 		ctx,
 		buildMergeRequestTitle(session.input.ServiceName, session.input.ImageVersion),
 		gitx.CommitAuthor{
@@ -329,7 +327,7 @@ func (s *ServiceUpdater) step5PushChanges(
 	ctx context.Context,
 	session *updateImageVersionSession,
 ) error {
-	if err := s.repository.Push(ctx, session.branchName); err != nil {
+	if err := session.branch.Push(ctx, session.branchName); err != nil {
 		return fmt.Errorf("push branch %q: %w", session.branchName, err)
 	}
 

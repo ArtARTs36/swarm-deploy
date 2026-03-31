@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -70,6 +71,17 @@ func newGoGitRepository(
 	}, nil
 }
 
+func (r *GoGitRepository) AddFile(ctx context.Context, path string, content []byte) error {
+	fullPath := filepath.Join(r.path, path)
+
+	err := os.WriteFile(fullPath, content, 0o600)
+	if err != nil {
+		return fmt.Errorf("write file %q: %w", fullPath, err)
+	}
+
+	return r.add(ctx, path)
+}
+
 func (r *GoGitRepository) Pull(ctx context.Context) error {
 	worktree, err := r.repository.Worktree()
 	if err != nil {
@@ -88,6 +100,12 @@ func (r *GoGitRepository) Pull(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (r *GoGitRepository) ReadFile(_ context.Context, path string) ([]byte, error) {
+	fullPath := filepath.Join(r.path, path)
+
+	return os.ReadFile(fullPath)
 }
 
 func (r *GoGitRepository) Head(context.Context) (string, error) {
@@ -188,7 +206,7 @@ func (r *GoGitRepository) Branch(ctx context.Context, branchName string) (Reposi
 	return repo, nil
 }
 
-func (r *GoGitRepository) Add(_ context.Context, path string) error {
+func (r *GoGitRepository) add(_ context.Context, path string) error {
 	trimmedPath := strings.TrimSpace(path)
 	if trimmedPath == "" {
 		return errors.New("path is required")
@@ -234,13 +252,13 @@ func (r *GoGitRepository) Commit(_ context.Context, message string, author Commi
 
 func (r *GoGitRepository) Push(ctx context.Context, branch string) error {
 	err := r.repository.PushContext(ctx, &gogit.PushOptions{
-		RemoteName: "origin",
-		Auth:       r.auth,
+		RemoteURL: r.repositoryURL,
+		Auth:      r.auth,
 		RefSpecs: []gogitcfg.RefSpec{
 			gogitcfg.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)),
 		},
 	})
-	if err != nil && !errors.Is(err, gogit.NoErrAlreadyUpToDate) {
+	if err != nil {
 		return fmt.Errorf("git push branch %q: %w", branch, err)
 	}
 
@@ -364,10 +382,21 @@ func openRepository(
 	branch string,
 	auth transport.AuthMethod,
 ) (*gogit.Repository, error) {
+	log := slog.With(
+		slog.String("repository.url", url),
+		slog.String("repository.branch", branch),
+		slog.String("path", path),
+	)
+
+	log.DebugContext(ctx, "[git] opening repository")
+
 	repo, err := gogit.PlainOpen(path)
 	if err == nil {
+		log.DebugContext(ctx, "[git] repository opened")
+
 		return repo, nil
 	}
+
 	if !errors.Is(err, gogit.ErrRepositoryNotExists) {
 		return nil, err
 	}
@@ -376,7 +405,7 @@ func openRepository(
 		return nil, fmt.Errorf("create repository dir: %w", err)
 	}
 
-	slog.InfoContext(ctx, "[git] cloning repository", slog.String("repository.url", url))
+	log.DebugContext(ctx, "[git] cloning repository")
 
 	repo, err = gogit.PlainCloneContext(ctx, path, false, &gogit.CloneOptions{
 		URL:           url,
@@ -387,6 +416,8 @@ func openRepository(
 	if err != nil {
 		return nil, fmt.Errorf("git clone: %w", err)
 	}
+
+	log.DebugContext(ctx, "[git] repository cloned")
 
 	return repo, nil
 }

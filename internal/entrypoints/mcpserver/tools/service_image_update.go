@@ -59,10 +59,6 @@ func (s *ServiceImageUpdate) Definition() routing.ToolDefinition {
 
 // Execute runs service_image_update tool.
 func (s *ServiceImageUpdate) Execute(ctx context.Context, request routing.Request) (routing.Response, error) {
-	if s.updater == nil {
-		return routing.Response{}, fmt.Errorf("service updater is not configured")
-	}
-
 	stackName, err := parseStringParam(request.Payload["stack"], "stack")
 	if err != nil {
 		return routing.Response{}, err

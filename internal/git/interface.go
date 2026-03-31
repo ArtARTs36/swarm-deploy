@@ -9,6 +9,10 @@ type Repository interface {
 	// WorkingDir returns local repository working directory path.
 	WorkingDir() string
 
+	AddFile(ctx context.Context, path string, content []byte) error
+
+	ReadFile(ctx context.Context, path string) ([]byte, error)
+
 	// Pull fetches latest changes from origin for configured branch.
 	Pull(ctx context.Context) error
 	// Head resolves current HEAD revision hash.
@@ -21,8 +25,6 @@ type Repository interface {
 	// Branch create isolated branch and repository.
 	Branch(ctx context.Context, branchName string) (Repository, error)
 
-	// Add stages a file path relative to repository root.
-	Add(ctx context.Context, path string) error
 	// Commit creates a commit from staged changes and returns commit hash.
 	Commit(ctx context.Context, message string, author CommitAuthor) (string, error)
 	// Push pushes branch to origin.

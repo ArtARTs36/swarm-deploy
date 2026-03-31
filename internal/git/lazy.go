@@ -22,6 +22,24 @@ type LazyProxy struct {
 	repository *GoGitRepository
 }
 
+func (p *LazyProxy) AddFile(ctx context.Context, path string, content []byte) error {
+	repo, err := p.init(ctx)
+	if err != nil {
+		return err
+	}
+
+	return repo.AddFile(ctx, path, content)
+}
+
+func (p *LazyProxy) ReadFile(ctx context.Context, path string) ([]byte, error) {
+	repo, err := p.init(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return repo.ReadFile(ctx, path)
+}
+
 func (p *LazyProxy) Pull(ctx context.Context) error {
 	repo, err := p.init(ctx)
 	if err != nil {
@@ -65,15 +83,6 @@ func (p *LazyProxy) Branch(ctx context.Context, branch string) (Repository, erro
 	}
 
 	return repo.Branch(ctx, branch)
-}
-
-func (p *LazyProxy) Add(ctx context.Context, path string) error {
-	repo, err := p.init(ctx)
-	if err != nil {
-		return err
-	}
-
-	return repo.Add(ctx, path)
 }
 
 func (p *LazyProxy) Commit(ctx context.Context, message string, author CommitAuthor) (string, error) {

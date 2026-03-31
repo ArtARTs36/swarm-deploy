@@ -197,7 +197,8 @@ func main() {
 		slog.String("healthz.path", cfg.Spec.HealthServer.Healthz.Path),
 		slog.String("metrics.path", cfg.Spec.HealthServer.Metrics.Path),
 		slog.String("mode", cfg.Spec.Sync.Mode),
-		slog.String("repo", cfg.Spec.Git.Pull.Repository),
+		slog.String("git.pull.repo", cfg.Spec.Git.Pull.Repository),
+		slog.String("git.push.repo", cfg.Spec.Git.Push.Repository),
 		slog.String("log.level", cfg.Spec.Log.Level.String()),
 		slog.Bool("assistant.enabled", cfg.Spec.Assistant.Enabled),
 	)
