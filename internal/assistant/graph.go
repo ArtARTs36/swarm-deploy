@@ -15,15 +15,10 @@ import (
 	langgraph "github.com/tmc/langgraphgo/graph"
 )
 
-const maxToolIterations = 3
-
 const (
-	defaultCollectedToolCallsCapacity = 2
-	prepareMessagesExtraCapacity      = 4
-)
-
-const (
-	servicesContextMaxRows = 64
+	maxToolIterations            = 3
+	prepareMessagesExtraCapacity = 4
+	servicesContextMaxRows       = 64
 )
 
 const (
@@ -250,9 +245,9 @@ func (g *graph) prepareNode(
 func (g *graph) generateAnswerNode(
 	executionState *graphExecutionState,
 ) func(context.Context, []llms.MessageContent) ([]llms.MessageContent, error) {
-	return func(ctx context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
-		allowedToolDefinitions := g.allowedToolDefinitions()
+	allowedToolDefinitions := g.allowedToolDefinitions()
 
+	return func(ctx context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
 		for i := 0; i < maxToolIterations; i++ {
 			completion, completionErr := g.chat.complete(ctx, modelRequest{
 				Model:       g.config.ModelName,
