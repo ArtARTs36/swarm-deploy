@@ -13,6 +13,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
+	"github.com/artarts36/swarm-deploy/internal/security"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
@@ -56,7 +57,12 @@ type Controller struct {
 	stateStore      *runtimeStateStore
 	stackReconciler *stackReconciler
 
-	triggerCh chan TriggerReason
+	triggerCh chan triggerTask
+}
+
+type triggerTask struct {
+	triggeredBy string
+	reason      TriggerReason
 }
 
 func New(
@@ -78,7 +84,7 @@ func New(
 			gitSync,
 			deployer,
 		),
-		triggerCh: make(chan TriggerReason, 1),
+		triggerCh: make(chan triggerTask, 1),
 	}
 }
 
@@ -91,7 +97,9 @@ func (c *Controller) Run(ctx context.Context) error {
 
 	slog.InfoContext(ctx, "[controller] trigger startup sync")
 
-	c.Trigger(TriggerStartup)
+	c.trigger(triggerTask{
+		reason: TriggerStartup,
+	})
 
 	for {
 		select {
@@ -106,10 +114,12 @@ func (c *Controller) Run(ctx context.Context) error {
 			}
 			cancel()
 			return nil
-		case reason := <-c.triggerCh:
-			c.syncOnce(ctx, reason)
+		case task := <-c.triggerCh:
+			c.syncOnce(ctx, task)
 		case <-tickerC(ticker):
-			c.Trigger(TriggerPoll)
+			c.trigger(triggerTask{
+				reason: TriggerPoll,
+			})
 		}
 	}
 }
@@ -121,35 +131,52 @@ func tickerC(t *time.Ticker) <-chan time.Time {
 	return t.C
 }
 
-func (c *Controller) Trigger(reason TriggerReason) bool {
+func (c *Controller) Manual(ctx context.Context) bool {
+	user, _ := security.UserFromContext(ctx)
+
+	return c.trigger(triggerTask{
+		triggeredBy: user.Name,
+		reason:      TriggerManual,
+	})
+}
+
+func (c *Controller) Webhook() bool {
+	return c.trigger(triggerTask{
+		reason: TriggerWebhook,
+	})
+}
+
+func (c *Controller) trigger(task triggerTask) bool {
 	select {
-	case c.triggerCh <- reason:
+	case c.triggerCh <- task:
 		return true
 	default:
 		return false
 	}
 }
 
-func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) { //nolint:funlen // not need
+func (c *Controller) syncOnce(ctx context.Context, task triggerTask) { //nolint:funlen // not need
 	startedAt := time.Now()
 
-	slog.InfoContext(ctx, "[controller] run sync", slog.String("reason", string(reason)))
-	if reason == TriggerManual {
-		c.event.Dispatch(ctx, &events.SyncManualStarted{})
+	slog.InfoContext(ctx, "[controller] run sync", slog.String("reason", string(task.reason)))
+	if task.reason == TriggerManual {
+		c.event.Dispatch(ctx, &events.SyncManualStarted{
+			TriggeredBy: task.triggeredBy,
+		})
 	}
 
 	syncResult, err := c.gitSync.Sync(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "sync failed at git stage",
-			slog.String("reason", string(reason)),
+			slog.String("reason", string(task.reason)),
 			slog.String("repository", c.cfg.Spec.Git.Repository),
 			slog.Any("err", err),
 		)
 		c.metrics.Git.RecordGitUpdate(c.cfg.Spec.Git.Repository, "error")
-		c.metrics.Sync.RecordSyncRun(string(reason), "error", time.Since(startedAt))
+		c.metrics.Sync.RecordSyncRun(string(task.reason), "error", time.Since(startedAt))
 		c.updateState(func(s *runtimeState) {
 			s.LastSyncAt = time.Now()
-			s.LastSyncReason = string(reason)
+			s.LastSyncReason = string(task.reason)
 			s.LastSyncResult = "error"
 			s.LastSyncError = err.Error()
 		})
@@ -167,14 +194,14 @@ func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) { //nol
 	reloadedFrom, reloadErr := c.reloadStacks()
 	if reloadErr != nil {
 		slog.ErrorContext(ctx, "sync failed at stacks reload stage",
-			slog.String("reason", string(reason)),
+			slog.String("reason", string(task.reason)),
 			slog.String("stacks.file", c.cfg.Spec.StacksSource.File),
 			slog.Any("err", reloadErr),
 		)
-		c.metrics.Sync.RecordSyncRun(string(reason), "error", time.Since(startedAt))
+		c.metrics.Sync.RecordSyncRun(string(task.reason), "error", time.Since(startedAt))
 		c.updateState(func(s *runtimeState) {
 			s.LastSyncAt = time.Now()
-			s.LastSyncReason = string(reason)
+			s.LastSyncReason = string(task.reason)
 			s.LastSyncResult = "error"
 			s.LastSyncError = reloadErr.Error()
 			s.GitRevision = syncResult.NewRevision
@@ -187,11 +214,11 @@ func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) { //nol
 		slog.Int("count", len(c.cfg.Spec.Stacks)),
 	)
 
-	if !syncResult.Updated && reason != TriggerManual {
-		c.metrics.Sync.RecordSyncRun(string(reason), "no_change", time.Since(startedAt))
+	if !syncResult.Updated && task.reason != TriggerManual {
+		c.metrics.Sync.RecordSyncRun(string(task.reason), "no_change", time.Since(startedAt))
 		c.updateState(func(s *runtimeState) {
 			s.LastSyncAt = time.Now()
-			s.LastSyncReason = string(reason)
+			s.LastSyncReason = string(task.reason)
 			s.LastSyncResult = "no_change"
 			s.LastSyncError = ""
 			s.GitRevision = syncResult.NewRevision
@@ -205,7 +232,7 @@ func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) { //nol
 		if err != nil {
 			deployErrs = append(deployErrs, err)
 			slog.ErrorContext(ctx, "sync failed for stack",
-				slog.String("reason", string(reason)),
+				slog.String("reason", string(task.reason)),
 				slog.String("stack", stackCfg.Name),
 				slog.String("commit", syncResult.NewRevision),
 				slog.Any("err", err),
@@ -218,16 +245,16 @@ func (c *Controller) syncOnce(ctx context.Context, reason TriggerReason) { //nol
 	if combinedErr != nil {
 		result = "partial_error"
 		slog.ErrorContext(ctx, "sync finished with errors",
-			slog.String("reason", string(reason)),
+			slog.String("reason", string(task.reason)),
 			slog.String("commit", syncResult.NewRevision),
 			slog.Any("err", combinedErr),
 		)
 	}
 
-	c.metrics.Sync.RecordSyncRun(string(reason), result, time.Since(startedAt))
+	c.metrics.Sync.RecordSyncRun(string(task.reason), result, time.Since(startedAt))
 	c.updateState(func(s *runtimeState) {
 		s.LastSyncAt = time.Now()
-		s.LastSyncReason = string(reason)
+		s.LastSyncReason = string(task.reason)
 		s.LastSyncResult = result
 		s.LastSyncError = ""
 		if combinedErr != nil {

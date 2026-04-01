@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/artarts36/swarm-deploy/internal/config"
-	"github.com/artarts36/swarm-deploy/internal/controller"
 	"github.com/artarts36/swarm-deploy/internal/differ"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
@@ -29,17 +28,6 @@ func (f *fakeHistoryStore) List() []history.Entry {
 	copy(out, f.entries)
 
 	return out
-}
-
-type fakeSyncControl struct {
-	queued bool
-	called int
-}
-
-func (f *fakeSyncControl) Trigger(_ controller.TriggerReason) bool {
-	f.called++
-
-	return f.queued
 }
 
 type fakeNodeStore struct {
@@ -115,7 +103,7 @@ func TestExecutorExecuteUnknownTool(t *testing.T) {
 		&fakeGitRepository{},
 		[]config.StackSpec{},
 		&fakeCommitDiffer{},
-		&fakeSyncControl{},
+		nil,
 		&dispatcher.NopDispatcher{},
 		metrics.NewGroup(metrics.CreateGroupParams{
 			Namespace: "test",
@@ -141,7 +129,7 @@ func TestExecutorDefinitionsContainDate(t *testing.T) {
 		&fakeGitRepository{},
 		[]config.StackSpec{},
 		&fakeCommitDiffer{},
-		&fakeSyncControl{},
+		nil,
 		&dispatcher.NopDispatcher{},
 		metrics.NewGroup(metrics.CreateGroupParams{
 			Namespace: "test",

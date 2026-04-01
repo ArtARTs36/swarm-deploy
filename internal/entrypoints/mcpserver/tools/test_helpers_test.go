@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/controller"
 	"github.com/artarts36/swarm-deploy/internal/differ"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
@@ -29,7 +28,7 @@ type fakeSyncControl struct {
 	called int
 }
 
-func (f *fakeSyncControl) Trigger(_ controller.TriggerReason) bool {
+func (f *fakeSyncControl) Manual(_ context.Context) bool {
 	f.called++
 
 	return f.queued

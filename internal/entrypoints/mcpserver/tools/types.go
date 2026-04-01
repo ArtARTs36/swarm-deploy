@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 
-	"github.com/artarts36/swarm-deploy/internal/controller"
 	"github.com/artarts36/swarm-deploy/internal/differ"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
@@ -20,8 +19,8 @@ type HistoryReader interface {
 
 // SyncTrigger triggers synchronization run.
 type SyncTrigger interface {
-	// Trigger enqueues synchronization by reason.
-	Trigger(reason controller.TriggerReason) bool
+	// Manual enqueues synchronization.
+	Manual(ctx context.Context) bool
 }
 
 // NodesReader reads current Swarm nodes snapshot.
