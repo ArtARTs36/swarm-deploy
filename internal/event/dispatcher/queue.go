@@ -9,7 +9,6 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/artarts36/swarm-deploy/internal/event/logx"
-	"github.com/artarts36/swarm-deploy/internal/security"
 )
 
 const (
@@ -48,14 +47,6 @@ func (d *QueueDispatcher) Dispatch(ctx context.Context, event events.Event) {
 		slog.InfoContext(ctx, "[event] event not dispatched, channel closed", slog.Any("event", event))
 
 		return
-	}
-
-	eventAwareUser, ok := event.(events.AwareUser)
-	if ok {
-		user, uok := security.UserFromContext(ctx)
-		if uok {
-			event = eventAwareUser.WithUsername(user.Name)
-		}
 	}
 
 	slog.InfoContext(ctx, "[event] dispatching event", slog.Any("event", event),

@@ -189,6 +189,7 @@ func main() {
 
 	slog.InfoContext(ctx, "starting swarm deploy",
 		slog.String("web.address", cfg.Spec.Web.Address),
+		slog.String("web.security", cfg.Spec.Web.Security.Authentication.Strategy()),
 		slog.String("webhook.address", cfg.Spec.Sync.Webhook.Address),
 		slog.Bool("webhook.enabled", webhookApplication.Enabled()),
 		slog.String("healthServer.address", cfg.Spec.HealthServer.Address),
@@ -271,7 +272,7 @@ func buildEventDispatcher(
 	cfg *config.Config,
 	inspectorSvc *swarminspector.Inspector,
 	eventMetrics metrics.Events,
-) (*dispatcher.QueueDispatcher, *history.Store, *service.Store, error) {
+) (dispatcher.Dispatcher, *history.Store, *service.Store, error) {
 	historyStore, err := history.NewStore(
 		filepath.Join(cfg.Spec.DataDir, "event-history.json"),
 		cfg.Spec.EventHistory.Capacity,
@@ -285,7 +286,24 @@ func buildEventDispatcher(
 		return nil, nil, nil, fmt.Errorf("build service store: %w", err)
 	}
 
-	eventDispatcher := dispatcher.NewQueueDispatcher()
+	var eventDispatcher dispatcher.Dispatcher = dispatcher.NewQueueDispatcher()
+
+	if cfg.Spec.Web.Security.Authentication.Strategy() != config.AuthenticationStrategyNone {
+		eventDispatcher = dispatcher.NewPropagatableDispatcher(
+			dispatcher.WrapPropagators(func(ctx context.Context, event events.Event) events.Event {
+				eventAwareUser, ok := event.(events.AwareUser)
+				if ok {
+					user, uok := security.UserFromContext(ctx)
+					if uok {
+						event = eventAwareUser.WithUsername(user.Name)
+					}
+				}
+				return event
+			}),
+			eventDispatcher,
+		)
+	}
+
 	subscribeOnAllEvents(eventDispatcher, historyStore)
 	subscribeOnAllEvents(eventDispatcher, eventmetrics.NewSubscriber(eventMetrics))
 
