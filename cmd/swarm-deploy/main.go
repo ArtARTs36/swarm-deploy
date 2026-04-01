@@ -26,11 +26,13 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/event/notifiers"
 	notify2 "github.com/artarts36/swarm-deploy/internal/event/notify"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
+	"github.com/artarts36/swarm-deploy/internal/githosting"
 	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/security"
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/artarts36/swarm-deploy/internal/serviceupdater"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
 	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/cappuccinotm/slogx"
@@ -73,7 +75,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	gitRepository := gitx.NewRepository(cfg.Spec.Git, filepath.Join(cfg.Spec.DataDir, "repo"))
+	gitRepository := gitx.NewRepository(cfg.Spec.Git.Pull.GitRepositorySpec, filepath.Join(cfg.Spec.DataDir, "repo"))
 
 	gitSyncer := gitops.NewSyncer(gitRepository, cfg.Spec.DataDir)
 
@@ -195,7 +197,8 @@ func main() {
 		slog.String("healthz.path", cfg.Spec.HealthServer.Healthz.Path),
 		slog.String("metrics.path", cfg.Spec.HealthServer.Metrics.Path),
 		slog.String("mode", cfg.Spec.Sync.Mode),
-		slog.String("repo", cfg.Spec.Git.Repository),
+		slog.String("git.pull.repo", cfg.Spec.Git.Pull.Repository),
+		slog.String("git.push.repo", cfg.Spec.Git.Push.Repository),
 		slog.String("log.level", cfg.Spec.Log.Level.String()),
 		slog.Bool("assistant.enabled", cfg.Spec.Assistant.Enabled),
 	)
@@ -238,12 +241,35 @@ func buildAssistantService(
 
 	commitDiffer := differ.New()
 
+	pushGitRepository := gitx.NewLazyProxy(
+		cfg.Spec.Git.Push.GitRepositorySpec,
+		filepath.Join(cfg.Spec.DataDir, "push-repo"),
+	)
+	stacksProvider := func() []config.StackSpec {
+		stacks := make([]config.StackSpec, len(cfg.Spec.Stacks))
+		copy(stacks, cfg.Spec.Stacks)
+		return stacks
+	}
+	gitHostingProviders := []githosting.Provider{
+		githosting.NewGitHubProvider(),
+	}
+	serviceUpdater := serviceupdater.NewServiceUpdater(
+		stacksProvider,
+		pushGitRepository,
+		imageVersionResolver,
+		cfg.Spec.Git.Push.Repository,
+		cfg.Spec.Git.Push.Branch,
+		string(cfg.Spec.Git.Push.APIToken.Content),
+		gitHostingProviders,
+	)
+
 	toolExecutor := mcpserver.NewExecutor(
 		eventHistory,
 		nodeStore,
 		inspectorSvc,
 		serviceStore,
 		imageVersionResolver,
+		serviceUpdater,
 		gitRepository,
 		cfg.Spec.Stacks,
 		commitDiffer,

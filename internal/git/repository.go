@@ -5,13 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/artarts36/swarm-deploy/internal/config"
 	gogit "github.com/go-git/go-git/v5"
+	gogitcfg "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport"
@@ -21,84 +24,62 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-// Commit describes git commit metadata and per-file diff data.
-type Commit struct {
-	// Author is a commit author name.
-	Author string
-	// AuthorEmail is a commit author email.
-	AuthorEmail string
-	// Time is a commit author timestamp.
-	Time time.Time
-	// Files contains per-file diffs between commit parent and commit itself.
-	Files []CommitFileDiff
-}
-
-// CommitMeta describes lightweight git commit metadata.
-type CommitMeta struct {
-	// Hash is a full commit hash.
-	Hash string
-	// Message is a commit message title/body.
-	Message string
-	// Author is a commit author name.
-	Author string
-	// AuthorEmail is a commit author email.
-	AuthorEmail string
-	// Time is a commit author timestamp.
-	Time time.Time
-}
-
-// CommitFileDiff contains one changed file snapshot in commit diff.
-type CommitFileDiff struct {
-	// OldPath is a file path before change.
-	OldPath string
-	// NewPath is a file path after change.
-	NewPath string
-	// OldContent is a text file content before change. Empty for binary/non-existent files.
-	OldContent string
-	// NewContent is a text file content after change. Empty for binary/non-existent files.
-	NewContent string
-	// Patch is a unified diff for this file.
-	Patch string
-}
-
-type Repository interface {
-	// Pull fetches latest changes from origin for configured branch.
-	Pull(ctx context.Context) error
-	// Head resolves current HEAD revision hash.
-	Head(ctx context.Context) (string, error)
-	// List returns latest commits from HEAD up to the provided limit.
-	List(ctx context.Context, limit int) ([]CommitMeta, error)
-	// Show returns commit metadata and per-file diff for a given revision.
-	Show(ctx context.Context, commitHash string) (Commit, error)
-}
-
 type GoGitRepository struct {
-	branch string
-	auth   transport.AuthMethod
+	path       string
+	pullBranch string
+	auth       transport.AuthMethod
 
-	repository *gogit.Repository
+	repository    *gogit.Repository
+	repositoryURL string
 }
 
-func NewRepository(spec config.GitSpec, path string) Repository {
+func NewRepository(spec config.GitRepositorySpec, path string) Repository {
 	return NewLazyProxy(spec, path)
 }
 
-func NewGoGitRepository(ctx context.Context, spec config.GitSpec, path string) (*GoGitRepository, error) {
-	authMethod, err := resolveAuthMethod(spec.Auth)
+func NewGoGitRepository(
+	ctx context.Context,
+	cfg config.GitRepositorySpec,
+	path string,
+) (*GoGitRepository, error) {
+	authMethod, err := resolveAuthMethod(cfg.Auth)
 	if err != nil {
 		return nil, err
 	}
 
-	repo, err := openRepository(ctx, path, spec.Repository, spec.Branch, authMethod)
+	return newGoGitRepository(ctx, path, cfg.Branch, authMethod, cfg.Repository)
+}
+
+func newGoGitRepository(
+	ctx context.Context,
+	path,
+	branch string,
+	auth transport.AuthMethod,
+	repoURL string,
+) (*GoGitRepository, error) {
+	repo, err := openRepository(ctx, path, repoURL, branch, auth)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open repository: %w", err)
 	}
 
 	return &GoGitRepository{
-		branch:     spec.Branch,
-		auth:       authMethod,
-		repository: repo,
+		path:          path,
+		pullBranch:    branch,
+		auth:          auth,
+		repository:    repo,
+		repositoryURL: repoURL,
 	}, nil
+}
+
+func (r *GoGitRepository) AddFile(ctx context.Context, path string, content []byte) error {
+	fullPath := filepath.Join(r.path, path)
+
+	err := os.WriteFile(fullPath, content, 0o600)
+	if err != nil {
+		return fmt.Errorf("write file %q: %w", fullPath, err)
+	}
+
+	return r.add(ctx, path)
 }
 
 func (r *GoGitRepository) Pull(ctx context.Context) error {
@@ -110,7 +91,7 @@ func (r *GoGitRepository) Pull(ctx context.Context) error {
 	err = worktree.PullContext(ctx, &gogit.PullOptions{
 		RemoteName:    "origin",
 		SingleBranch:  true,
-		ReferenceName: plumbing.NewBranchReferenceName(r.branch),
+		ReferenceName: plumbing.NewBranchReferenceName(r.pullBranch),
 		Auth:          r.auth,
 		Force:         true,
 	})
@@ -119,6 +100,12 @@ func (r *GoGitRepository) Pull(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (r *GoGitRepository) ReadFile(_ context.Context, path string) ([]byte, error) {
+	fullPath := filepath.Join(r.path, path)
+
+	return os.ReadFile(fullPath)
 }
 
 func (r *GoGitRepository) Head(context.Context) (string, error) {
@@ -196,6 +183,98 @@ func (r *GoGitRepository) Show(ctx context.Context, commitHash string) (Commit, 
 		Time:        commit.Author.When,
 		Files:       fileDiffs,
 	}, nil
+}
+
+func (r *GoGitRepository) Branch(ctx context.Context, branchName string) (Repository, error) {
+	newPath := r.path + "-" + branchName
+
+	repo, err := newGoGitRepository(ctx, newPath, r.pullBranch, r.auth, r.repositoryURL)
+	if err != nil {
+		return nil, err
+	}
+
+	worktree, err := repo.repository.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("open worktree: %w", err)
+	}
+
+	err = r.checkoutBranch(worktree, branchName, true)
+	if err != nil {
+		return nil, fmt.Errorf("create branch %q: %w", branchName, err)
+	}
+
+	return repo, nil
+}
+
+func (r *GoGitRepository) add(_ context.Context, path string) error {
+	trimmedPath := strings.TrimSpace(path)
+	if trimmedPath == "" {
+		return errors.New("path is required")
+	}
+
+	worktree, err := r.repository.Worktree()
+	if err != nil {
+		return fmt.Errorf("open worktree: %w", err)
+	}
+
+	_, err = worktree.Add(trimmedPath)
+	if err != nil {
+		return fmt.Errorf("git add %q: %w", trimmedPath, err)
+	}
+
+	return nil
+}
+
+func (r *GoGitRepository) Commit(_ context.Context, message string, author CommitAuthor) (string, error) {
+	commitMessage := strings.TrimSpace(message)
+	if commitMessage == "" {
+		return "", errors.New("commit message is required")
+	}
+
+	worktree, err := r.repository.Worktree()
+	if err != nil {
+		return "", fmt.Errorf("open worktree: %w", err)
+	}
+
+	commitHash, err := worktree.Commit(commitMessage, &gogit.CommitOptions{
+		Author: &object.Signature{
+			Name:  strings.TrimSpace(author.Name),
+			Email: strings.TrimSpace(author.Email),
+			When:  time.Now().UTC(),
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("git commit: %w", err)
+	}
+
+	return commitHash.String(), nil
+}
+
+func (r *GoGitRepository) Push(ctx context.Context, branch string) error {
+	err := r.repository.PushContext(ctx, &gogit.PushOptions{
+		RemoteURL: r.repositoryURL,
+		Auth:      r.auth,
+		RefSpecs: []gogitcfg.RefSpec{
+			gogitcfg.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("git push branch %q: %w", branch, err)
+	}
+
+	return nil
+}
+
+func (r *GoGitRepository) WorkingDir() string {
+	return r.path
+}
+
+func (r *GoGitRepository) checkoutBranch(worktree *gogit.Worktree, branch string, create bool) error {
+	return worktree.Checkout(&gogit.CheckoutOptions{
+		Branch: plumbing.NewBranchReferenceName(branch),
+		Create: create,
+		Force:  true,
+	})
 }
 
 func buildCommitFileDiffs(ctx context.Context, commit *object.Commit) ([]CommitFileDiff, error) {
@@ -303,10 +382,21 @@ func openRepository(
 	branch string,
 	auth transport.AuthMethod,
 ) (*gogit.Repository, error) {
+	log := slog.With(
+		slog.String("repository.url", url),
+		slog.String("repository.branch", branch),
+		slog.String("path", path),
+	)
+
+	log.DebugContext(ctx, "[git] opening repository")
+
 	repo, err := gogit.PlainOpen(path)
 	if err == nil {
+		log.DebugContext(ctx, "[git] repository opened")
+
 		return repo, nil
 	}
+
 	if !errors.Is(err, gogit.ErrRepositoryNotExists) {
 		return nil, err
 	}
@@ -314,6 +404,8 @@ func openRepository(
 	if err = os.MkdirAll(path, 0o755); err != nil {
 		return nil, fmt.Errorf("create repository dir: %w", err)
 	}
+
+	log.DebugContext(ctx, "[git] cloning repository")
 
 	repo, err = gogit.PlainCloneContext(ctx, path, false, &gogit.CloneOptions{
 		URL:           url,
@@ -324,6 +416,8 @@ func openRepository(
 	if err != nil {
 		return nil, fmt.Errorf("git clone: %w", err)
 	}
+
+	log.DebugContext(ctx, "[git] repository cloned")
 
 	return repo, nil
 }
