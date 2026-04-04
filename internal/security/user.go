@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
+	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/cappuccinotm/slogx"
 )
 
@@ -33,5 +35,18 @@ func LogUser() slogx.Middleware {
 			}
 			return next(ctx, rec)
 		}
+	}
+}
+
+func PropagateEvent() dispatcher.Propagator {
+	return func(ctx context.Context, event events.Event) events.Event {
+		eventAwareUser, ok := event.(events.AwareUser)
+		if ok {
+			user, uok := UserFromContext(ctx)
+			if uok {
+				event = eventAwareUser.WithUsername(user.Name)
+			}
+		}
+		return event
 	}
 }

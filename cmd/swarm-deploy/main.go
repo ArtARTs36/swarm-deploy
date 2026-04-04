@@ -287,16 +287,7 @@ func buildEventDispatcher(
 
 	if cfg.Spec.Web.Security.Authentication.Strategy() != config.AuthenticationStrategyNone {
 		eventDispatcher = dispatcher.NewPropagatableDispatcher(
-			dispatcher.WrapPropagators(func(ctx context.Context, event events.Event) events.Event {
-				eventAwareUser, ok := event.(events.AwareUser)
-				if ok {
-					user, uok := security.UserFromContext(ctx)
-					if uok {
-						event = eventAwareUser.WithUsername(user.Name)
-					}
-				}
-				return event
-			}),
+			dispatcher.WrapPropagators(security.PropagateEvent()),
 			eventDispatcher,
 		)
 	}
