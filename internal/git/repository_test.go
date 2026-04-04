@@ -210,7 +210,7 @@ func TestLazyProxyInitializesRepositoryLazily(t *testing.T) {
 	require.Len(t, commits, 1, "expected one latest commit")
 	assert.Equal(t, sourceHead.Hash().String(), commits[0].Hash, "unexpected listed hash")
 
-	err = proxy.Pull(t.Context())
+	_, err = proxy.Pull(t.Context())
 	require.NoError(t, err, "pull lazy proxy repository")
 }
 

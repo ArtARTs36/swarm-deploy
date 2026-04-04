@@ -11,7 +11,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/events"
-	"github.com/artarts36/swarm-deploy/internal/gitops"
+	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/security"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
@@ -49,7 +49,7 @@ type ServiceView struct {
 
 type Controller struct {
 	cfg      *config.Config
-	gitSync  *gitops.Syncer
+	git      gitx.Repository
 	deployer *swarm.Deployer
 	metrics  *metrics.Group
 	event    dispatcher.Dispatcher
@@ -67,21 +67,21 @@ type triggerTask struct {
 
 func New(
 	cfg *config.Config,
-	gitSync *gitops.Syncer,
+	git gitx.Repository,
 	deployer *swarm.Deployer,
 	metricGroup *metrics.Group,
 	eventDispatcher dispatcher.Dispatcher,
 ) *Controller {
 	return &Controller{
 		cfg:        cfg,
-		gitSync:    gitSync,
+		git:        git,
 		deployer:   deployer,
 		metrics:    metricGroup,
 		event:      eventDispatcher,
 		stateStore: newRuntimeStateStore(),
 		stackReconciler: newStackReconciler(
 			cfg,
-			gitSync,
+			git,
 			deployer,
 		),
 		triggerCh: make(chan triggerTask, 1),
@@ -165,7 +165,7 @@ func (c *Controller) syncOnce(ctx context.Context, task triggerTask) { //nolint:
 		})
 	}
 
-	syncResult, err := c.gitSync.Sync(ctx)
+	syncResult, err := c.git.Pull(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "sync failed at git stage",
 			slog.String("reason", string(task.reason)),
@@ -265,7 +265,7 @@ func (c *Controller) syncOnce(ctx context.Context, task triggerTask) { //nolint:
 }
 
 func (c *Controller) reloadStacks() (string, error) {
-	return c.cfg.ReloadStacks(c.gitSync.WorkingDir())
+	return c.cfg.ReloadStacks(c.git.WorkingDir())
 }
 
 func (c *Controller) syncStack(ctx context.Context, stackCfg config.StackSpec, commit string) error {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/compose"
 	"github.com/artarts36/swarm-deploy/internal/config"
-	"github.com/artarts36/swarm-deploy/internal/gitops"
+	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
@@ -21,7 +21,7 @@ type stackReconcileResult struct {
 
 type stackReconciler struct {
 	cfg      *config.Config
-	gitSync  *gitops.Syncer
+	git      gitx.Repository
 	deployer *swarm.Deployer
 }
 
@@ -31,10 +31,10 @@ type stackReconcileError struct {
 	err      error
 }
 
-func newStackReconciler(cfg *config.Config, gitSync *gitops.Syncer, deployer *swarm.Deployer) *stackReconciler {
+func newStackReconciler(cfg *config.Config, gitSync gitx.Repository, deployer *swarm.Deployer) *stackReconciler {
 	return &stackReconciler{
 		cfg:      cfg,
-		gitSync:  gitSync,
+		git:      gitSync,
 		deployer: deployer,
 	}
 }
@@ -78,7 +78,7 @@ func (r *stackReconciler) Reconcile(
 	prevDigest string,
 	hasPrev bool,
 ) (stackReconcileResult, error) {
-	composePath := filepath.Join(r.gitSync.WorkingDir(), stackCfg.ComposeFile)
+	composePath := filepath.Join(r.git.WorkingDir(), stackCfg.ComposeFile)
 	stackFile, err := compose.Load(composePath)
 	if err != nil {
 		return stackReconcileResult{}, wrapStackReconcileError("load compose", nil, err)

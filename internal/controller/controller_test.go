@@ -7,7 +7,6 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/config"
 	git "github.com/artarts36/swarm-deploy/internal/git"
-	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,11 +30,10 @@ func TestReloadStacksUsesRepositoryDirFirst(t *testing.T) {
 	}
 
 	repository := git.NewRepository(config.GitSpec{}, filepath.Join(dataDir, "repo"))
-	gitSync := gitops.NewSyncer(repository, dataDir)
 
 	c := &Controller{
-		cfg:     cfg,
-		gitSync: gitSync,
+		cfg: cfg,
+		git: repository,
 	}
 
 	loadedFrom, err := c.reloadStacks()

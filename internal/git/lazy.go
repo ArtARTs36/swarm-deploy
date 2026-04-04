@@ -22,10 +22,14 @@ type LazyProxy struct {
 	repository *GoGitRepository
 }
 
-func (p *LazyProxy) Pull(ctx context.Context) error {
+func (p *LazyProxy) WorkingDir() string {
+	return p.path
+}
+
+func (p *LazyProxy) Pull(ctx context.Context) (PullResult, error) {
 	repo, err := p.init(ctx)
 	if err != nil {
-		return err
+		return PullResult{}, err
 	}
 
 	return repo.Pull(ctx)

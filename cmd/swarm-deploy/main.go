@@ -26,7 +26,6 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/event/notifiers"
 	notify2 "github.com/artarts36/swarm-deploy/internal/event/notify"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
-	"github.com/artarts36/swarm-deploy/internal/gitops"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/security"
@@ -75,8 +74,6 @@ func main() {
 
 	gitRepository := gitx.NewRepository(cfg.Spec.Git, filepath.Join(cfg.Spec.DataDir, "repo"))
 
-	gitSyncer := gitops.NewSyncer(gitRepository, cfg.Spec.DataDir)
-
 	metricsGroup := metrics.NewGroup(metrics.CreateGroupParams{
 		Namespace: "swarm_deploy",
 		Assistant: cfg.Spec.Assistant.Enabled,
@@ -120,7 +117,7 @@ func main() {
 
 	control := controller.New(
 		cfg,
-		gitSyncer,
+		gitRepository,
 		deployer,
 		metricsGroup,
 		eventDispatcher,
