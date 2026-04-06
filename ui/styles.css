@@ -220,6 +220,48 @@ button:hover,
   font-size: 0.88rem;
 }
 
+.repo-link {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  text-decoration: none;
+}
+
+.repo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.repo-icon-github {
+  background: rgba(36, 41, 47, 0.85);
+  border-color: rgba(125, 133, 144, 0.45);
+}
+
+.repo-icon-generic {
+  background: rgba(161, 192, 204, 0.28);
+  border-color: rgba(161, 192, 204, 0.5);
+}
+
+.repo-icon-gitlab {
+  background: rgba(252, 109, 38, 0.85);
+  border-color: rgba(252, 109, 38, 0.55);
+}
+
+.repo-icon-bitbucket {
+  background: rgba(0, 82, 204, 0.85);
+  border-color: rgba(76, 154, 255, 0.55);
+}
+
 .status {
   align-self: flex-start;
   border-radius: 999px;

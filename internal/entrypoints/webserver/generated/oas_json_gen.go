@@ -1232,6 +1232,12 @@ func (s *ServiceInfo) encodeFields(e *jx.Encoder) {
 		e.Str(s.Image)
 	}
 	{
+		if s.RepositoryURL.Set {
+			e.FieldStart("repository_url")
+			s.RepositoryURL.Encode(e)
+		}
+	}
+	{
 		if s.WebRoutes != nil {
 			e.FieldStart("web_routes")
 			e.ArrStart()
@@ -1243,13 +1249,14 @@ func (s *ServiceInfo) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfServiceInfo = [6]string{
+var jsonFieldsNameOfServiceInfo = [7]string{
 	0: "name",
 	1: "stack",
 	2: "description",
 	3: "type",
 	4: "image",
-	5: "web_routes",
+	5: "repository_url",
+	6: "web_routes",
 }
 
 // Decode decodes ServiceInfo from json.
@@ -1316,6 +1323,16 @@ func (s *ServiceInfo) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"image\"")
+			}
+		case "repository_url":
+			if err := func() error {
+				s.RepositoryURL.Reset()
+				if err := s.RepositoryURL.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"repository_url\"")
 			}
 		case "web_routes":
 			if err := func() error {

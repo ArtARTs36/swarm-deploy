@@ -112,12 +112,13 @@ func toGeneratedServiceInfos(services []service.Info) []generated.ServiceInfo {
 	mapped := make([]generated.ServiceInfo, 0, len(services))
 	for _, serviceInfo := range services {
 		mappedItem := generated.ServiceInfo{
-			Name:        serviceInfo.Name,
-			Stack:       serviceInfo.Stack,
-			Type:        toGeneratedServiceType(serviceInfo.Type),
-			Image:       serviceInfo.Image,
-			Description: toOptString(serviceInfo.Description),
-			WebRoutes:   toGeneratedWebRoutes(serviceInfo.WebRoutes),
+			Name:          serviceInfo.Name,
+			Stack:         serviceInfo.Stack,
+			Type:          toGeneratedServiceType(serviceInfo.Type),
+			Image:         serviceInfo.Image,
+			RepositoryURL: toOptString(serviceInfo.RepositoryURL),
+			Description:   toOptString(serviceInfo.Description),
+			WebRoutes:     toGeneratedWebRoutes(serviceInfo.WebRoutes),
 		}
 
 		mapped = append(mapped, mappedItem)

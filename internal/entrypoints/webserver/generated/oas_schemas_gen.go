@@ -559,12 +559,13 @@ func (s *QueueResponse) SetQueued(val bool) {
 
 // Ref: #/components/schemas/ServiceInfo
 type ServiceInfo struct {
-	Name        string          `json:"name"`
-	Stack       string          `json:"stack"`
-	Description OptString       `json:"description"`
-	Type        ServiceInfoType `json:"type"`
-	Image       string          `json:"image"`
-	WebRoutes   []WebRoute      `json:"web_routes"`
+	Name          string          `json:"name"`
+	Stack         string          `json:"stack"`
+	Description   OptString       `json:"description"`
+	Type          ServiceInfoType `json:"type"`
+	Image         string          `json:"image"`
+	RepositoryURL OptString       `json:"repository_url"`
+	WebRoutes     []WebRoute      `json:"web_routes"`
 }
 
 // GetName returns the value of Name.
@@ -590,6 +591,11 @@ func (s *ServiceInfo) GetType() ServiceInfoType {
 // GetImage returns the value of Image.
 func (s *ServiceInfo) GetImage() string {
 	return s.Image
+}
+
+// GetRepositoryURL returns the value of RepositoryURL.
+func (s *ServiceInfo) GetRepositoryURL() OptString {
+	return s.RepositoryURL
 }
 
 // GetWebRoutes returns the value of WebRoutes.
@@ -620,6 +626,11 @@ func (s *ServiceInfo) SetType(val ServiceInfoType) {
 // SetImage sets the value of Image.
 func (s *ServiceInfo) SetImage(val string) {
 	s.Image = val
+}
+
+// SetRepositoryURL sets the value of RepositoryURL.
+func (s *ServiceInfo) SetRepositoryURL(val OptString) {
+	s.RepositoryURL = val
 }
 
 // SetWebRoutes sets the value of WebRoutes.

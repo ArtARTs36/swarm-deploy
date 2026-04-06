@@ -11,6 +11,80 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function normalizeRepositoryUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  const candidates = [raw];
+  if (!raw.includes("://")) {
+    candidates.push(`https://${raw}`);
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = new URL(candidate);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+        return parsed.toString();
+      }
+    } catch (error) {
+      // Ignore malformed candidate and continue fallback attempts.
+    }
+  }
+
+  return "";
+}
+
+function resolveRepositoryProvider(repositoryUrl) {
+  if (!repositoryUrl) {
+    return "";
+  }
+
+  try {
+    const host = new URL(repositoryUrl).hostname.toLowerCase();
+    if (host.includes("github")) {
+      return "github";
+    }
+    if (host.includes("gitlab")) {
+      return "gitlab";
+    }
+    if (host.includes("bitbucket")) {
+      return "bitbucket";
+    }
+  } catch (error) {
+    return "";
+  }
+
+  return "";
+}
+
+function renderRepositoryIcon(provider) {
+  if (provider === "github") {
+    return `<span class="repo-icon repo-icon-github" aria-hidden="true">GH</span>`;
+  }
+  if (provider === "gitlab") {
+    return `<span class="repo-icon repo-icon-gitlab" aria-hidden="true">GL</span>`;
+  }
+  if (provider === "bitbucket") {
+    return `<span class="repo-icon repo-icon-bitbucket" aria-hidden="true">BB</span>`;
+  }
+  return `<span class="repo-icon repo-icon-generic" aria-hidden="true">REPO</span>`;
+}
+
+function renderImageWithRepository(image, repositoryUrl) {
+  const safeImage = escapeHtml(image || "n/a");
+  const normalizedRepositoryUrl = normalizeRepositoryUrl(repositoryUrl);
+  if (!normalizedRepositoryUrl) {
+    return safeImage;
+  }
+
+  const provider = resolveRepositoryProvider(normalizedRepositoryUrl);
+  const icon = renderRepositoryIcon(provider);
+
+  return `${safeImage} <a class="repo-link" href="${escapeHtml(normalizedRepositoryUrl)}" target="_blank" rel="noopener noreferrer" title="Open repository">${icon}</a>`;
+}
+
 function renderStatus(message) {
   servicesStatusEl.textContent = message;
 }
@@ -56,7 +130,7 @@ function renderServices(services) {
             <span class="service-type ${escapeHtml(serviceType)}">${escapeHtml(serviceType)}</span>
           </div>
           <p class="meta"><strong>stack:</strong> ${escapeHtml(service.stack || "n/a")}</p>
-          <p class="meta"><strong>image:</strong> ${escapeHtml(service.image || "n/a")}</p>
+          <p class="meta"><strong>image:</strong> ${renderImageWithRepository(service.image, service.repository_url)}</p>
           <p class="meta"><strong>description:</strong> ${escapeHtml(service.description || "n/a")}</p>
           ${renderWebRoutes(service.web_routes)}
         </article>

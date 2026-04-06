@@ -73,13 +73,15 @@ func (s *Subscriber) Handle(ctx context.Context, event events.Event) error {
 		}
 
 		resolved := s.metadata.Resolve(deployedService.Image, labels)
+		repositoryURL := ResolveRepositoryURL(labels)
 		services = append(services, Info{
-			Name:        deployedService.Name,
-			Stack:       deploySuccess.StackName,
-			Description: resolved.Description,
-			Type:        resolved.Type,
-			Image:       deployedService.Image,
-			WebRoutes:   s.webRouteResolver.Resolve(inspectedLabels.ContainerEnv),
+			Name:          deployedService.Name,
+			Stack:         deploySuccess.StackName,
+			Description:   resolved.Description,
+			Type:          resolved.Type,
+			Image:         deployedService.Image,
+			RepositoryURL: repositoryURL,
+			WebRoutes:     s.webRouteResolver.Resolve(inspectedLabels.ContainerEnv),
 		})
 	}
 

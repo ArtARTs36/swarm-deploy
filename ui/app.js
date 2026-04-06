@@ -106,7 +106,7 @@ function renderServiceStatus(data) {
   serviceStatusTitleEl.textContent = `${data.stack} / ${data.service}`;
   serviceStatusBodyEl.innerHTML = `
     <div class="service-metrics">
-      <p><strong>Image:</strong> ${data.image || "n/a"}</p>
+      <p><strong>Image:</strong> ${escapeHtml(data.image || "n/a")}</p>
       <p><strong>Requested RAM:</strong> ${fmtBytes(data.requested_ram_bytes)}</p>
       <p><strong>Requested CPU:</strong> ${data.requested_cpu_nano || 0} nano-CPUs</p>
       <p><strong>RAM Limit:</strong> ${fmtBytes(data.limit_ram_bytes)}</p>
