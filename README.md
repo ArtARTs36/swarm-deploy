@@ -2,9 +2,9 @@
 
 GitOps controller for Docker Swarm with an ArgoCD-inspired, but Swarm-native, configuration style.
 
-[Wizard for eaay configuration](https://artarts36.github.io/swarm-deploy/configurator/)
+[Wizard for easy configuration](https://artarts36.github.io/swarm-deploy/configurator/)
 
-## Current capabilities
+## Capabilities
 
 - Operating modes:
   - `pull` (polling),
@@ -24,3 +24,5 @@ GitOps controller for Docker Swarm with an ArgoCD-inspired, but Swarm-native, co
 - [Basic: deploy public repositories](./example/01-basic)
 - TODO: Example of deploy private repositories
 - TODO: Example of deploy private repositories via webhook
+- [AI Assistant](./example/04-assistant)
+- [Monitoring configurations: Grafana and Prometheus](./monitoring)
