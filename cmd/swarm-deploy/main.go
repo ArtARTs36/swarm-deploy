@@ -260,7 +260,7 @@ func buildAssistantService(
 		Temperature:             temperature,
 		MaxTokens:               maxTokens,
 		SystemPrompt:            cfg.Spec.Assistant.SystemPrompt,
-		AllowedTools:            cfg.Spec.Assistant.Tools,
+		AllowedTools:            cfg.Spec.Assistant.ToolNames(),
 		ConversationInMemoryTTL: cfg.Spec.Assistant.Conversation.Storage.InMemory.TTL.Value,
 	}, serviceStore, toolExecutor, eventDispatcher, metrics.Assistant)
 }
