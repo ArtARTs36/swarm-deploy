@@ -63,6 +63,24 @@ func (f *fakeNetworkInspector) InspectNetworks(_ context.Context) ([]inspector.N
 	return out, nil
 }
 
+type fakePluginInspector struct {
+	plugins []inspector.PluginInfo
+	err     error
+	called  int
+}
+
+func (f *fakePluginInspector) InspectPlugins(_ context.Context) ([]inspector.PluginInfo, error) {
+	f.called++
+	if f.err != nil {
+		return nil, f.err
+	}
+
+	out := make([]inspector.PluginInfo, len(f.plugins))
+	copy(out, f.plugins)
+
+	return out, nil
+}
+
 type fakeServiceStore struct {
 	services []service.Info
 }

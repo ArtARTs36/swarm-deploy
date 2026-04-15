@@ -54,6 +54,19 @@ func (f *fakeNetworkInspector) InspectNetworks(
 	return out, nil
 }
 
+type fakePluginInspector struct {
+	plugins []inspector.PluginInfo
+}
+
+func (f *fakePluginInspector) InspectPlugins(
+	_ context.Context,
+) ([]inspector.PluginInfo, error) {
+	out := make([]inspector.PluginInfo, len(f.plugins))
+	copy(out, f.plugins)
+
+	return out, nil
+}
+
 type fakeServiceStore struct {
 	services []service.Info
 }
@@ -98,6 +111,7 @@ func TestExecutorExecuteUnknownTool(t *testing.T) {
 		&fakeHistoryStore{},
 		&fakeNodeStore{},
 		&fakeNetworkInspector{},
+		&fakePluginInspector{},
 		&fakeServiceStore{},
 		&fakeImageVersionResolver{},
 		&fakeGitRepository{},
@@ -124,6 +138,7 @@ func TestExecutorDefinitionsContainDate(t *testing.T) {
 		&fakeHistoryStore{},
 		&fakeNodeStore{},
 		&fakeNetworkInspector{},
+		&fakePluginInspector{},
 		&fakeServiceStore{},
 		&fakeImageVersionResolver{},
 		&fakeGitRepository{},
@@ -144,4 +159,5 @@ func TestExecutorDefinitionsContainDate(t *testing.T) {
 
 	assert.Contains(t, toolNames, "date", "expected date tool definition")
 	assert.Contains(t, toolNames, "docker_network_list", "expected docker_network_list tool definition")
+	assert.Contains(t, toolNames, "docker_plugin_list", "expected docker_plugin_list tool definition")
 }

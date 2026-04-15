@@ -35,6 +35,12 @@ type NetworkInspector interface {
 	InspectNetworks(ctx context.Context) ([]inspector.NetworkInfo, error)
 }
 
+// PluginInspector inspects current Docker plugins snapshot.
+type PluginInspector interface {
+	// InspectPlugins returns current Docker plugins snapshot.
+	InspectPlugins(ctx context.Context) ([]inspector.PluginInfo, error)
+}
+
 // ServicesReader reads current service metadata snapshot.
 type ServicesReader interface {
 	// List returns current services metadata snapshot.

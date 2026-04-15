@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultNotifyHTTPTimeout = 30 * time.Second
+	defaultNotifyHTTPTimeout = 2 * time.Minute
 	httpStatusClassDivisor   = 100
 	httpStatusClassSuccess   = 2
 )

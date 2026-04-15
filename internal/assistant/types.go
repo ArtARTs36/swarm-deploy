@@ -75,7 +75,7 @@ type Config struct {
 	// BaseURL is an OpenAI-compatible API base URL.
 	BaseURL string
 	// APIToken is an OpenAI-compatible bearer token.
-	APIToken string //nolint:gosec // Config only carries secret from file-based source and is not an API payload.
+	APIToken string `json:"-"`
 	// OrganizationID is an optional OpenAI organization identifier.
 	OrganizationID string
 	// Temperature controls model sampling temperature.

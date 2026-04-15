@@ -8,6 +8,8 @@ import (
 )
 
 type NotificationSpec struct {
+	// Messengers contains global messenger settings used by notification channels.
+	Messengers NotificationMessengersSpec `yaml:"messengers"`
 	// On maps event types to notification channels.
 	On map[events.Type]struct {
 		// Telegram is a list of Telegram notification channels.
@@ -15,6 +17,26 @@ type NotificationSpec struct {
 		// Custom is a list of custom webhook notification channels.
 		Custom []CustomChannel `yaml:"custom"`
 	} `yaml:"on"`
+}
+
+type NotificationMessengersSpec struct {
+	// Telegram contains global Telegram settings used by Telegram channels.
+	Telegram NotificationTelegramSpec `yaml:"telegram"`
+}
+
+type NotificationTelegramSpec struct {
+	// Proxy contains global proxy settings for Telegram notifications.
+	Proxy NotificationTelegramProxySpec `yaml:"proxy"`
+}
+
+type NotificationTelegramProxySpec struct {
+	// SOCKS5 contains SOCKS5 proxy settings.
+	SOCKS5 NotificationTelegramSOCKS5Spec `yaml:"socks5"`
+}
+
+type NotificationTelegramSOCKS5Spec struct {
+	// Address is a SOCKS5 endpoint in host:port format.
+	Address specw.Env[string] `yaml:"address"`
 }
 
 type TelegramChannel struct {

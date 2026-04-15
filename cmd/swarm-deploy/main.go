@@ -240,6 +240,7 @@ func buildAssistantService(
 		eventHistory,
 		nodeStore,
 		inspectorSvc,
+		inspectorSvc,
 		serviceStore,
 		imageVersionResolver,
 		gitRepository,
@@ -311,8 +312,9 @@ func buildEventDispatcher(
 				string(tg.BotToken.Content),
 				tg.ChatID,
 				notifiers.TelegramOptions{
-					ChatThreadID: tg.ChatThreadID,
-					Message:      tg.Message,
+					ChatThreadID:  tg.ChatThreadID,
+					Message:       tg.Message,
+					SOCKS5Address: cfg.Spec.Notifications.Messengers.Telegram.Proxy.SOCKS5.Address.Value,
 				},
 			)
 			if notifierErr != nil {

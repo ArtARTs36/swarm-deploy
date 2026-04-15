@@ -6,9 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"regexp"
 	"strings"
 	"text/template"
+	"time"
+
+	"golang.org/x/net/proxy"
 )
 
 const defaultTelegramMessageTemplate = `deploy {{.status}}
@@ -19,10 +24,13 @@ image.version: {{.image.version}}{{if .commit}}
 commit: {{.commit}}{{end}}{{if .error}}
 error: {{.error}}{{end}}`
 
+var telegramBotSendMessagePathPattern = regexp.MustCompile(`/bot[^/\s]+/sendMessage`)
+
 type TelegramOptions struct {
-	ChatThreadID int64
-	Message      string
-	APIBaseURL   string
+	ChatThreadID  int64
+	Message       string
+	APIBaseURL    string
+	SOCKS5Address string
 }
 
 type TelegramNotifier struct {
@@ -51,6 +59,11 @@ func NewTelegramNotifier(name, token, chatID string, options TelegramOptions) (*
 		apiBaseURL = "https://api.telegram.org"
 	}
 
+	client, err := buildTelegramHTTPClient(options.SOCKS5Address)
+	if err != nil {
+		return nil, fmt.Errorf("build http client: %w", err)
+	}
+
 	return &TelegramNotifier{
 		name:         name,
 		token:        token,
@@ -58,7 +71,7 @@ func NewTelegramNotifier(name, token, chatID string, options TelegramOptions) (*
 		chatThreadID: options.ChatThreadID,
 		apiBaseURL:   strings.TrimRight(apiBaseURL, "/"),
 		messageTmpl:  tmpl,
-		client:       &http.Client{Timeout: defaultNotifyHTTPTimeout},
+		client:       client,
 	}, nil
 }
 
@@ -106,7 +119,7 @@ func (n *TelegramNotifier) Notify(ctx context.Context, event Message) error {
 	//nolint:gosec // Telegram endpoint is configured by operator and required for outbound notifications.
 	resp, err := n.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("send request: %w", err)
+		return fmt.Errorf("send request: %s", maskTelegramSendError(err, n.token))
 	}
 	defer resp.Body.Close()
 
@@ -133,4 +146,42 @@ func (n *TelegramNotifier) renderMessage(event Message) (string, error) {
 	}
 
 	return out.String(), nil
+}
+
+func maskTelegramSendError(err error, token string) string {
+	message := err.Error()
+	message = strings.ReplaceAll(message, token, "[REDACTED]")
+
+	return telegramBotSendMessagePathPattern.ReplaceAllString(message, "/bot[REDACTED]/sendMessage")
+}
+
+func buildTelegramHTTPClient(socks5Address string) (*http.Client, error) {
+	if socks5Address == "" {
+		return &http.Client{Timeout: defaultNotifyHTTPTimeout}, nil
+	}
+
+	dialer, err := proxy.SOCKS5("tcp", socks5Address, nil, proxy.Direct)
+	if err != nil {
+		return nil, fmt.Errorf("build socks5 dialer: %w", err)
+	}
+
+	transport := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		IdleConnTimeout:       time.Minute,
+		TLSHandshakeTimeout:   time.Minute,
+		ExpectContinueTimeout: time.Minute,
+	}
+
+	if contextDialer, ok := dialer.(proxy.ContextDialer); ok {
+		transport.DialContext = contextDialer.DialContext
+	} else {
+		transport.DialContext = func(_ context.Context, network, address string) (net.Conn, error) {
+			return dialer.Dial(network, address)
+		}
+	}
+
+	return &http.Client{
+		Timeout:   defaultNotifyHTTPTimeout,
+		Transport: transport,
+	}, nil
 }
