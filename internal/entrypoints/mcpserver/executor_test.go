@@ -176,4 +176,5 @@ func TestExecutorDefinitionsContainDate(t *testing.T) {
 	assert.Contains(t, toolNames, "docker_network_list", "expected docker_network_list tool definition")
 	assert.Contains(t, toolNames, "docker_plugin_list", "expected docker_plugin_list tool definition")
 	assert.Contains(t, toolNames, "docker_secret_list", "expected docker_secret_list tool definition")
+	assert.Contains(t, toolNames, "dns_name_resolve", "expected dns_name_resolve tool definition")
 }

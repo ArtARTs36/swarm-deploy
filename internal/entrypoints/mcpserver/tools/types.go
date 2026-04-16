@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"net"
 
 	"github.com/artarts36/swarm-deploy/internal/differ"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
@@ -51,6 +52,12 @@ type SecretInspector interface {
 type ServicesReader interface {
 	// List returns current services metadata snapshot.
 	List() []service.Info
+}
+
+// DNSResolver resolves DNS names to IP addresses.
+type DNSResolver interface {
+	// LookupIPAddr resolves host and returns a list of addresses.
+	LookupIPAddr(ctx context.Context, host string) ([]net.IPAddr, error)
 }
 
 // ImageVersionResolver resolves current image version in a container registry.

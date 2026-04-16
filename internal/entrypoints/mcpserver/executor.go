@@ -43,6 +43,7 @@ func NewExecutor(
 		mcpTools.NewDockerNetworkList(networkInspector),
 		mcpTools.NewDockerPluginList(pluginInspector),
 		mcpTools.NewDockerSecretList(secretInspector),
+		mcpTools.NewDNSNameResolve(),
 		mcpTools.NewPingWebRoutes(serviceStore),
 		mcpTools.NewGetActualImageVersion(imageVersionResolver),
 		mcpTools.NewListGitCommits(gitRepository),
