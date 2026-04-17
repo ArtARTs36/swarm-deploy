@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	cerrdefs "github.com/containerd/errdefs"
-	"github.com/docker/docker/api/types/filters"
 	dockernetwork "github.com/docker/docker/api/types/network"
 	dockerswarm "github.com/docker/docker/api/types/swarm"
 )
@@ -50,7 +48,7 @@ func (d *Deployer) runInitJobAPI(ctx context.Context, spec InitJobSpec) error {
 		_ = d.dockerClient.ServiceRemove(context.Background(), serviceID)
 	}()
 
-	err = d.waitForJobCompletionAPI(jobCtx, serviceID, jobName)
+	err = d.initJobRunner.WaitJob(jobCtx, serviceID, jobName)
 	if err != nil {
 		return err
 	}
@@ -145,60 +143,15 @@ func (d *Deployer) buildInitServiceSpecAPI(
 	}, nil
 }
 
-func (d *Deployer) waitForJobCompletionAPI(ctx context.Context, serviceID, jobName string) error {
-	ticker := time.NewTicker(d.initJobPoll)
-	defer ticker.Stop()
+type InitJobFailedError struct {
+	ID     string
+	Name   string
+	Reason string
+	Logs   []string
+}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("wait init job %s: %w", jobName, ctx.Err())
-		case <-ticker.C:
-			tasks, err := d.dockerClient.TaskList(ctx, dockerswarm.TaskListOptions{
-				Filters: filters.NewArgs(filters.Arg("service", serviceID)),
-			})
-			if err != nil {
-				return fmt.Errorf("inspect init job %s status: %w", jobName, err)
-			}
-			if len(tasks) == 0 {
-				continue
-			}
-
-			sort.Slice(tasks, func(i, j int) bool {
-				return tasks[i].UpdatedAt.After(tasks[j].UpdatedAt)
-			})
-
-			task := tasks[0]
-			state := task.Status.State
-			switch state {
-			case dockerswarm.TaskStateNew,
-				dockerswarm.TaskStateAllocated,
-				dockerswarm.TaskStatePending,
-				dockerswarm.TaskStateAssigned,
-				dockerswarm.TaskStateAccepted,
-				dockerswarm.TaskStatePreparing,
-				dockerswarm.TaskStateReady,
-				dockerswarm.TaskStateStarting,
-				dockerswarm.TaskStateRunning:
-				continue
-			case dockerswarm.TaskStateComplete:
-				return nil
-			case dockerswarm.TaskStateFailed,
-				dockerswarm.TaskStateRejected,
-				dockerswarm.TaskStateShutdown,
-				dockerswarm.TaskStateOrphaned,
-				dockerswarm.TaskStateRemove:
-				reason := strings.TrimSpace(task.Status.Err)
-				if reason == "" {
-					reason = strings.TrimSpace(task.Status.Message)
-				}
-				if reason == "" {
-					reason = string(state)
-				}
-				return fmt.Errorf("init job %s failed: %s", jobName, reason)
-			}
-		}
-	}
+func (e *InitJobFailedError) Error() string {
+	return fmt.Sprintf("job %q with id %q failed: %s", e.Name, e.ID, e.Reason)
 }
 
 func (d *Deployer) resolveNetworkTargetAPI(ctx context.Context, stackName, network string) string {

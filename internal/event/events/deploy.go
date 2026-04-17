@@ -2,6 +2,7 @@ package events
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/artarts36/swarm-deploy/internal/compose"
 )
@@ -17,6 +18,7 @@ type DeployFailed struct {
 	Commit    string
 	Services  []compose.Service
 	Error     error
+	Logs      []string
 }
 
 func (d *DeploySuccess) Type() Type {
@@ -46,6 +48,7 @@ func (d *DeployFailed) Details() map[string]string {
 	details := map[string]string{
 		"stack":  d.StackName,
 		"commit": d.Commit,
+		"logs":   strings.Join(d.Logs, "\n"),
 	}
 	if d.Error != nil {
 		details["error"] = d.Error.Error()

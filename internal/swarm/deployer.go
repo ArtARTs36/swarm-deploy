@@ -8,6 +8,7 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/compose"
 	"github.com/artarts36/swarm-deploy/internal/registry"
+	"github.com/artarts36/swarm-deploy/internal/swarm/initjob"
 	"github.com/docker/docker/client"
 )
 
@@ -21,6 +22,8 @@ type Deployer struct {
 	runner          Runner
 	dockerClient    *client.Client
 	authManager     registry.AuthManager
+
+	initJobRunner *initjob.Runner
 }
 
 type InitJobSpec struct {
@@ -52,6 +55,7 @@ func NewDeployer(
 		runner:          runner,
 		dockerClient:    cli,
 		authManager:     registry.NewAuthManager(),
+		initJobRunner:   initjob.NewRunner(cli, initJobPoll),
 	}, nil
 }
 
