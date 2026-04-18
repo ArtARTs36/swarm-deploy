@@ -9,20 +9,6 @@ import (
 	dockerswarm "github.com/docker/docker/api/types/swarm"
 )
 
-// InspectServiceReplicas returns current replicas count for a stack service.
-func (i *Inspector) InspectServiceReplicas(ctx context.Context, stackName, serviceName string) (uint64, error) {
-	service, fullServiceName, err := i.inspectStackService(ctx, stackName, serviceName)
-	if err != nil {
-		return 0, err
-	}
-
-	if service.Spec.Mode.Replicated == nil || service.Spec.Mode.Replicated.Replicas == nil {
-		return 0, fmt.Errorf("service %s is not replicated mode", fullServiceName)
-	}
-
-	return *service.Spec.Mode.Replicated.Replicas, nil
-}
-
 // UpdateServiceReplicas sets desired replicas count for a stack service.
 func (i *Inspector) UpdateServiceReplicas(
 	ctx context.Context,
@@ -58,10 +44,6 @@ func (i *Inspector) inspectStackService(
 	stackName,
 	serviceName string,
 ) (dockerswarm.Service, string, error) {
-	if i.dockerClient == nil {
-		return dockerswarm.Service{}, "", errors.New("docker api client is not initialized")
-	}
-
 	fullServiceName := fmt.Sprintf("%s_%s", stackName, serviceName)
 	service, _, err := i.dockerClient.ServiceInspectWithRaw(ctx, fullServiceName, dockerswarm.ServiceInspectOptions{})
 	if err != nil {
