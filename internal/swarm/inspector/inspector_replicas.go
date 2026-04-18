@@ -9,6 +9,26 @@ import (
 	dockerswarm "github.com/docker/docker/api/types/swarm"
 )
 
+// InspectServiceReplicas returns desired replicas count for a stack service.
+func (i *Inspector) InspectServiceReplicas(
+	ctx context.Context,
+	stackName,
+	serviceName string,
+) (uint64, error) {
+	service, fullServiceName, err := i.inspectStackService(ctx, stackName, serviceName)
+	if err != nil {
+		return 0, err
+	}
+	if service.Spec.Mode.Replicated == nil {
+		return 0, fmt.Errorf("service %s is not replicated mode", fullServiceName)
+	}
+	if service.Spec.Mode.Replicated.Replicas == nil {
+		return 0, nil
+	}
+
+	return *service.Spec.Mode.Replicated.Replicas, nil
+}
+
 // UpdateServiceReplicas sets desired replicas count for a stack service.
 func (i *Inspector) UpdateServiceReplicas(
 	ctx context.Context,

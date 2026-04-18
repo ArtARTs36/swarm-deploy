@@ -5,17 +5,21 @@ import (
 	"fmt"
 
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
+	"github.com/artarts36/swarm-deploy/internal/event/events"
 )
 
 // SetServiceReplicas updates service replicas count.
 type SetServiceReplicas struct {
-	manager ServiceReplicasManager
+	manager         ServiceReplicasManager
+	eventDispatcher dispatcher.Dispatcher
 }
 
 // NewSetServiceReplicas creates service_replicas_set component.
-func NewSetServiceReplicas(manager ServiceReplicasManager) *SetServiceReplicas {
+func NewSetServiceReplicas(manager ServiceReplicasManager, eventDispatcher dispatcher.Dispatcher) *SetServiceReplicas {
 	return &SetServiceReplicas{
-		manager: manager,
+		manager:         manager,
+		eventDispatcher: eventDispatcher,
 	}
 }
 
@@ -62,9 +66,30 @@ func (s *SetServiceReplicas) Execute(ctx context.Context, request routing.Reques
 		return routing.Response{}, err
 	}
 
+	currentReplicas, err := s.manager.InspectServiceReplicas(ctx, target.stack, target.service)
+	if err != nil {
+		return routing.Response{}, fmt.Errorf("inspect service replicas: %w", err)
+	}
+
 	err = s.manager.UpdateServiceReplicas(ctx, target.stack, target.service, replicas)
 	if err != nil {
 		return routing.Response{}, fmt.Errorf("update service replicas: %w", err)
+	}
+
+	if replicas > currentReplicas {
+		s.eventDispatcher.Dispatch(ctx, &events.ServiceReplicasIncreased{
+			StackName:        target.stack,
+			ServiceName:      target.service,
+			PreviousReplicas: currentReplicas,
+			CurrentReplicas:  replicas,
+		})
+	} else if replicas < currentReplicas {
+		s.eventDispatcher.Dispatch(ctx, &events.ServiceReplicasDecreased{
+			StackName:        target.stack,
+			ServiceName:      target.service,
+			PreviousReplicas: currentReplicas,
+			CurrentReplicas:  replicas,
+		})
 	}
 
 	payload := struct {
