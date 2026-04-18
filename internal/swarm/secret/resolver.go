@@ -8,7 +8,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-const secretOrConfigFileMode = 0o444
+const secretFileMode = 0o444
 
 type Resolver struct {
 	dockerClient *client.Client
@@ -39,7 +39,7 @@ func (r *Resolver) ResolveReference(ctx context.Context, source, target string) 
 		Name: target,
 		UID:  "0",
 		GID:  "0",
-		Mode: secretOrConfigFileMode,
+		Mode: secretFileMode,
 	}
 
 	return ref, nil
