@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
 	cerrdefs "github.com/containerd/errdefs"
@@ -67,15 +66,9 @@ func (d *Deployer) buildInitServiceSpecAPI(
 	}
 
 	if len(spec.Job.Environment) > 0 {
-		keys := make([]string, 0, len(spec.Job.Environment))
-		for key := range spec.Job.Environment {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-
-		containerSpec.Env = make([]string, 0, len(keys))
-		for _, key := range keys {
-			containerSpec.Env = append(containerSpec.Env, fmt.Sprintf("%s=%s", key, spec.Job.Environment[key]))
+		containerSpec.Env = make([]string, 0, len(spec.Job.Environment))
+		for key, val := range spec.Job.Environment {
+			containerSpec.Env = append(containerSpec.Env, fmt.Sprintf("%s=%s", key, val))
 		}
 	}
 
@@ -141,17 +134,6 @@ func (d *Deployer) buildInitServiceSpecAPI(
 			},
 		},
 	}, nil
-}
-
-type InitJobFailedError struct {
-	ID     string
-	Name   string
-	Reason string
-	Logs   []string
-}
-
-func (e *InitJobFailedError) Error() string {
-	return fmt.Sprintf("job %q with id %q failed: %s", e.Name, e.ID, e.Reason)
 }
 
 func (d *Deployer) resolveNetworkTargetAPI(ctx context.Context, stackName, network string) string {
