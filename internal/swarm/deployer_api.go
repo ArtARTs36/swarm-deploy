@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
-	"time"
 
 	cerrdefs "github.com/containerd/errdefs"
-	"github.com/docker/docker/api/types/filters"
 	dockernetwork "github.com/docker/docker/api/types/network"
 	dockerswarm "github.com/docker/docker/api/types/swarm"
 )
@@ -17,9 +14,6 @@ import (
 const secretOrConfigFileMode = 0o444
 
 func (d *Deployer) runInitJobAPI(ctx context.Context, spec InitJobSpec) error {
-	if d.dockerClient == nil {
-		return errors.New("docker api client is not initialized")
-	}
 	if spec.Job.Image == "" {
 		return errors.New("init job image is required")
 	}
@@ -53,7 +47,7 @@ func (d *Deployer) runInitJobAPI(ctx context.Context, spec InitJobSpec) error {
 		_ = d.dockerClient.ServiceRemove(context.Background(), serviceID)
 	}()
 
-	err = d.waitForJobCompletionAPI(jobCtx, serviceID, jobName)
+	err = d.initJobRunner.WaitJob(jobCtx, serviceID, jobName)
 	if err != nil {
 		return err
 	}
@@ -72,15 +66,9 @@ func (d *Deployer) buildInitServiceSpecAPI(
 	}
 
 	if len(spec.Job.Environment) > 0 {
-		keys := make([]string, 0, len(spec.Job.Environment))
-		for key := range spec.Job.Environment {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-
-		containerSpec.Env = make([]string, 0, len(keys))
-		for _, key := range keys {
-			containerSpec.Env = append(containerSpec.Env, fmt.Sprintf("%s=%s", key, spec.Job.Environment[key]))
+		containerSpec.Env = make([]string, 0, len(spec.Job.Environment))
+		for key, val := range spec.Job.Environment {
+			containerSpec.Env = append(containerSpec.Env, fmt.Sprintf("%s=%s", key, val))
 		}
 	}
 
@@ -102,12 +90,9 @@ func (d *Deployer) buildInitServiceSpecAPI(
 	secrets := mergeObjectRefs(spec.ServiceSecrets, spec.Job.Secrets)
 	containerSpec.Secrets = make([]*dockerswarm.SecretReference, 0, len(secrets))
 	for _, secret := range secrets {
-		ref, ok, err := d.resolveSecretReferenceAPI(ctx, spec.StackName, secret.Source, secret.Target)
+		ref, err := d.secretResolver.ResolveReference(ctx, secret.Source, secret.Target)
 		if err != nil {
 			return dockerswarm.ServiceSpec{}, err
-		}
-		if !ok {
-			continue
 		}
 		containerSpec.Secrets = append(containerSpec.Secrets, ref)
 	}
@@ -151,62 +136,6 @@ func (d *Deployer) buildInitServiceSpecAPI(
 	}, nil
 }
 
-func (d *Deployer) waitForJobCompletionAPI(ctx context.Context, serviceID, jobName string) error {
-	ticker := time.NewTicker(d.initJobPoll)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("wait init job %s: %w", jobName, ctx.Err())
-		case <-ticker.C:
-			tasks, err := d.dockerClient.TaskList(ctx, dockerswarm.TaskListOptions{
-				Filters: filters.NewArgs(filters.Arg("service", serviceID)),
-			})
-			if err != nil {
-				return fmt.Errorf("inspect init job %s status: %w", jobName, err)
-			}
-			if len(tasks) == 0 {
-				continue
-			}
-
-			sort.Slice(tasks, func(i, j int) bool {
-				return tasks[i].UpdatedAt.After(tasks[j].UpdatedAt)
-			})
-
-			task := tasks[0]
-			state := task.Status.State
-			switch state {
-			case dockerswarm.TaskStateNew,
-				dockerswarm.TaskStateAllocated,
-				dockerswarm.TaskStatePending,
-				dockerswarm.TaskStateAssigned,
-				dockerswarm.TaskStateAccepted,
-				dockerswarm.TaskStatePreparing,
-				dockerswarm.TaskStateReady,
-				dockerswarm.TaskStateStarting,
-				dockerswarm.TaskStateRunning:
-				continue
-			case dockerswarm.TaskStateComplete:
-				return nil
-			case dockerswarm.TaskStateFailed,
-				dockerswarm.TaskStateRejected,
-				dockerswarm.TaskStateShutdown,
-				dockerswarm.TaskStateOrphaned,
-				dockerswarm.TaskStateRemove:
-				reason := strings.TrimSpace(task.Status.Err)
-				if reason == "" {
-					reason = strings.TrimSpace(task.Status.Message)
-				}
-				if reason == "" {
-					reason = string(state)
-				}
-				return fmt.Errorf("init job %s failed: %s", jobName, reason)
-			}
-		}
-	}
-}
-
 func (d *Deployer) resolveNetworkTargetAPI(ctx context.Context, stackName, network string) string {
 	candidates := []string{network}
 	if !strings.HasPrefix(network, stackName+"_") {
@@ -228,53 +157,6 @@ func (d *Deployer) resolveNetworkTargetAPI(ctx context.Context, stackName, netwo
 	}
 
 	return network
-}
-
-func (d *Deployer) resolveSecretReferenceAPI(
-	ctx context.Context,
-	stackName, source, target string,
-) (*dockerswarm.SecretReference, bool, error) {
-	candidates := []string{source}
-	if !strings.HasPrefix(source, stackName+"_") {
-		candidates = append(candidates, stackName+"_"+source)
-	}
-
-	for _, candidate := range uniqueStrings(candidates) {
-		secret, _, err := d.dockerClient.SecretInspectWithRaw(ctx, candidate)
-		if err == nil {
-			ref := &dockerswarm.SecretReference{
-				SecretID:   secret.ID,
-				SecretName: secret.Spec.Name,
-			}
-			if target == "" {
-				target = fmt.Sprintf("/run/secrets/%s", ref.SecretName)
-			}
-
-			ref.File = &dockerswarm.SecretReferenceFileTarget{
-				Name: target,
-				UID:  "0",
-				GID:  "0",
-				Mode: secretOrConfigFileMode,
-			}
-			return ref, true, nil
-		}
-		if !cerrdefs.IsNotFound(err) {
-			return nil, false, fmt.Errorf("inspect secret %s: %w", candidate, err)
-		}
-	}
-
-	ref := &dockerswarm.SecretReference{
-		SecretName: source,
-	}
-	if target != "" {
-		ref.File = &dockerswarm.SecretReferenceFileTarget{
-			Name: target,
-			UID:  "0",
-			GID:  "0",
-			Mode: secretOrConfigFileMode,
-		}
-	}
-	return ref, true, nil
 }
 
 func (d *Deployer) resolveConfigReferenceAPI(

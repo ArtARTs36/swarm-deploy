@@ -48,6 +48,23 @@ type SecretInspector interface {
 	InspectSecrets(ctx context.Context) ([]inspector.SecretInfo, error)
 }
 
+// ServiceLogsInspector reads logs of a specific stack service.
+type ServiceLogsInspector interface {
+	// InspectServiceLogs returns recent log lines for the given stack service.
+	InspectServiceLogs(
+		ctx context.Context,
+		stackName string,
+		serviceName string,
+		options inspector.ServiceLogsOptions,
+	) ([]string, error)
+}
+
+// ServiceSpecInspector reads compact service spec snapshot for a stack service.
+type ServiceSpecInspector interface {
+	// InspectServiceSpec returns compact service projection for the given stack service.
+	InspectServiceSpec(ctx context.Context, stackName string, serviceName string) (inspector.Service, error)
+}
+
 // ServicesReader reads current service metadata snapshot.
 type ServicesReader interface {
 	// List returns current services metadata snapshot.

@@ -242,6 +242,8 @@ func buildAssistantService(
 		inspectorSvc,
 		inspectorSvc,
 		inspectorSvc,
+		inspectorSvc,
+		inspectorSvc,
 		serviceStore,
 		inspectorSvc,
 		imageVersionResolver,

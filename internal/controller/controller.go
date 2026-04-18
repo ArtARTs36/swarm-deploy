@@ -336,10 +336,22 @@ func (c *Controller) recordStackFailure(stackName, commit string, services []com
 		}
 	})
 
+	logs := []string{}
+
+	var logsErr containsLogsError
+	if errors.As(reason, &logsErr) {
+		logs = logsErr.Logs()
+	}
+
 	c.event.Dispatch(context.Background(), &events.DeployFailed{
 		StackName: stackName,
 		Commit:    commit,
 		Services:  services,
 		Error:     reason,
+		Logs:      logs,
 	})
+}
+
+type containsLogsError interface {
+	Logs() []string
 }
