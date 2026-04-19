@@ -9,12 +9,12 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/compose"
 	"github.com/artarts36/swarm-deploy/internal/config"
+	"github.com/artarts36/swarm-deploy/internal/deployer"
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/events"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/security"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
 type TriggerReason string
@@ -50,7 +50,7 @@ type ServiceView struct {
 type Controller struct {
 	cfg      *config.Config
 	git      gitx.Repository
-	deployer *swarm.Deployer
+	deployer *deployer.Deployer
 	metrics  *metrics.Group
 	event    dispatcher.Dispatcher
 
@@ -68,7 +68,7 @@ type triggerTask struct {
 func New(
 	cfg *config.Config,
 	git gitx.Repository,
-	deployer *swarm.Deployer,
+	deployer *deployer.Deployer,
 	metricGroup *metrics.Group,
 	eventDispatcher dispatcher.Dispatcher,
 ) *Controller {

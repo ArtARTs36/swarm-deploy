@@ -1,4 +1,4 @@
-package swarm
+package deployer
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/artarts36/swarm-deploy/internal/compose"
+	"github.com/artarts36/swarm-deploy/internal/deployer/initjob"
 	"github.com/artarts36/swarm-deploy/internal/registry"
-	"github.com/artarts36/swarm-deploy/internal/swarm/initjob"
 	"github.com/artarts36/swarm-deploy/internal/swarm/secret"
 	"github.com/docker/docker/client"
 )

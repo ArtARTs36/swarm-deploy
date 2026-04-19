@@ -13,6 +13,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/assistant"
 	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/artarts36/swarm-deploy/internal/controller"
+	"github.com/artarts36/swarm-deploy/internal/deployer"
 	"github.com/artarts36/swarm-deploy/internal/differ"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/healthserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver"
@@ -91,7 +92,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	deployer := swarm.NewDeployer(
+	deployerSvc := deployer.NewDeployer(
 		cfg.Spec.Swarm.Command,
 		cfg.Spec.Swarm.StackDeployArgs,
 		cfg.Spec.Swarm.InitJobPollEvery.Value,
@@ -120,7 +121,7 @@ func main() {
 	control := controller.New(
 		cfg,
 		gitRepository,
-		deployer,
+		deployerSvc,
 		metricsGroup,
 		eventDispatcher,
 	)

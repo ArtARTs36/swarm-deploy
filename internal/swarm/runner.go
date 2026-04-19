@@ -8,10 +8,6 @@ import (
 	"strings"
 )
 
-type Runner interface {
-	Run(ctx context.Context, command string, args ...string) (string, error)
-}
-
 type ExecRunner struct{}
 
 func (ExecRunner) Run(ctx context.Context, command string, args ...string) (string, error) {

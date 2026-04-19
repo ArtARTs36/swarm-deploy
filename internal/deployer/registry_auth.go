@@ -1,4 +1,4 @@
-package swarm
+package deployer
 
 import (
 	dockerswarm "github.com/docker/docker/api/types/swarm"
