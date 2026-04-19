@@ -20,8 +20,8 @@ type ServiceManager struct {
 	dockerClient *client.Client
 }
 
-// NewServiceManager creates service manager with provided docker API client.
-func NewServiceManager(dockerClient *client.Client) *ServiceManager {
+// newServiceManager creates service manager with provided docker API client.
+func newServiceManager(dockerClient *client.Client) *ServiceManager {
 	return &ServiceManager{
 		dockerClient: dockerClient,
 	}

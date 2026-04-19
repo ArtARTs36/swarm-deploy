@@ -103,7 +103,7 @@ func main() {
 
 	inspectorSvc := swarminspector.New(dockerClient)
 
-	serviceManager := swarm.NewServiceManager(dockerClient)
+	swarmService := swarm.NewSwarm(dockerClient)
 
 	nodeStore, err := swarminspector.NewNodeStore(filepath.Join(cfg.Spec.DataDir, "nodes.json"))
 	if err != nil {
@@ -132,7 +132,7 @@ func main() {
 		eventHistory,
 		nodeStore,
 		inspectorSvc,
-		serviceManager,
+		swarmService,
 		gitRepository,
 		control,
 		eventDispatcher,
@@ -214,7 +214,7 @@ func buildAssistantService(
 	eventHistory *history.Store,
 	nodeStore *swarminspector.NodeStore,
 	inspectorSvc *swarminspector.Inspector,
-	serviceManager *swarm.ServiceManager,
+	swarmService *swarm.Swarm,
 	gitRepository gitx.Repository,
 	control *controller.Controller,
 	eventDispatcher dispatcher.Dispatcher,
@@ -250,7 +250,7 @@ func buildAssistantService(
 		inspectorSvc,
 		inspectorSvc,
 		serviceStore,
-		serviceManager,
+		swarmService.ServiceManager,
 		imageVersionResolver,
 		gitRepository,
 		cfg.Spec.Stacks,
