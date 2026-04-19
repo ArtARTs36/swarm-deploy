@@ -4,31 +4,13 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"time"
 
 	dockerswarm "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
 
-const secretFileMode = 0o444
-
 type SecretManager struct {
 	dockerClient *client.Client
-}
-
-type Secret struct {
-	// ID is a unique Docker secret identifier.
-	ID string `json:"id"`
-	// Name is a Docker secret name.
-	Name string `json:"name"`
-	// CreatedAt is a secret creation timestamp.
-	CreatedAt time.Time `json:"created_at"`
-	// UpdatedAt is a secret update timestamp.
-	UpdatedAt time.Time `json:"updated_at"`
-	// Driver is an external secret driver name when configured.
-	Driver string `json:"driver"`
-	// Labels contains custom Docker secret labels.
-	Labels map[string]string `json:"labels"`
 }
 
 func newSecretManager(dockerClient *client.Client) *SecretManager {
