@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/avast/retry-go/v5"
 	cerrdefs "github.com/containerd/errdefs"
 	dockerswarm "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
@@ -69,6 +71,11 @@ func (m *ServiceManager) Scale(
 	return nil
 }
 
+const (
+	restartServiceRetryAttempts = 3
+	restartServiceDelay         = 250 * time.Second
+)
+
 // Restart restarts stack service by scaling replicas to zero and restoring previous count.
 func (m *ServiceManager) Restart(
 	ctx context.Context,
@@ -84,7 +91,9 @@ func (m *ServiceManager) Restart(
 		return 0, fmt.Errorf("scale service replicas to 0: %w", err)
 	}
 
-	err = m.Scale(ctx, serviceRef, currentReplicas)
+	err = retry.New(retry.Attempts(restartServiceRetryAttempts), retry.Delay(restartServiceDelay)).Do(func() error {
+		return m.Scale(ctx, serviceRef, currentReplicas)
+	})
 	if err != nil {
 		return 0, fmt.Errorf("restore service replicas to %d: %w", currentReplicas, err)
 	}
