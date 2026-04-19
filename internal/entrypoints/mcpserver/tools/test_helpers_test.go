@@ -84,18 +84,18 @@ func (f *fakePluginInspector) InspectPlugins(_ context.Context) ([]inspector.Plu
 }
 
 type fakeSecretInspector struct {
-	secrets []inspector.SecretInfo
+	secrets []swarm.Secret
 	err     error
 	called  int
 }
 
-func (f *fakeSecretInspector) InspectSecrets(_ context.Context) ([]inspector.SecretInfo, error) {
+func (f *fakeSecretInspector) InspectSecrets(_ context.Context) ([]swarm.Secret, error) {
 	f.called++
 	if f.err != nil {
 		return nil, f.err
 	}
 
-	out := make([]inspector.SecretInfo, len(f.secrets))
+	out := make([]swarm.Secret, len(f.secrets))
 	copy(out, f.secrets)
 
 	return out, nil

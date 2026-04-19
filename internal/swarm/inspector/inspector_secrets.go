@@ -3,33 +3,35 @@ package inspector
 import (
 	"context"
 	"fmt"
+	"sort"
 
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	dockerswarm "github.com/docker/docker/api/types/swarm"
 )
 
 // InspectSecrets returns current Docker secrets snapshot.
-func (i *Inspector) InspectSecrets(ctx context.Context) ([]SecretInfo, error) {
+func (i *Inspector) InspectSecrets(ctx context.Context) ([]swarm.Secret, error) {
 	secrets, err := i.dockerClient.SecretList(ctx, dockerswarm.SecretListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("list docker secrets: %w", err)
 	}
 
-	mapped := make([]SecretInfo, 0, len(secrets))
+	mapped := make([]swarm.Secret, 0, len(secrets))
 	for _, secret := range secrets {
-		mapped = append(mapped, toSecretInfo(secret))
+		mapped = append(mapped, toSecret(secret))
 	}
-	sortSecretInfos(mapped)
+	sortSecrets(mapped)
 
 	return mapped, nil
 }
 
-func toSecretInfo(secret dockerswarm.Secret) SecretInfo {
+func toSecret(secret dockerswarm.Secret) swarm.Secret {
 	driver := ""
 	if secret.Spec.Driver != nil {
 		driver = secret.Spec.Driver.Name
 	}
 
-	return SecretInfo{
+	return swarm.Secret{
 		ID:        secret.ID,
 		Name:      secret.Spec.Name,
 		CreatedAt: secret.CreatedAt,
@@ -37,4 +39,14 @@ func toSecretInfo(secret dockerswarm.Secret) SecretInfo {
 		Driver:    driver,
 		Labels:    secret.Spec.Labels,
 	}
+}
+
+func sortSecrets(secrets []swarm.Secret) {
+	sort.Slice(secrets, func(i, j int) bool {
+		if secrets[i].Name != secrets[j].Name {
+			return secrets[i].Name < secrets[j].Name
+		}
+
+		return secrets[i].ID < secrets[j].ID
+	})
 }

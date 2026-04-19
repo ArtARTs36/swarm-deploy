@@ -69,13 +69,13 @@ func (f *fakePluginInspector) InspectPlugins(
 }
 
 type fakeSecretInspector struct {
-	secrets []inspector.SecretInfo
+	secrets []swarm.Secret
 }
 
 func (f *fakeSecretInspector) InspectSecrets(
 	_ context.Context,
-) ([]inspector.SecretInfo, error) {
-	out := make([]inspector.SecretInfo, len(f.secrets))
+) ([]swarm.Secret, error) {
+	out := make([]swarm.Secret, len(f.secrets))
 	copy(out, f.secrets)
 
 	return out, nil

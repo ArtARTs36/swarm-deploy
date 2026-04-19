@@ -46,7 +46,7 @@ type PluginInspector interface {
 // SecretInspector inspects current Docker secrets snapshot.
 type SecretInspector interface {
 	// InspectSecrets returns current Docker secrets snapshot.
-	InspectSecrets(ctx context.Context) ([]inspector.SecretInfo, error)
+	InspectSecrets(ctx context.Context) ([]swarm.Secret, error)
 }
 
 // ServiceLogsInspector reads logs of a specific stack service.

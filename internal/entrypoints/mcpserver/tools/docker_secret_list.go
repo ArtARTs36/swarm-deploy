@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
 // DockerSecretList returns current Docker secrets snapshot.
@@ -40,7 +40,7 @@ func (l *DockerSecretList) Execute(ctx context.Context, _ routing.Request) (rout
 	}
 
 	payload := struct {
-		Secrets []inspector.SecretInfo `json:"secrets"`
+		Secrets []swarm.Secret `json:"secrets"`
 	}{
 		Secrets: secrets,
 	}
