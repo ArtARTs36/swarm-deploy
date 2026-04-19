@@ -63,7 +63,7 @@ func (g *GetServiceSpec) Execute(ctx context.Context, request routing.Request) (
 		return routing.Response{}, fmt.Errorf("service_name is required")
 	}
 
-	service, err := g.inspector.Get(ctx, stackName, serviceName)
+	service, err := g.inspector.Get(ctx, swarm.NewServiceReference(stackName, serviceName))
 	if err != nil {
 		return routing.Response{}, err
 	}

@@ -15,7 +15,7 @@ import (
 // ServiceStatusInspector reads compact status snapshot for a stack service.
 type ServiceStatusInspector interface {
 	// InspectServiceStatus returns compact status snapshot for a stack service.
-	GetStatus(ctx context.Context, stackName, serviceName string) (swarm.ServiceStatus, error)
+	GetStatus(ctx context.Context, serviceRef swarm.ServiceReference) (swarm.ServiceStatus, error)
 }
 
 type handler struct {

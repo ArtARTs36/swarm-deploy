@@ -15,7 +15,7 @@ func (h *handler) GetServiceStatus(
 	ctx context.Context,
 	params generated.GetServiceStatusParams,
 ) (*generated.ServiceStatusResponse, error) {
-	status, err := h.serviceInspector.GetStatus(ctx, params.Stack, params.Service)
+	status, err := h.serviceInspector.GetStatus(ctx, swarm.NewServiceReference(params.Stack, params.Service))
 	if err == nil {
 		return toGeneratedServiceStatus(status), nil
 	}

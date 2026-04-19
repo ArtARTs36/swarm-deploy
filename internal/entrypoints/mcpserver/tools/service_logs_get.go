@@ -97,7 +97,7 @@ func (g *GetServiceLogs) Execute(ctx context.Context, request routing.Request) (
 		queryOptions.Until = &exclusiveUntil
 	}
 
-	logs, err := g.logsInspector.Logs(ctx, params.StackName, params.ServiceName, queryOptions)
+	logs, err := g.logsInspector.Logs(ctx, swarm.NewServiceReference(params.StackName, params.ServiceName), queryOptions)
 	if err != nil {
 		return routing.Response{}, err
 	}

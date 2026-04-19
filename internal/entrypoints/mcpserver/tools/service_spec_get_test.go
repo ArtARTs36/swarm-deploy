@@ -150,12 +150,11 @@ type fakeToolServiceSpecInspector struct {
 
 func (f *fakeToolServiceSpecInspector) Get(
 	_ context.Context,
-	stackName string,
-	serviceName string,
+	serviceRef swarm.ServiceReference,
 ) (swarm.Service, error) {
 	f.called++
-	f.stackName = stackName
-	f.serviceName = serviceName
+	f.stackName = serviceRef.StackName()
+	f.serviceName = serviceRef.ServiceName()
 	if f.err != nil {
 		return swarm.Service{}, f.err
 	}

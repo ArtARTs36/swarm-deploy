@@ -113,22 +113,22 @@ func (m *ServiceManager) Restart(
 }
 
 // GetStatus returns compact status snapshot for a stack service.
-func (m *ServiceManager) GetStatus(ctx context.Context, stackName, serviceName string) (ServiceStatus, error) {
-	service, _, err := m.inspect(ctx, NewServiceReference(stackName, serviceName))
+func (m *ServiceManager) GetStatus(ctx context.Context, serviceRef ServiceReference) (ServiceStatus, error) {
+	service, _, err := m.inspect(ctx, serviceRef)
 	if err != nil {
 		return ServiceStatus{}, err
 	}
 
 	return ServiceStatus{
-		Stack:   stackName,
-		Service: serviceName,
+		Stack:   serviceRef.StackName(),
+		Service: serviceRef.ServiceName(),
 		Spec:    toServiceSpec(service.Spec),
 	}, nil
 }
 
 // Get returns full compact service projection for a stack service.
-func (m *ServiceManager) Get(ctx context.Context, stackName, serviceName string) (Service, error) {
-	service, _, err := m.inspect(ctx, NewServiceReference(stackName, serviceName))
+func (m *ServiceManager) Get(ctx context.Context, serviceRef ServiceReference) (Service, error) {
+	service, _, err := m.inspect(ctx, serviceRef)
 	if err != nil {
 		return Service{}, err
 	}
@@ -145,11 +145,8 @@ func (m *ServiceManager) Get(ctx context.Context, stackName, serviceName string)
 }
 
 // Labels returns service, container and image labels for a stack service.
-func (m *ServiceManager) Labels(
-	ctx context.Context,
-	stackName, serviceName string,
-) (ServiceLabels, error) {
-	service, _, err := m.inspect(ctx, NewServiceReference(stackName, serviceName))
+func (m *ServiceManager) Labels(ctx context.Context, serviceRef ServiceReference) (ServiceLabels, error) {
+	service, _, err := m.inspect(ctx, serviceRef)
 	if err != nil {
 		return ServiceLabels{}, err
 	}
@@ -195,11 +192,9 @@ func (m *ServiceManager) Labels(
 // Logs returns recent logs for a stack service.
 func (m *ServiceManager) Logs(
 	ctx context.Context,
-	stackName string,
-	serviceName string,
+	serviceRef ServiceReference,
 	options ServiceLogsOptions,
 ) ([]string, error) {
-	serviceRef := NewServiceReference(stackName, serviceName)
 	fullServiceName := serviceRef.Name()
 
 	reader, err := m.dockerClient.ServiceLogs(ctx, fullServiceName, buildDockerServiceLogsOptions(options))

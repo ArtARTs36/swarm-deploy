@@ -257,13 +257,12 @@ type fakeServiceLogsInspector struct {
 
 func (f *fakeServiceLogsInspector) Logs(
 	_ context.Context,
-	stackName string,
-	serviceName string,
+	serviceRef swarm.ServiceReference,
 	options swarm.ServiceLogsOptions,
 ) ([]string, error) {
 	f.called++
-	f.stackName = stackName
-	f.serviceName = serviceName
+	f.stackName = serviceRef.StackName()
+	f.serviceName = serviceRef.ServiceName()
 	f.options = options
 
 	if f.err != nil {

@@ -13,7 +13,7 @@ import (
 // LabelsInspector provides labels from service, container and image inspect.
 type LabelsInspector interface {
 	// InspectServiceLabels returns labels for a service and its image.
-	Labels(ctx context.Context, stackName, serviceName string) (swarm.ServiceLabels, error)
+	Labels(ctx context.Context, serviceRef swarm.ServiceReference) (swarm.ServiceLabels, error)
 }
 
 // Subscriber persists service metadata on deploySuccess events.
@@ -54,8 +54,7 @@ func (s *Subscriber) Handle(ctx context.Context, event events.Event) error {
 
 		inspectedLabels, inspectErr := s.inspector.Labels(
 			ctx,
-			deploySuccess.StackName,
-			deployedService.Name,
+			swarm.NewServiceReference(deploySuccess.StackName, deployedService.Name),
 		)
 		if inspectErr != nil {
 			slog.WarnContext(
