@@ -34,7 +34,7 @@ func TestNodeManagerMapNodeMapsFields(t *testing.T) {
 	assert.Equal(t, " manager-1 ", mapped.Hostname, "unexpected hostname")
 	assert.Equal(t, "ready", mapped.Status, "unexpected status")
 	assert.Equal(t, "active", mapped.Availability, "unexpected availability")
-	assert.Equal(t, "leader", mapped.ManagerStatus, "unexpected managerStatus")
+	assert.Equal(t, NodeManagerStatusLeader, mapped.ManagerStatus, "unexpected managerStatus")
 	assert.Equal(t, " 28.3.0 ", mapped.EngineVersion, "unexpected engine version")
 	assert.Equal(t, " 10.0.0.1 ", mapped.Addr, "unexpected addr")
 }
@@ -46,18 +46,5 @@ func TestNodeManagerMapNodeSetsWorkerManagerStatusForWorkers(t *testing.T) {
 
 	mapped := (&NodeManager{}).mapNode(node)
 
-	assert.Equal(t, "worker", mapped.ManagerStatus, "worker node must have worker managerStatus")
-}
-
-func TestNodeManagerMapNodeUsesReachabilityForManagers(t *testing.T) {
-	node := dockerswarm.Node{
-		ID: "node-3",
-		ManagerStatus: &dockerswarm.ManagerStatus{
-			Reachability: dockerswarm.ReachabilityReachable,
-		},
-	}
-
-	mapped := (&NodeManager{}).mapNode(node)
-
-	assert.Equal(t, "reachable", mapped.ManagerStatus, "manager must use reachability")
+	assert.Equal(t, NodeManagerStatusWorker, mapped.ManagerStatus, "worker node must have worker managerStatus")
 }

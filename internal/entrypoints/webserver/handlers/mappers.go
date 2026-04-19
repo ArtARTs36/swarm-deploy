@@ -210,7 +210,7 @@ func toGeneratedNodes(nodes []swarm.Node) []generated.NodeInfo {
 			Hostname:      node.Hostname,
 			Status:        node.Status,
 			Availability:  node.Availability,
-			ManagerStatus: node.ManagerStatus,
+			ManagerStatus: string(node.ManagerStatus),
 			EngineVersion: node.EngineVersion,
 			Addr:          node.Addr,
 		})

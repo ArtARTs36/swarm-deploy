@@ -51,15 +51,15 @@ func (m *NodeManager) Watch(
 }
 
 func (*NodeManager) mapNode(node dockerswarm.Node) Node {
-	managerStatus := "worker"
+	managerStatus := NodeManagerStatusWorker
 	if node.ManagerStatus != nil {
 		switch {
 		case node.ManagerStatus.Leader:
-			managerStatus = "leader"
+			managerStatus = NodeManagerStatusLeader
 		case node.ManagerStatus.Reachability != "":
-			managerStatus = string(node.ManagerStatus.Reachability)
+			managerStatus = NodeManagerStatus(node.ManagerStatus.Reachability)
 		default:
-			managerStatus = "manager"
+			managerStatus = NodeManagerStatusManager
 		}
 	}
 
