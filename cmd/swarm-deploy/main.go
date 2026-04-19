@@ -92,6 +92,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	swarmService := swarm.NewSwarm(dockerClient)
+
 	deployerSvc := deployer.NewDeployer(
 		cfg.Spec.Swarm.Command,
 		cfg.Spec.Swarm.StackDeployArgs,
@@ -99,11 +101,10 @@ func main() {
 		cfg.Spec.Swarm.InitJobMaxDuration.Value,
 		swarm.ExecRunner{},
 		dockerClient,
+		swarmService,
 	)
 
 	inspectorSvc := swarminspector.New(dockerClient)
-
-	swarmService := swarm.NewSwarm(dockerClient)
 
 	nodeStore, err := swarminspector.NewNodeStore(filepath.Join(cfg.Spec.DataDir, "nodes.json"))
 	if err != nil {
@@ -250,7 +251,7 @@ func buildAssistantService(
 		inspectorSvc,
 		inspectorSvc,
 		serviceStore,
-		swarmService.ServiceManager,
+		swarmService.Services,
 		imageVersionResolver,
 		gitRepository,
 		cfg.Spec.Stacks,

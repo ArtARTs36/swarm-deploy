@@ -1,4 +1,4 @@
-package secret
+package swarm
 
 import (
 	"context"
@@ -10,17 +10,20 @@ import (
 
 const secretFileMode = 0o444
 
-type Resolver struct {
+type SecretManager struct {
 	dockerClient *client.Client
 }
 
-func NewResolver(dockerClient *client.Client) *Resolver {
-	return &Resolver{
+func newSecretManager(dockerClient *client.Client) *SecretManager {
+	return &SecretManager{
 		dockerClient: dockerClient,
 	}
 }
 
-func (r *Resolver) ResolveReference(ctx context.Context, source, target string) (*dockerswarm.SecretReference, error) {
+func (r *SecretManager) ResolveReference(
+	ctx context.Context,
+	source, target string,
+) (*dockerswarm.SecretReference, error) {
 	secret, _, err := r.dockerClient.SecretInspectWithRaw(ctx, source)
 	if err != nil {
 		return nil, fmt.Errorf("inspect secret: %w", err)

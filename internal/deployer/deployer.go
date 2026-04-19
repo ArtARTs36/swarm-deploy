@@ -9,7 +9,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/compose"
 	"github.com/artarts36/swarm-deploy/internal/deployer/initjob"
 	"github.com/artarts36/swarm-deploy/internal/registry"
-	"github.com/artarts36/swarm-deploy/internal/swarm/secret"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/docker/docker/client"
 )
 
@@ -23,7 +23,7 @@ type Deployer struct {
 	runner          Runner
 	dockerClient    *client.Client
 	authManager     registry.AuthManager
-	secretResolver  *secret.Resolver
+	secretResolver  *swarm.SecretManager
 
 	initJobRunner *initjob.Runner
 }
@@ -44,6 +44,7 @@ func NewDeployer(
 	initJobTimeout time.Duration,
 	runner Runner,
 	dockerClient *client.Client,
+	swarmService *swarm.Swarm,
 ) *Deployer {
 	return &Deployer{
 		command:         command,
@@ -53,7 +54,7 @@ func NewDeployer(
 		runner:          runner,
 		dockerClient:    dockerClient,
 		authManager:     registry.NewAuthManager(),
-		secretResolver:  secret.NewResolver(dockerClient),
+		secretResolver:  swarmService.Secrets,
 		initJobRunner:   initjob.NewRunner(dockerClient, initJobPoll),
 	}
 }
