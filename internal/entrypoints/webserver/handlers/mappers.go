@@ -11,7 +11,6 @@ import (
 	serviceType "github.com/artarts36/swarm-deploy/internal/service/stype"
 	"github.com/artarts36/swarm-deploy/internal/service/webroute"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 func toGeneratedStacks(stacks []controller.StackView) []generated.StackView {
@@ -203,7 +202,7 @@ func toGeneratedWebRoutes(routes []webroute.Route) []generated.WebRoute {
 	return mapped
 }
 
-func toGeneratedNodes(nodes []swarminspector.NodeInfo) []generated.NodeInfo {
+func toGeneratedNodes(nodes []swarm.Node) []generated.NodeInfo {
 	mapped := make([]generated.NodeInfo, 0, len(nodes))
 	for _, node := range nodes {
 		mapped = append(mapped, generated.NodeInfo{

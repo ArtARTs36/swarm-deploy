@@ -1,4 +1,4 @@
-package inspector
+package node
 
 import (
 	"context"
@@ -7,44 +7,39 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	dockerevents "github.com/docker/docker/api/types/events"
 )
 
-const defaultNodeCollectorReconnectDelay = 5 * time.Second
+const defaultCollectorReconnectDelay = 5 * time.Second
 
-// NodeCollector collects and persists swarm nodes snapshot.
-type NodeCollector struct {
-	inspector nodeInspector
-	store     nodeStoreWriter
+// Collector collects and persists swarm nodes snapshot.
+type Collector struct {
+	inspector inspector
+	store     *Store
 
 	reconnectDelay time.Duration
 }
 
-// nodeInspector inspects nodes and watches docker node events.
-type nodeInspector interface {
-	// InspectNodes returns current swarm nodes snapshot.
-	InspectNodes(ctx context.Context) ([]NodeInfo, error)
-	// WatchNodeEvents subscribes to Docker node events stream.
-	WatchNodeEvents(ctx context.Context) (<-chan dockerevents.Message, <-chan error, error)
-}
-
-// nodeStoreWriter saves nodes snapshot.
-type nodeStoreWriter interface {
-	// Replace replaces current nodes snapshot.
-	Replace(nodes []NodeInfo) error
+// inspector inspects nodes and watches docker node events.
+type inspector interface {
+	// List returns current swarm nodes snapshot.
+	List(ctx context.Context) ([]swarm.Node, error)
+	// Watch subscribes to Docker node events stream.
+	Watch(ctx context.Context) (<-chan dockerevents.Message, <-chan error, error)
 }
 
 // NewNodeCollector creates node collector.
-func NewNodeCollector(inspector nodeInspector, store nodeStoreWriter) *NodeCollector {
-	return &NodeCollector{
+func NewNodeCollector(inspector inspector, store *Store) *Collector {
+	return &Collector{
 		inspector:      inspector,
 		store:          store,
-		reconnectDelay: defaultNodeCollectorReconnectDelay,
+		reconnectDelay: defaultCollectorReconnectDelay,
 	}
 }
 
 // Run performs initial refresh and subscribes to docker node events.
-func (c *NodeCollector) Run(ctx context.Context) error {
+func (c *Collector) Run(ctx context.Context) error {
 	if err := c.refresh(ctx); err != nil {
 		slog.WarnContext(ctx, "[nodes] initial refresh failed", slog.Any("err", err))
 	}
@@ -71,8 +66,8 @@ func (c *NodeCollector) Run(ctx context.Context) error {
 	}
 }
 
-func (c *NodeCollector) refresh(ctx context.Context) error {
-	nodes, err := c.inspector.InspectNodes(ctx)
+func (c *Collector) refresh(ctx context.Context) error {
+	nodes, err := c.inspector.List(ctx)
 	if err != nil {
 		return fmt.Errorf("inspect nodes: %w", err)
 	}
@@ -84,8 +79,8 @@ func (c *NodeCollector) refresh(ctx context.Context) error {
 	return nil
 }
 
-func (c *NodeCollector) watchOnce(ctx context.Context) error {
-	eventsCh, errorsCh, err := c.inspector.WatchNodeEvents(ctx)
+func (c *Collector) watchOnce(ctx context.Context) error {
+	eventsCh, errorsCh, err := c.inspector.Watch(ctx)
 	if err != nil {
 		return fmt.Errorf("subscribe docker node events: %w", err)
 	}

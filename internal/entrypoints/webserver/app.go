@@ -15,9 +15,9 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/middlewares"
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
+	swarmnode "github.com/artarts36/swarm-deploy/internal/node"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/artarts36/swarm-deploy/ui"
 )
 
@@ -33,7 +33,7 @@ func NewApplication(
 	serviceInspector *swarm.ServiceManager,
 	eventHistory *history.Store,
 	serviceStore *service.Store,
-	nodeStore *swarminspector.NodeStore,
+	nodeStore *swarmnode.Store,
 	assistantService assistant.Assistant,
 	eventDispatcher dispatcher.Dispatcher,
 	authCfg config.AuthenticationSpec,

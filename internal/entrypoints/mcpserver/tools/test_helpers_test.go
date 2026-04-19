@@ -11,7 +11,6 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 type fakeHistoryStore struct {
@@ -37,11 +36,11 @@ func (f *fakeSyncControl) Manual(_ context.Context) bool {
 }
 
 type fakeNodeStore struct {
-	nodes []inspector.NodeInfo
+	nodes []swarm.Node
 }
 
-func (f *fakeNodeStore) List() []inspector.NodeInfo {
-	out := make([]inspector.NodeInfo, len(f.nodes))
+func (f *fakeNodeStore) List() []swarm.Node {
+	out := make([]swarm.Node, len(f.nodes))
 	copy(out, f.nodes)
 
 	return out

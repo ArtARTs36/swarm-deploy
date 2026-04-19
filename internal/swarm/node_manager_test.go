@@ -1,4 +1,4 @@
-package inspector
+package swarm
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestToNodeInfoMapsFields(t *testing.T) {
+func TestNodeManagerMapNodeMapsFields(t *testing.T) {
 	node := dockerswarm.Node{
 		ID: " node-1 ",
 		Description: dockerswarm.NodeDescription{
@@ -28,28 +28,28 @@ func TestToNodeInfoMapsFields(t *testing.T) {
 		},
 	}
 
-	mapped := toNodeInfo(node)
+	mapped := (&NodeManager{}).mapNode(node)
 
-	assert.Equal(t, "node-1", mapped.ID, "unexpected id")
-	assert.Equal(t, "manager-1", mapped.Hostname, "unexpected hostname")
+	assert.Equal(t, " node-1 ", mapped.ID, "unexpected id")
+	assert.Equal(t, " manager-1 ", mapped.Hostname, "unexpected hostname")
 	assert.Equal(t, "ready", mapped.Status, "unexpected status")
 	assert.Equal(t, "active", mapped.Availability, "unexpected availability")
 	assert.Equal(t, "leader", mapped.ManagerStatus, "unexpected managerStatus")
-	assert.Equal(t, "28.3.0", mapped.EngineVersion, "unexpected engine version")
-	assert.Equal(t, "10.0.0.1", mapped.Addr, "unexpected addr")
+	assert.Equal(t, " 28.3.0 ", mapped.EngineVersion, "unexpected engine version")
+	assert.Equal(t, " 10.0.0.1 ", mapped.Addr, "unexpected addr")
 }
 
-func TestToNodeInfoSetsWorkerManagerStatusForWorkers(t *testing.T) {
+func TestNodeManagerMapNodeSetsWorkerManagerStatusForWorkers(t *testing.T) {
 	node := dockerswarm.Node{
 		ID: "node-2",
 	}
 
-	mapped := toNodeInfo(node)
+	mapped := (&NodeManager{}).mapNode(node)
 
 	assert.Equal(t, "worker", mapped.ManagerStatus, "worker node must have worker managerStatus")
 }
 
-func TestToNodeInfoUsesReachabilityForManagers(t *testing.T) {
+func TestNodeManagerMapNodeUsesReachabilityForManagers(t *testing.T) {
 	node := dockerswarm.Node{
 		ID: "node-3",
 		ManagerStatus: &dockerswarm.ManagerStatus{
@@ -57,7 +57,7 @@ func TestToNodeInfoUsesReachabilityForManagers(t *testing.T) {
 		},
 	}
 
-	mapped := toNodeInfo(node)
+	mapped := (&NodeManager{}).mapNode(node)
 
 	assert.Equal(t, "reachable", mapped.ManagerStatus, "manager must use reachability")
 }

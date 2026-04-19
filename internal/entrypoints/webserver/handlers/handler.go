@@ -7,9 +7,9 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/controller"
 	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
 	"github.com/artarts36/swarm-deploy/internal/event/history"
+	swarmnode "github.com/artarts36/swarm-deploy/internal/node"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 // ServiceStatusInspector reads compact status snapshot for a stack service.
@@ -24,7 +24,7 @@ type handler struct {
 	serviceInspector ServiceStatusInspector
 	history          *history.Store
 	services         *service.Store
-	nodes            *swarminspector.NodeStore
+	nodes            *swarmnode.Store
 	assistant        assistant.Assistant
 }
 
@@ -35,7 +35,7 @@ func New(
 	serviceInspector ServiceStatusInspector,
 	history *history.Store,
 	services *service.Store,
-	nodes *swarminspector.NodeStore,
+	nodes *swarmnode.Store,
 	assistantService assistant.Assistant,
 ) generated.Handler {
 	return &handler{

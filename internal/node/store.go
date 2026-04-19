@@ -1,4 +1,4 @@
-package inspector
+package node
 
 import (
 	"encoding/json"
@@ -6,21 +6,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
+
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
-const nodeStoreFileModePrivate = 0o600
+const storeFileModePrivate = 0o600
 
-// NodeStore persists nodes snapshot in a JSON file.
-type NodeStore struct {
+// Store persists nodes snapshot in a JSON file.
+type Store struct {
 	mu   sync.RWMutex
 	path string
-	rows []NodeInfo
+	rows []swarm.Node
 }
 
 // NewNodeStore creates nodes store and loads saved rows from disk.
-func NewNodeStore(path string) (*NodeStore, error) {
-	s := &NodeStore{
+func NewNodeStore(path string) (*Store, error) {
+	s := &Store{
 		path: path,
 	}
 
@@ -32,36 +35,27 @@ func NewNodeStore(path string) (*NodeStore, error) {
 }
 
 // List returns a copy of all saved nodes.
-func (s *NodeStore) List() []NodeInfo {
+func (s *Store) List() []swarm.Node {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	out := make([]NodeInfo, len(s.rows))
+	out := make([]swarm.Node, len(s.rows))
 	copy(out, s.rows)
 	return out
 }
 
 // Replace replaces nodes snapshot and saves it to disk.
-func (s *NodeStore) Replace(nodes []NodeInfo) error {
+func (s *Store) Replace(nodes []swarm.Node) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	updated := make([]NodeInfo, 0, len(nodes))
-	for _, node := range nodes {
-		normalized := normalizeNodeInfo(node)
-		if normalized.ID == "" {
-			continue
-		}
-		updated = append(updated, normalized)
-	}
-
-	sortNodeInfos(updated)
-	s.rows = updated
+	s.rows = nodes
+	sortNodes(s.rows)
 
 	return s.flushLocked()
 }
 
-func (s *NodeStore) load() error {
+func (s *Store) load() error {
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
 		return fmt.Errorf("create nodes dir: %w", err)
 	}
@@ -78,32 +72,25 @@ func (s *NodeStore) load() error {
 		return nil
 	}
 
-	var rows []NodeInfo
+	var rows []swarm.Node
 	if unmarshalErr := json.Unmarshal(payload, &rows); unmarshalErr != nil {
 		return fmt.Errorf("decode nodes file: %w", unmarshalErr)
 	}
 
-	s.rows = make([]NodeInfo, 0, len(rows))
-	for _, row := range rows {
-		normalized := normalizeNodeInfo(row)
-		if normalized.ID == "" {
-			continue
-		}
-		s.rows = append(s.rows, normalized)
-	}
+	s.rows = rows
 
-	sortNodeInfos(s.rows)
+	sortNodes(s.rows)
 	return nil
 }
 
-func (s *NodeStore) flushLocked() error {
+func (s *Store) flushLocked() error {
 	payload, err := json.Marshal(s.rows)
 	if err != nil {
 		return fmt.Errorf("encode nodes file: %w", err)
 	}
 
 	tmpPath := fmt.Sprintf("%s.tmp", s.path)
-	if writeErr := os.WriteFile(tmpPath, payload, nodeStoreFileModePrivate); writeErr != nil {
+	if writeErr := os.WriteFile(tmpPath, payload, storeFileModePrivate); writeErr != nil {
 		return fmt.Errorf("write nodes temp file: %w", writeErr)
 	}
 	if renameErr := os.Rename(tmpPath, s.path); renameErr != nil {
@@ -111,4 +98,14 @@ func (s *NodeStore) flushLocked() error {
 	}
 
 	return nil
+}
+
+func sortNodes(nodes []swarm.Node) {
+	sort.Slice(nodes, func(i, j int) bool {
+		if nodes[i].Hostname != nodes[j].Hostname {
+			return nodes[i].Hostname < nodes[j].Hostname
+		}
+
+		return nodes[i].ID < nodes[j].ID
+	})
 }

@@ -1,48 +1,56 @@
-package inspector
+package swarm
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"sort"
 
 	dockerevents "github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
 	dockerswarm "github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/client"
 )
 
-// InspectNodes returns current swarm nodes snapshot.
-func (i *Inspector) InspectNodes(ctx context.Context) ([]NodeInfo, error) {
-	nodes, err := i.dockerClient.NodeList(ctx, dockerswarm.NodeListOptions{})
+// NodeManager manages Docker Swarm nodes.
+type NodeManager struct {
+	dockerClient *client.Client
+}
+
+func newNodeManager(dockerClient *client.Client) *NodeManager {
+	return &NodeManager{
+		dockerClient: dockerClient,
+	}
+}
+
+// List returns current Docker Swarm nodes snapshot.
+func (m *NodeManager) List(ctx context.Context) ([]Node, error) {
+	nodes, err := m.dockerClient.NodeList(ctx, dockerswarm.NodeListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("list swarm nodes: %w", err)
 	}
 
-	mapped := make([]NodeInfo, 0, len(nodes))
-	for _, node := range nodes {
-		mapped = append(mapped, toNodeInfo(node))
+	mapped := make([]Node, 0, len(nodes))
+	for _, dockerNode := range nodes {
+		mapped = append(mapped, m.mapNode(dockerNode))
 	}
-	sortNodeInfos(mapped)
+	m.sortInfos(mapped)
 
 	return mapped, nil
 }
 
-// WatchNodeEvents subscribes to Docker node events stream.
-func (i *Inspector) WatchNodeEvents(
+// Watch subscribes to Docker node events stream.
+func (m *NodeManager) Watch(
 	ctx context.Context,
 ) (<-chan dockerevents.Message, <-chan error, error) {
-	if i.dockerClient == nil {
-		return nil, nil, errors.New("docker api client is not initialized")
-	}
-
 	eventsFilter := filters.NewArgs(filters.Arg("type", string(dockerevents.NodeEventType)))
-	messages, errs := i.dockerClient.Events(ctx, dockerevents.ListOptions{
+	messages, errs := m.dockerClient.Events(ctx, dockerevents.ListOptions{
 		Filters: eventsFilter,
 	})
 
 	return messages, errs, nil
 }
 
-func toNodeInfo(node dockerswarm.Node) NodeInfo {
+func (*NodeManager) mapNode(node dockerswarm.Node) Node {
 	managerStatus := "worker"
 	if node.ManagerStatus != nil {
 		switch {
@@ -55,7 +63,7 @@ func toNodeInfo(node dockerswarm.Node) NodeInfo {
 		}
 	}
 
-	return normalizeNodeInfo(NodeInfo{
+	return Node{
 		ID:            node.ID,
 		Hostname:      node.Description.Hostname,
 		Status:        string(node.Status.State),
@@ -63,5 +71,11 @@ func toNodeInfo(node dockerswarm.Node) NodeInfo {
 		ManagerStatus: managerStatus,
 		EngineVersion: node.Description.Engine.EngineVersion,
 		Addr:          node.Status.Addr,
+	}
+}
+
+func (*NodeManager) sortInfos(nodes []Node) {
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Hostname < nodes[j].Hostname
 	})
 }

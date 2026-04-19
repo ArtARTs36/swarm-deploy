@@ -28,11 +28,11 @@ import (
 	notify2 "github.com/artarts36/swarm-deploy/internal/event/notify"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
+	swarmnode "github.com/artarts36/swarm-deploy/internal/node"
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/security"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/cappuccinotm/slogx"
 	"github.com/cappuccinotm/slogx/slogm"
 	"github.com/docker/docker/client"
@@ -104,14 +104,12 @@ func main() {
 		swarmService,
 	)
 
-	inspectorSvc := swarminspector.New(dockerClient)
-
-	nodeStore, err := swarminspector.NewNodeStore(filepath.Join(cfg.Spec.DataDir, "nodes.json"))
+	nodeStore, err := swarmnode.NewNodeStore(filepath.Join(cfg.Spec.DataDir, "nodes.json"))
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to init node store", slog.Any("err", err))
 		os.Exit(1)
 	}
-	nodeCollector := swarminspector.NewNodeCollector(inspectorSvc, nodeStore)
+	nodeCollector := swarmnode.NewNodeCollector(swarmService.Nodes, nodeStore)
 
 	eventDispatcher, eventHistory, serviceStore, err := buildEventDispatcher(
 		cfg,
@@ -216,7 +214,7 @@ func buildAssistantService(
 	cfg *config.Config,
 	serviceStore *service.Store,
 	eventHistory *history.Store,
-	nodeStore *swarminspector.NodeStore,
+	nodeStore *swarmnode.Store,
 	swarmService *swarm.Swarm,
 	gitRepository gitx.Repository,
 	control *controller.Controller,

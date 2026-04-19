@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListNodesExecute(t *testing.T) {
 	tool := NewListNodes(&fakeNodeStore{
-		nodes: []inspector.NodeInfo{
+		nodes: []swarm.Node{
 			{
 				ID:            "node-1",
 				Hostname:      "manager-1",
@@ -30,7 +30,7 @@ func TestListNodesExecute(t *testing.T) {
 	require.NoError(t, err, "execute swarm_node_list tool")
 
 	var payload struct {
-		Nodes []inspector.NodeInfo `json:"nodes"`
+		Nodes []swarm.Node `json:"nodes"`
 	}
 
 	encoded, err := json.Marshal(response.Payload)

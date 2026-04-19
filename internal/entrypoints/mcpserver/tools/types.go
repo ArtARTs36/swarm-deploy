@@ -10,7 +10,6 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 // HistoryReader reads current event history snapshot.
@@ -28,7 +27,7 @@ type SyncTrigger interface {
 // NodesReader reads current Swarm nodes snapshot.
 type NodesReader interface {
 	// List returns current nodes snapshot.
-	List() []inspector.NodeInfo
+	List() []swarm.Node
 }
 
 // NetworkReader reads current Docker networks snapshot.

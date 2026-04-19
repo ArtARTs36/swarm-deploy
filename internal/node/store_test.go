@@ -1,10 +1,11 @@
-package inspector
+package node
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,27 +16,24 @@ func TestNodeStoreReplaceAndLoad(t *testing.T) {
 	store, err := NewNodeStore(storePath)
 	require.NoError(t, err, "create store")
 
-	err = store.Replace([]NodeInfo{
+	err = store.Replace([]swarm.Node{
 		{
-			ID:            " b ",
-			Hostname:      " node-b ",
-			Status:        " ready ",
-			Availability:  " active ",
-			ManagerStatus: " worker ",
-			EngineVersion: " 28.3.0 ",
-			Addr:          " 10.0.0.2 ",
+			ID:            "b",
+			Hostname:      "node-b",
+			Status:        "ready",
+			Availability:  "active",
+			ManagerStatus: "worker",
+			EngineVersion: "28.3.0",
+			Addr:          "10.0.0.2",
 		},
 		{
-			ID:            " a ",
-			Hostname:      " node-a ",
-			Status:        " ready ",
-			Availability:  " active ",
-			ManagerStatus: " leader ",
-			EngineVersion: " 28.3.0 ",
-			Addr:          " 10.0.0.1 ",
-		},
-		{
-			ID: "   ",
+			ID:            "a",
+			Hostname:      "node-a",
+			Status:        "ready",
+			Availability:  "active",
+			ManagerStatus: "leader",
+			EngineVersion: "28.3.0",
+			Addr:          "10.0.0.1",
 		},
 	})
 	require.NoError(t, err, "replace nodes")
@@ -66,7 +64,7 @@ func TestNodeStoreListReturnsCopy(t *testing.T) {
 	store, err := NewNodeStore(storePath)
 	require.NoError(t, err, "create store")
 
-	err = store.Replace([]NodeInfo{
+	err = store.Replace([]swarm.Node{
 		{ID: "node-1", Hostname: "node-1"},
 	})
 	require.NoError(t, err, "replace nodes")

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
 // ListNodes returns current Docker Swarm nodes snapshot.
@@ -37,7 +37,7 @@ func (l *ListNodes) Execute(_ context.Context, _ routing.Request) (routing.Respo
 	}
 
 	payload := struct {
-		Nodes []inspector.NodeInfo `json:"nodes"`
+		Nodes []swarm.Node `json:"nodes"`
 	}{
 		Nodes: l.nodes.List(),
 	}
