@@ -138,6 +138,14 @@ func (f *fakeServiceReplicasManager) Scale(
 	return nil
 }
 
+func (f *fakeServiceReplicasManager) Restart(
+	_ context.Context,
+	_,
+	_ string,
+) (uint64, error) {
+	return 1, nil
+}
+
 type fakeImageVersionResolver struct{}
 
 func (f *fakeImageVersionResolver) ResolveActualVersion(

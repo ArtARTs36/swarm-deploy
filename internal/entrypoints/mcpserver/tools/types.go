@@ -77,6 +77,9 @@ type ServiceReplicasManager interface {
 	GetReplicas(ctx context.Context, stackName, serviceName string) (uint64, error)
 	// Scale sets desired service replicas count.
 	Scale(ctx context.Context, stackName, serviceName string, replicas uint64) error
+	// Restart restarts service by scaling replicas to zero and restoring previous count.
+	// Returned value is the replicas count restored after restart.
+	Restart(ctx context.Context, stackName, serviceName string) (uint64, error)
 }
 
 // DNSResolver resolves DNS names to IP addresses.

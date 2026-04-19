@@ -71,6 +71,30 @@ func (m *ServiceManager) Scale(
 	return nil
 }
 
+// Restart restarts stack service by scaling replicas to zero and restoring previous count.
+func (m *ServiceManager) Restart(
+	ctx context.Context,
+	stackName,
+	serviceName string,
+) (uint64, error) {
+	currentReplicas, err := m.GetReplicas(ctx, stackName, serviceName)
+	if err != nil {
+		return 0, fmt.Errorf("inspect service replicas: %w", err)
+	}
+
+	err = m.Scale(ctx, stackName, serviceName, 0)
+	if err != nil {
+		return 0, fmt.Errorf("scale service replicas to 0: %w", err)
+	}
+
+	err = m.Scale(ctx, stackName, serviceName, currentReplicas)
+	if err != nil {
+		return 0, fmt.Errorf("restore service replicas to %d: %w", currentReplicas, err)
+	}
+
+	return currentReplicas, nil
+}
+
 func (m *ServiceManager) inspect(
 	ctx context.Context,
 	stackName,

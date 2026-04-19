@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/artarts36/swarm-deploy/internal/differ"
@@ -115,9 +116,11 @@ type fakeServiceReplicasManager struct {
 	inspectErr        error
 	updateErr         error
 	updateErrOnCall   int
+	restartErr        error
 
 	inspectCalled int
 	updateCalled  int
+	restartCalled int
 
 	inspectedStack   string
 	inspectedService string
@@ -126,6 +129,9 @@ type fakeServiceReplicasManager struct {
 	updatedService  string
 	updatedReplicas uint64
 	updatedHistory  []uint64
+
+	restartedStack   string
+	restartedService string
 }
 
 func (f *fakeServiceReplicasManager) GetReplicas(
@@ -170,6 +176,33 @@ func (f *fakeServiceReplicasManager) Scale(
 	f.replicasByService[stackName+"_"+serviceName] = replicas
 
 	return nil
+}
+
+func (f *fakeServiceReplicasManager) Restart(ctx context.Context, stackName, serviceName string) (uint64, error) {
+	f.restartCalled++
+	f.restartedStack = stackName
+	f.restartedService = serviceName
+
+	if f.restartErr != nil {
+		return 0, f.restartErr
+	}
+
+	currentReplicas, err := f.GetReplicas(ctx, stackName, serviceName)
+	if err != nil {
+		return 0, fmt.Errorf("inspect service replicas: %w", err)
+	}
+
+	err = f.Scale(ctx, stackName, serviceName, 0)
+	if err != nil {
+		return 0, fmt.Errorf("scale service replicas to 0: %w", err)
+	}
+
+	err = f.Scale(ctx, stackName, serviceName, currentReplicas)
+	if err != nil {
+		return 0, fmt.Errorf("restore service replicas to %d: %w", currentReplicas, err)
+	}
+
+	return currentReplicas, nil
 }
 
 type fakeImageVersionResolver struct {
