@@ -47,37 +47,37 @@ func (f *fakeNodeStore) List() []inspector.NodeInfo {
 	return out
 }
 
-type fakeNetworkInspector struct {
-	networks []inspector.NetworkInfo
+type fakeNetworkReader struct {
+	networks []swarm.Network
 	err      error
 	called   int
 }
 
-func (f *fakeNetworkInspector) InspectNetworks(_ context.Context) ([]inspector.NetworkInfo, error) {
+func (f *fakeNetworkReader) List(_ context.Context) ([]swarm.Network, error) {
 	f.called++
 	if f.err != nil {
 		return nil, f.err
 	}
 
-	out := make([]inspector.NetworkInfo, len(f.networks))
+	out := make([]swarm.Network, len(f.networks))
 	copy(out, f.networks)
 
 	return out, nil
 }
 
-type fakePluginInspector struct {
-	plugins []inspector.PluginInfo
+type fakePluginReader struct {
+	plugins []swarm.Plugin
 	err     error
 	called  int
 }
 
-func (f *fakePluginInspector) InspectPlugins(_ context.Context) ([]inspector.PluginInfo, error) {
+func (f *fakePluginReader) List(_ context.Context) ([]swarm.Plugin, error) {
 	f.called++
 	if f.err != nil {
 		return nil, f.err
 	}
 
-	out := make([]inspector.PluginInfo, len(f.plugins))
+	out := make([]swarm.Plugin, len(f.plugins))
 	copy(out, f.plugins)
 
 	return out, nil

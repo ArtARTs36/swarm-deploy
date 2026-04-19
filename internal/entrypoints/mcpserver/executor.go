@@ -11,6 +11,7 @@ import (
 	mcpTools "github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/tools"
 	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
 // Executor provides direct-call MCP tools without running external server.
@@ -20,17 +21,14 @@ type Executor struct {
 	metrics     metrics.MCP
 }
 
-// NewExecutor creates an MCP tool executor from independent tool components.
+// NewExecutor creates an MCP tool executor from service components.
 func NewExecutor(
 	historyStore mcpTools.HistoryReader,
 	nodesStore mcpTools.NodesReader,
-	networkInspector mcpTools.NetworkInspector,
-	pluginInspector mcpTools.PluginInspector,
-	secretReader mcpTools.SecretReader,
+	swarmService *swarm.Swarm,
 	serviceLogsInspector mcpTools.ServiceLogsInspector,
 	serviceSpecInspector mcpTools.ServiceSpecInspector,
 	serviceStore mcpTools.ServicesReader,
-	serviceReplicasManager mcpTools.ServiceReplicasManager,
 	imageVersionResolver mcpTools.ImageVersionResolver,
 	gitRepository mcpTools.GitRepository,
 	stacks []config.StackSpec,
@@ -43,15 +41,15 @@ func NewExecutor(
 		mcpTools.NewListHistoryEvents(historyStore),
 		mcpTools.NewSync(control),
 		mcpTools.NewListNodes(nodesStore),
-		mcpTools.NewDockerNetworkList(networkInspector),
-		mcpTools.NewDockerPluginList(pluginInspector),
-		mcpTools.NewDockerSecretList(secretReader),
+		mcpTools.NewDockerNetworkList(swarmService.Networks),
+		mcpTools.NewDockerPluginList(swarmService.Plugins),
+		mcpTools.NewDockerSecretList(swarmService.Secrets),
 		mcpTools.NewGetServiceLogs(serviceLogsInspector),
 		mcpTools.NewGetServiceSpec(serviceSpecInspector),
 		mcpTools.NewDNSNameResolve(),
 		mcpTools.NewPingWebRoutes(serviceStore),
-		mcpTools.NewSetServiceReplicas(serviceReplicasManager, eventDispatcher),
-		mcpTools.NewRestartService(serviceReplicasManager, eventDispatcher),
+		mcpTools.NewSetServiceReplicas(swarmService.Services, eventDispatcher),
+		mcpTools.NewRestartService(swarmService.Services, eventDispatcher),
 		mcpTools.NewGetActualImageVersion(imageVersionResolver),
 		mcpTools.NewListGitCommits(gitRepository),
 		mcpTools.NewGitCommitDiff(gitRepository, stacks, commitDiffer),

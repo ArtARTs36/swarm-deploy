@@ -5,18 +5,18 @@ import (
 	"fmt"
 
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
 // DockerPluginList returns current Docker plugins snapshot.
 type DockerPluginList struct {
-	inspector PluginInspector
+	reader PluginReader
 }
 
 // NewDockerPluginList creates docker_plugin_list component.
-func NewDockerPluginList(pluginInspector PluginInspector) *DockerPluginList {
+func NewDockerPluginList(pluginReader PluginReader) *DockerPluginList {
 	return &DockerPluginList{
-		inspector: pluginInspector,
+		reader: pluginReader,
 	}
 }
 
@@ -34,13 +34,13 @@ func (l *DockerPluginList) Definition() routing.ToolDefinition {
 
 // Execute runs docker_plugin_list tool.
 func (l *DockerPluginList) Execute(ctx context.Context, _ routing.Request) (routing.Response, error) {
-	plugins, err := l.inspector.InspectPlugins(ctx)
+	plugins, err := l.reader.List(ctx)
 	if err != nil {
-		return routing.Response{}, fmt.Errorf("inspect plugins: %w", err)
+		return routing.Response{}, fmt.Errorf("list plugins: %w", err)
 	}
 
 	payload := struct {
-		Plugins []inspector.PluginInfo `json:"plugins"`
+		Plugins []swarm.Plugin `json:"plugins"`
 	}{
 		Plugins: plugins,
 	}

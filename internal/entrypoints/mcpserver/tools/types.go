@@ -31,16 +31,16 @@ type NodesReader interface {
 	List() []inspector.NodeInfo
 }
 
-// NetworkInspector inspects current Docker networks snapshot.
-type NetworkInspector interface {
-	// InspectNetworks returns current Docker networks snapshot.
-	InspectNetworks(ctx context.Context) ([]inspector.NetworkInfo, error)
+// NetworkReader reads current Docker networks snapshot.
+type NetworkReader interface {
+	// List returns current Docker networks snapshot.
+	List(ctx context.Context) ([]swarm.Network, error)
 }
 
-// PluginInspector inspects current Docker plugins snapshot.
-type PluginInspector interface {
-	// InspectPlugins returns current Docker plugins snapshot.
-	InspectPlugins(ctx context.Context) ([]inspector.PluginInfo, error)
+// PluginReader reads current Docker plugins snapshot.
+type PluginReader interface {
+	// List returns current Docker plugins snapshot.
+	List(ctx context.Context) ([]swarm.Plugin, error)
 }
 
 // SecretReader reads current Docker secrets snapshot.

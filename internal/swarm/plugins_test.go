@@ -1,4 +1,4 @@
-package inspector
+package swarm
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestToPluginInfoMapsFields(t *testing.T) {
+func TestPluginManagerMapPluginMapsFields(t *testing.T) {
 	plugin := dockertypes.Plugin{
 		ID:              "plugin-id",
 		Name:            "local/my-plugin",
@@ -28,7 +28,7 @@ func TestToPluginInfoMapsFields(t *testing.T) {
 		},
 	}
 
-	mapped := toPluginInfo(plugin)
+	mapped := (&PluginManager{}).mapPlugin(plugin)
 
 	assert.Equal(t, "plugin-id", mapped.ID, "unexpected plugin id")
 	assert.Equal(t, "local/my-plugin", mapped.Name, "unexpected plugin name")
