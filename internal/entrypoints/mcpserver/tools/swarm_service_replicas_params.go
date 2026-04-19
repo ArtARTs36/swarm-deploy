@@ -6,28 +6,22 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
-type serviceReplicasTarget struct {
-	stack   string
-	service string
-}
-
-func parseServiceReplicasTarget(payload map[string]any) (serviceReplicasTarget, error) {
+func parseServiceReplicasTarget(payload map[string]any) (swarm.ServiceReference, error) {
 	stackName, err := parseRequiredStringParam(payload["stack"], "stack")
 	if err != nil {
-		return serviceReplicasTarget{}, err
+		return swarm.ServiceReference{}, err
 	}
 
 	serviceName, err := parseRequiredStringParam(payload["service"], "service")
 	if err != nil {
-		return serviceReplicasTarget{}, err
+		return swarm.ServiceReference{}, err
 	}
 
-	return serviceReplicasTarget{
-		stack:   stackName,
-		service: serviceName,
-	}, nil
+	return swarm.NewServiceReference(stackName, serviceName), nil
 }
 
 func parseReplicasParam(raw any) (uint64, error) {

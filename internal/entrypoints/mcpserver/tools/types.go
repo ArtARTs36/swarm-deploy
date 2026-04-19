@@ -9,6 +9,7 @@ import (
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
@@ -74,12 +75,12 @@ type ServicesReader interface {
 // ServiceReplicasManager manages replicas for stack services.
 type ServiceReplicasManager interface {
 	// GetReplicas returns current desired service replicas count.
-	GetReplicas(ctx context.Context, stackName, serviceName string) (uint64, error)
+	GetReplicas(ctx context.Context, serviceRef swarm.ServiceReference) (uint64, error)
 	// Scale sets desired service replicas count.
-	Scale(ctx context.Context, stackName, serviceName string, replicas uint64) error
+	Scale(ctx context.Context, serviceRef swarm.ServiceReference, replicas uint64) error
 	// Restart restarts service by scaling replicas to zero and restoring previous count.
 	// Returned value is the replicas count restored after restart.
-	Restart(ctx context.Context, stackName, serviceName string) (uint64, error)
+	Restart(ctx context.Context, serviceRef swarm.ServiceReference) (uint64, error)
 }
 
 // DNSResolver resolves DNS names to IP addresses.

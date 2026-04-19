@@ -55,14 +55,14 @@ func (s *RestartService) Execute(ctx context.Context, request routing.Request) (
 		return routing.Response{}, err
 	}
 
-	replicas, err := s.manager.Restart(ctx, target.stack, target.service)
+	replicas, err := s.manager.Restart(ctx, target)
 	if err != nil {
 		return routing.Response{}, fmt.Errorf("restart service: %w", err)
 	}
 
 	s.eventDispatcher.Dispatch(ctx, &events.ServiceRestarted{
-		StackName:   target.stack,
-		ServiceName: target.service,
+		StackName:   target.StackName(),
+		ServiceName: target.ServiceName(),
 	})
 
 	payload := struct {
@@ -70,8 +70,8 @@ func (s *RestartService) Execute(ctx context.Context, request routing.Request) (
 		Service  string `json:"service"`
 		Replicas uint64 `json:"replicas"`
 	}{
-		Stack:    target.stack,
-		Service:  target.service,
+		Stack:    target.StackName(),
+		Service:  target.ServiceName(),
 		Replicas: replicas,
 	}
 

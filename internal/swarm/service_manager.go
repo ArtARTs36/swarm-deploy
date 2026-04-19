@@ -28,10 +28,9 @@ func NewServiceManager(dockerClient *client.Client) *ServiceManager {
 // GetReplicas returns desired replicas count for a stack service.
 func (m *ServiceManager) GetReplicas(
 	ctx context.Context,
-	stackName,
-	serviceName string,
+	serviceRef ServiceReference,
 ) (uint64, error) {
-	service, fullServiceName, err := m.inspect(ctx, stackName, serviceName)
+	service, fullServiceName, err := m.inspect(ctx, serviceRef)
 	if err != nil {
 		return 0, err
 	}
@@ -48,11 +47,10 @@ func (m *ServiceManager) GetReplicas(
 // Scale sets desired replicas count for a stack service.
 func (m *ServiceManager) Scale(
 	ctx context.Context,
-	stackName,
-	serviceName string,
+	serviceRef ServiceReference,
 	replicas uint64,
 ) error {
-	service, fullServiceName, err := m.inspect(ctx, stackName, serviceName)
+	service, fullServiceName, err := m.inspect(ctx, serviceRef)
 	if err != nil {
 		return err
 	}
@@ -74,20 +72,19 @@ func (m *ServiceManager) Scale(
 // Restart restarts stack service by scaling replicas to zero and restoring previous count.
 func (m *ServiceManager) Restart(
 	ctx context.Context,
-	stackName,
-	serviceName string,
+	serviceRef ServiceReference,
 ) (uint64, error) {
-	currentReplicas, err := m.GetReplicas(ctx, stackName, serviceName)
+	currentReplicas, err := m.GetReplicas(ctx, serviceRef)
 	if err != nil {
 		return 0, fmt.Errorf("inspect service replicas: %w", err)
 	}
 
-	err = m.Scale(ctx, stackName, serviceName, 0)
+	err = m.Scale(ctx, serviceRef, 0)
 	if err != nil {
 		return 0, fmt.Errorf("scale service replicas to 0: %w", err)
 	}
 
-	err = m.Scale(ctx, stackName, serviceName, currentReplicas)
+	err = m.Scale(ctx, serviceRef, currentReplicas)
 	if err != nil {
 		return 0, fmt.Errorf("restore service replicas to %d: %w", currentReplicas, err)
 	}
@@ -97,10 +94,9 @@ func (m *ServiceManager) Restart(
 
 func (m *ServiceManager) inspect(
 	ctx context.Context,
-	stackName,
-	serviceName string,
+	serviceRef ServiceReference,
 ) (dockerswarm.Service, string, error) {
-	fullServiceName := fmt.Sprintf("%s_%s", stackName, serviceName)
+	fullServiceName := serviceRef.Name()
 	service, _, err := m.dockerClient.ServiceInspectWithRaw(ctx, fullServiceName, dockerswarm.ServiceInspectOptions{})
 	if err != nil {
 		if cerrdefs.IsNotFound(err) {

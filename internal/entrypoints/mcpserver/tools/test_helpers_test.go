@@ -10,6 +10,7 @@ import (
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
@@ -136,12 +137,11 @@ type fakeServiceReplicasManager struct {
 
 func (f *fakeServiceReplicasManager) GetReplicas(
 	_ context.Context,
-	stackName,
-	serviceName string,
+	serviceRef swarm.ServiceReference,
 ) (uint64, error) {
 	f.inspectCalled++
-	f.inspectedStack = stackName
-	f.inspectedService = serviceName
+	f.inspectedStack = serviceRef.StackName()
+	f.inspectedService = serviceRef.ServiceName()
 
 	if f.inspectErr != nil {
 		return 0, f.inspectErr
@@ -151,18 +151,17 @@ func (f *fakeServiceReplicasManager) GetReplicas(
 		return 0, nil
 	}
 
-	return f.replicasByService[stackName+"_"+serviceName], nil
+	return f.replicasByService[serviceRef.Name()], nil
 }
 
 func (f *fakeServiceReplicasManager) Scale(
 	_ context.Context,
-	stackName,
-	serviceName string,
+	serviceRef swarm.ServiceReference,
 	replicas uint64,
 ) error {
 	f.updateCalled++
-	f.updatedStack = stackName
-	f.updatedService = serviceName
+	f.updatedStack = serviceRef.StackName()
+	f.updatedService = serviceRef.ServiceName()
 	f.updatedReplicas = replicas
 	f.updatedHistory = append(f.updatedHistory, replicas)
 
@@ -173,31 +172,31 @@ func (f *fakeServiceReplicasManager) Scale(
 	if f.replicasByService == nil {
 		f.replicasByService = map[string]uint64{}
 	}
-	f.replicasByService[stackName+"_"+serviceName] = replicas
+	f.replicasByService[serviceRef.Name()] = replicas
 
 	return nil
 }
 
-func (f *fakeServiceReplicasManager) Restart(ctx context.Context, stackName, serviceName string) (uint64, error) {
+func (f *fakeServiceReplicasManager) Restart(ctx context.Context, serviceRef swarm.ServiceReference) (uint64, error) {
 	f.restartCalled++
-	f.restartedStack = stackName
-	f.restartedService = serviceName
+	f.restartedStack = serviceRef.StackName()
+	f.restartedService = serviceRef.ServiceName()
 
 	if f.restartErr != nil {
 		return 0, f.restartErr
 	}
 
-	currentReplicas, err := f.GetReplicas(ctx, stackName, serviceName)
+	currentReplicas, err := f.GetReplicas(ctx, serviceRef)
 	if err != nil {
 		return 0, fmt.Errorf("inspect service replicas: %w", err)
 	}
 
-	err = f.Scale(ctx, stackName, serviceName, 0)
+	err = f.Scale(ctx, serviceRef, 0)
 	if err != nil {
 		return 0, fmt.Errorf("scale service replicas to 0: %w", err)
 	}
 
-	err = f.Scale(ctx, stackName, serviceName, currentReplicas)
+	err = f.Scale(ctx, serviceRef, currentReplicas)
 	if err != nil {
 		return 0, fmt.Errorf("restore service replicas to %d: %w", currentReplicas, err)
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/metrics"
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/service"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -123,16 +124,14 @@ type fakeServiceReplicasManager struct{}
 
 func (f *fakeServiceReplicasManager) GetReplicas(
 	_ context.Context,
-	_,
-	_ string,
+	_ swarm.ServiceReference,
 ) (uint64, error) {
 	return 1, nil
 }
 
 func (f *fakeServiceReplicasManager) Scale(
 	_ context.Context,
-	_,
-	_ string,
+	_ swarm.ServiceReference,
 	_ uint64,
 ) error {
 	return nil
@@ -140,8 +139,7 @@ func (f *fakeServiceReplicasManager) Scale(
 
 func (f *fakeServiceReplicasManager) Restart(
 	_ context.Context,
-	_,
-	_ string,
+	_ swarm.ServiceReference,
 ) (uint64, error) {
 	return 1, nil
 }
