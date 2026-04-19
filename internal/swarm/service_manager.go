@@ -31,7 +31,7 @@ func (m *ServiceManager) GetReplicas(
 	stackName,
 	serviceName string,
 ) (uint64, error) {
-	service, fullServiceName, err := m.inspectStackService(ctx, stackName, serviceName)
+	service, fullServiceName, err := m.inspect(ctx, stackName, serviceName)
 	if err != nil {
 		return 0, err
 	}
@@ -52,7 +52,7 @@ func (m *ServiceManager) Scale(
 	serviceName string,
 	replicas uint64,
 ) error {
-	service, fullServiceName, err := m.inspectStackService(ctx, stackName, serviceName)
+	service, fullServiceName, err := m.inspect(ctx, stackName, serviceName)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (m *ServiceManager) Scale(
 	return nil
 }
 
-func (m *ServiceManager) inspectStackService(
+func (m *ServiceManager) inspect(
 	ctx context.Context,
 	stackName,
 	serviceName string,
