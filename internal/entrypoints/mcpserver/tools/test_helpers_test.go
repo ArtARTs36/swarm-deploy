@@ -128,7 +128,7 @@ type fakeServiceReplicasManager struct {
 	updatedHistory  []uint64
 }
 
-func (f *fakeServiceReplicasManager) InspectServiceReplicas(
+func (f *fakeServiceReplicasManager) GetReplicas(
 	_ context.Context,
 	stackName,
 	serviceName string,
@@ -148,7 +148,7 @@ func (f *fakeServiceReplicasManager) InspectServiceReplicas(
 	return f.replicasByService[stackName+"_"+serviceName], nil
 }
 
-func (f *fakeServiceReplicasManager) UpdateServiceReplicas(
+func (f *fakeServiceReplicasManager) Scale(
 	_ context.Context,
 	stackName,
 	serviceName string,

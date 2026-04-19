@@ -55,17 +55,17 @@ func (s *RestartService) Execute(ctx context.Context, request routing.Request) (
 		return routing.Response{}, err
 	}
 
-	currentReplicas, err := s.manager.InspectServiceReplicas(ctx, target.stack, target.service)
+	currentReplicas, err := s.manager.GetReplicas(ctx, target.stack, target.service)
 	if err != nil {
 		return routing.Response{}, fmt.Errorf("inspect service replicas: %w", err)
 	}
 
-	err = s.manager.UpdateServiceReplicas(ctx, target.stack, target.service, 0)
+	err = s.manager.Scale(ctx, target.stack, target.service, 0)
 	if err != nil {
 		return routing.Response{}, fmt.Errorf("scale service replicas to 0: %w", err)
 	}
 
-	err = s.manager.UpdateServiceReplicas(ctx, target.stack, target.service, currentReplicas)
+	err = s.manager.Scale(ctx, target.stack, target.service, currentReplicas)
 	if err != nil {
 		return routing.Response{}, fmt.Errorf("restore service replicas to %d: %w", currentReplicas, err)
 	}

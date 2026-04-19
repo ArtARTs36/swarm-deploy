@@ -73,10 +73,10 @@ type ServicesReader interface {
 
 // ServiceReplicasManager manages replicas for stack services.
 type ServiceReplicasManager interface {
-	// InspectServiceReplicas returns current desired service replicas count.
-	InspectServiceReplicas(ctx context.Context, stackName, serviceName string) (uint64, error)
-	// UpdateServiceReplicas sets desired service replicas count.
-	UpdateServiceReplicas(ctx context.Context, stackName, serviceName string, replicas uint64) error
+	// GetReplicas returns current desired service replicas count.
+	GetReplicas(ctx context.Context, stackName, serviceName string) (uint64, error)
+	// Scale sets desired service replicas count.
+	Scale(ctx context.Context, stackName, serviceName string, replicas uint64) error
 }
 
 // DNSResolver resolves DNS names to IP addresses.

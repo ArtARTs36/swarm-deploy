@@ -1,20 +1,37 @@
-package inspector
+package swarm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	cerrdefs "github.com/containerd/errdefs"
 	dockerswarm "github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/client"
 )
 
-// InspectServiceReplicas returns desired replicas count for a stack service.
-func (i *Inspector) InspectServiceReplicas(
+// ErrServiceNotFound means that service does not exist in swarm.
+var ErrServiceNotFound = errors.New("service not found")
+
+// ServiceManager manages stack service replicas.
+type ServiceManager struct {
+	dockerClient *client.Client
+}
+
+// NewServiceManager creates service manager with provided docker API client.
+func NewServiceManager(dockerClient *client.Client) *ServiceManager {
+	return &ServiceManager{
+		dockerClient: dockerClient,
+	}
+}
+
+// GetReplicas returns desired replicas count for a stack service.
+func (m *ServiceManager) GetReplicas(
 	ctx context.Context,
 	stackName,
 	serviceName string,
 ) (uint64, error) {
-	service, fullServiceName, err := i.inspectStackService(ctx, stackName, serviceName)
+	service, fullServiceName, err := m.inspectStackService(ctx, stackName, serviceName)
 	if err != nil {
 		return 0, err
 	}
@@ -28,14 +45,14 @@ func (i *Inspector) InspectServiceReplicas(
 	return *service.Spec.Mode.Replicated.Replicas, nil
 }
 
-// UpdateServiceReplicas sets desired replicas count for a stack service.
-func (i *Inspector) UpdateServiceReplicas(
+// Scale sets desired replicas count for a stack service.
+func (m *ServiceManager) Scale(
 	ctx context.Context,
 	stackName,
 	serviceName string,
 	replicas uint64,
 ) error {
-	service, fullServiceName, err := i.inspectStackService(ctx, stackName, serviceName)
+	service, fullServiceName, err := m.inspectStackService(ctx, stackName, serviceName)
 	if err != nil {
 		return err
 	}
@@ -46,7 +63,7 @@ func (i *Inspector) UpdateServiceReplicas(
 	spec := service.Spec
 	spec.Mode.Replicated.Replicas = &replicas
 
-	_, err = i.dockerClient.ServiceUpdate(ctx, service.ID, service.Version, spec, dockerswarm.ServiceUpdateOptions{})
+	_, err = m.dockerClient.ServiceUpdate(ctx, service.ID, service.Version, spec, dockerswarm.ServiceUpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("update service %s replicas to %d: %w", fullServiceName, replicas, err)
 	}
@@ -54,13 +71,13 @@ func (i *Inspector) UpdateServiceReplicas(
 	return nil
 }
 
-func (i *Inspector) inspectStackService(
+func (m *ServiceManager) inspectStackService(
 	ctx context.Context,
 	stackName,
 	serviceName string,
 ) (dockerswarm.Service, string, error) {
 	fullServiceName := fmt.Sprintf("%s_%s", stackName, serviceName)
-	service, _, err := i.dockerClient.ServiceInspectWithRaw(ctx, fullServiceName, dockerswarm.ServiceInspectOptions{})
+	service, _, err := m.dockerClient.ServiceInspectWithRaw(ctx, fullServiceName, dockerswarm.ServiceInspectOptions{})
 	if err != nil {
 		if cerrdefs.IsNotFound(err) {
 			return dockerswarm.Service{}, fullServiceName, ErrServiceNotFound

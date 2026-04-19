@@ -34,6 +34,7 @@ import (
 	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/cappuccinotm/slogx"
 	"github.com/cappuccinotm/slogx/slogm"
+	"github.com/docker/docker/client"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -84,23 +85,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	deployer, err := swarm.NewDeployer(
+	dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to init docker client", slog.Any("err", err))
+		os.Exit(1)
+	}
+
+	deployer := swarm.NewDeployer(
 		cfg.Spec.Swarm.Command,
 		cfg.Spec.Swarm.StackDeployArgs,
 		cfg.Spec.Swarm.InitJobPollEvery.Value,
 		cfg.Spec.Swarm.InitJobMaxDuration.Value,
 		swarm.ExecRunner{},
+		dockerClient,
 	)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to init deployer", slog.Any("err", err))
-		os.Exit(1)
-	}
 
-	inspectorSvc, err := swarminspector.New()
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to init service inspector", slog.Any("err", err))
-		os.Exit(1)
-	}
+	inspectorSvc := swarminspector.New(dockerClient)
+
+	serviceManager := swarm.NewServiceManager(dockerClient)
 
 	nodeStore, err := swarminspector.NewNodeStore(filepath.Join(cfg.Spec.DataDir, "nodes.json"))
 	if err != nil {
@@ -129,6 +131,7 @@ func main() {
 		eventHistory,
 		nodeStore,
 		inspectorSvc,
+		serviceManager,
 		gitRepository,
 		control,
 		eventDispatcher,
@@ -210,6 +213,7 @@ func buildAssistantService(
 	eventHistory *history.Store,
 	nodeStore *swarminspector.NodeStore,
 	inspectorSvc *swarminspector.Inspector,
+	serviceManager *swarm.ServiceManager,
 	gitRepository gitx.Repository,
 	control *controller.Controller,
 	eventDispatcher dispatcher.Dispatcher,
@@ -245,7 +249,7 @@ func buildAssistantService(
 		inspectorSvc,
 		inspectorSvc,
 		serviceStore,
-		inspectorSvc,
+		serviceManager,
 		imageVersionResolver,
 		gitRepository,
 		cfg.Spec.Stacks,

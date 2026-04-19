@@ -66,12 +66,12 @@ func (s *SetServiceReplicas) Execute(ctx context.Context, request routing.Reques
 		return routing.Response{}, err
 	}
 
-	currentReplicas, err := s.manager.InspectServiceReplicas(ctx, target.stack, target.service)
+	currentReplicas, err := s.manager.GetReplicas(ctx, target.stack, target.service)
 	if err != nil {
 		return routing.Response{}, fmt.Errorf("inspect service replicas: %w", err)
 	}
 
-	err = s.manager.UpdateServiceReplicas(ctx, target.stack, target.service, replicas)
+	err = s.manager.Scale(ctx, target.stack, target.service, replicas)
 	if err != nil {
 		return routing.Response{}, fmt.Errorf("update service replicas: %w", err)
 	}

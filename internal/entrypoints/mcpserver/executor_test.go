@@ -121,7 +121,7 @@ func (f *fakeServiceStore) List() []service.Info {
 
 type fakeServiceReplicasManager struct{}
 
-func (f *fakeServiceReplicasManager) InspectServiceReplicas(
+func (f *fakeServiceReplicasManager) GetReplicas(
 	_ context.Context,
 	_,
 	_ string,
@@ -129,7 +129,7 @@ func (f *fakeServiceReplicasManager) InspectServiceReplicas(
 	return 1, nil
 }
 
-func (f *fakeServiceReplicasManager) UpdateServiceReplicas(
+func (f *fakeServiceReplicasManager) Scale(
 	_ context.Context,
 	_,
 	_ string,

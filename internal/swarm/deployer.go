@@ -43,23 +43,19 @@ func NewDeployer(
 	initJobPoll time.Duration,
 	initJobTimeout time.Duration,
 	runner Runner,
-) (*Deployer, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return nil, fmt.Errorf("create docker api client: %w", err)
-	}
-
+	dockerClient *client.Client,
+) *Deployer {
 	return &Deployer{
 		command:         command,
 		stackDeployArgs: stackDeployArgs,
 		initJobPoll:     initJobPoll,
 		initJobTimeout:  initJobTimeout,
 		runner:          runner,
-		dockerClient:    cli,
+		dockerClient:    dockerClient,
 		authManager:     registry.NewAuthManager(),
-		secretResolver:  secret.NewResolver(cli),
-		initJobRunner:   initjob.NewRunner(cli, initJobPoll),
-	}, nil
+		secretResolver:  secret.NewResolver(dockerClient),
+		initJobRunner:   initjob.NewRunner(dockerClient, initJobPoll),
+	}
 }
 
 func (d *Deployer) DeployStack(ctx context.Context, stackName, composePath string) error {
