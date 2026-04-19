@@ -66,27 +66,27 @@ func (s *SetServiceReplicas) Execute(ctx context.Context, request routing.Reques
 		return routing.Response{}, err
 	}
 
-	currentReplicas, err := s.manager.InspectServiceReplicas(ctx, target.stack, target.service)
+	currentReplicas, err := s.manager.GetReplicas(ctx, target)
 	if err != nil {
 		return routing.Response{}, fmt.Errorf("inspect service replicas: %w", err)
 	}
 
-	err = s.manager.UpdateServiceReplicas(ctx, target.stack, target.service, replicas)
+	err = s.manager.Scale(ctx, target, replicas)
 	if err != nil {
 		return routing.Response{}, fmt.Errorf("update service replicas: %w", err)
 	}
 
 	if replicas > currentReplicas {
 		s.eventDispatcher.Dispatch(ctx, &events.ServiceReplicasIncreased{
-			StackName:        target.stack,
-			ServiceName:      target.service,
+			StackName:        target.StackName(),
+			ServiceName:      target.ServiceName(),
 			PreviousReplicas: currentReplicas,
 			CurrentReplicas:  replicas,
 		})
 	} else if replicas < currentReplicas {
 		s.eventDispatcher.Dispatch(ctx, &events.ServiceReplicasDecreased{
-			StackName:        target.stack,
-			ServiceName:      target.service,
+			StackName:        target.StackName(),
+			ServiceName:      target.ServiceName(),
 			PreviousReplicas: currentReplicas,
 			CurrentReplicas:  replicas,
 		})
@@ -97,8 +97,8 @@ func (s *SetServiceReplicas) Execute(ctx context.Context, request routing.Reques
 		Service  string `json:"service"`
 		Replicas uint64 `json:"replicas"`
 	}{
-		Stack:    target.stack,
-		Service:  target.service,
+		Stack:    target.StackName(),
+		Service:  target.ServiceName(),
 		Replicas: replicas,
 	}
 

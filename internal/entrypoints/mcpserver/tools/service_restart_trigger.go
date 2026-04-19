@@ -55,32 +55,24 @@ func (s *RestartService) Execute(ctx context.Context, request routing.Request) (
 		return routing.Response{}, err
 	}
 
-	currentReplicas, err := s.manager.InspectServiceReplicas(ctx, target.stack, target.service)
+	replicas, err := s.manager.Restart(ctx, target)
 	if err != nil {
-		return routing.Response{}, fmt.Errorf("inspect service replicas: %w", err)
-	}
-
-	err = s.manager.UpdateServiceReplicas(ctx, target.stack, target.service, 0)
-	if err != nil {
-		return routing.Response{}, fmt.Errorf("scale service replicas to 0: %w", err)
-	}
-
-	err = s.manager.UpdateServiceReplicas(ctx, target.stack, target.service, currentReplicas)
-	if err != nil {
-		return routing.Response{}, fmt.Errorf("restore service replicas to %d: %w", currentReplicas, err)
+		return routing.Response{}, fmt.Errorf("restart service: %w", err)
 	}
 
 	s.eventDispatcher.Dispatch(ctx, &events.ServiceRestarted{
-		StackName:   target.stack,
-		ServiceName: target.service,
+		StackName:   target.StackName(),
+		ServiceName: target.ServiceName(),
 	})
 
 	payload := struct {
-		Stack   string `json:"stack"`
-		Service string `json:"service"`
+		Stack    string `json:"stack"`
+		Service  string `json:"service"`
+		Replicas uint64 `json:"replicas"`
 	}{
-		Stack:   target.stack,
-		Service: target.service,
+		Stack:    target.StackName(),
+		Service:  target.ServiceName(),
+		Replicas: replicas,
 	}
 
 	return routing.Response{
