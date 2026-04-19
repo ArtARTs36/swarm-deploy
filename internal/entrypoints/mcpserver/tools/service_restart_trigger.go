@@ -71,20 +71,16 @@ func (s *RestartService) Execute(ctx context.Context, request routing.Request) (
 	}
 
 	s.eventDispatcher.Dispatch(ctx, &events.ServiceRestarted{
-		StackName:        target.stack,
-		ServiceName:      target.service,
-		PreviousReplicas: currentReplicas,
-		CurrentReplicas:  currentReplicas,
+		StackName:   target.stack,
+		ServiceName: target.service,
 	})
 
 	payload := struct {
-		Stack            string `json:"stack"`
-		Service          string `json:"service"`
-		PreviousReplicas uint64 `json:"previous_replicas"`
+		Stack   string `json:"stack"`
+		Service string `json:"service"`
 	}{
-		Stack:            target.stack,
-		Service:          target.service,
-		PreviousReplicas: currentReplicas,
+		Stack:   target.stack,
+		Service: target.service,
 	}
 
 	return routing.Response{

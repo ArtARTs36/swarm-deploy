@@ -8,6 +8,7 @@
 | `syncManualStarted`                | Manual sync run started             | `triggered_by` (if present)                                  |
 | `serviceReplicasIncreased`         | Service replicas count increased    | `stack`, `service`, `previous_replicas`, `current_replicas`, `username` (if present) |
 | `serviceReplicasDecreased`         | Service replicas count decreased    | `stack`, `service`, `previous_replicas`, `current_replicas`, `username` (if present) |
+| `serviceRestarted`                 | Service restarted                   | `stack`, `service`, `username` (if present)                  |
 | `userAuthenticated`                | User passed web authentication      | `username`                                                   |
 | `assistantPromptInjectionDetected` | Assistant prompt injection detected | `detector`, `prompt` (if present), `username` (if present)   |
 

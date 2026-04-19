@@ -30,9 +30,8 @@ func TestRestartServiceExecute(t *testing.T) {
 	require.NoError(t, err, "execute service_restart_trigger")
 
 	var payload struct {
-		Stack            string `json:"stack"`
-		Service          string `json:"service"`
-		PreviousReplicas uint64 `json:"previous_replicas"`
+		Stack   string `json:"stack"`
+		Service string `json:"service"`
 	}
 
 	encoded, err := json.Marshal(response.Payload)
@@ -41,7 +40,6 @@ func TestRestartServiceExecute(t *testing.T) {
 
 	assert.Equal(t, "core", payload.Stack, "unexpected stack")
 	assert.Equal(t, "api", payload.Service, "unexpected service")
-	assert.Equal(t, uint64(3), payload.PreviousReplicas, "unexpected replicas before restart")
 	assert.Equal(t, 1, manager.inspectCalled, "expected single inspect call")
 	assert.Equal(t, 2, manager.updateCalled, "expected scale down and restore calls")
 	assert.Equal(t, []uint64{0, 3}, manager.updatedHistory, "unexpected replicas update sequence")
@@ -51,8 +49,6 @@ func TestRestartServiceExecute(t *testing.T) {
 	require.True(t, ok, "expected service restarted event")
 	assert.Equal(t, "core", restartEvent.StackName, "unexpected event stack")
 	assert.Equal(t, "api", restartEvent.ServiceName, "unexpected event service")
-	assert.Equal(t, uint64(3), restartEvent.PreviousReplicas, "unexpected event previous replicas")
-	assert.Equal(t, uint64(3), restartEvent.CurrentReplicas, "unexpected event current replicas")
 }
 
 func TestRestartServiceExecuteFailsOnInspect(t *testing.T) {

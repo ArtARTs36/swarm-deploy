@@ -56,6 +56,7 @@ type GRPCConfig struct {
 - Project use Event Dispatching for notifications and save events to history
 - Events declared in ./internal/event/events
 - Notification subscribers config located in ./internal/config NotificationSpec
+- Each event is described in docs/event-history.md
 
 ## Structure initialization
 - For DTO use default initialization.
