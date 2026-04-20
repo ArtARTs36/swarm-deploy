@@ -10,7 +10,6 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 // HistoryReader reads current event history snapshot.
@@ -28,42 +27,41 @@ type SyncTrigger interface {
 // NodesReader reads current Swarm nodes snapshot.
 type NodesReader interface {
 	// List returns current nodes snapshot.
-	List() []inspector.NodeInfo
+	List() []swarm.Node
 }
 
-// NetworkInspector inspects current Docker networks snapshot.
-type NetworkInspector interface {
-	// InspectNetworks returns current Docker networks snapshot.
-	InspectNetworks(ctx context.Context) ([]inspector.NetworkInfo, error)
+// NetworkReader reads current Docker networks snapshot.
+type NetworkReader interface {
+	// List returns current Docker networks snapshot.
+	List(ctx context.Context) ([]swarm.Network, error)
 }
 
-// PluginInspector inspects current Docker plugins snapshot.
-type PluginInspector interface {
-	// InspectPlugins returns current Docker plugins snapshot.
-	InspectPlugins(ctx context.Context) ([]inspector.PluginInfo, error)
+// PluginReader reads current Docker plugins snapshot.
+type PluginReader interface {
+	// List returns current Docker plugins snapshot.
+	List(ctx context.Context) ([]swarm.Plugin, error)
 }
 
-// SecretInspector inspects current Docker secrets snapshot.
-type SecretInspector interface {
-	// InspectSecrets returns current Docker secrets snapshot.
-	InspectSecrets(ctx context.Context) ([]inspector.SecretInfo, error)
+// SecretReader reads current Docker secrets snapshot.
+type SecretReader interface {
+	// List returns current Docker secrets snapshot.
+	List(ctx context.Context) ([]swarm.Secret, error)
 }
 
 // ServiceLogsInspector reads logs of a specific stack service.
 type ServiceLogsInspector interface {
-	// InspectServiceLogs returns recent log lines for the given stack service.
-	InspectServiceLogs(
+	// Logs returns recent log lines for the given stack service.
+	Logs(
 		ctx context.Context,
-		stackName string,
-		serviceName string,
-		options inspector.ServiceLogsOptions,
+		serviceRef swarm.ServiceReference,
+		options swarm.ServiceLogsOptions,
 	) ([]string, error)
 }
 
 // ServiceSpecInspector reads compact service spec snapshot for a stack service.
 type ServiceSpecInspector interface {
 	// InspectServiceSpec returns compact service projection for the given stack service.
-	InspectServiceSpec(ctx context.Context, stackName string, serviceName string) (inspector.Service, error)
+	Get(ctx context.Context, serviceRef swarm.ServiceReference) (swarm.Service, error)
 }
 
 // ServicesReader reads current service metadata snapshot.

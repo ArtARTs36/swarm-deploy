@@ -11,7 +11,6 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 )
 
 type fakeHistoryStore struct {
@@ -37,65 +36,65 @@ func (f *fakeSyncControl) Manual(_ context.Context) bool {
 }
 
 type fakeNodeStore struct {
-	nodes []inspector.NodeInfo
+	nodes []swarm.Node
 }
 
-func (f *fakeNodeStore) List() []inspector.NodeInfo {
-	out := make([]inspector.NodeInfo, len(f.nodes))
+func (f *fakeNodeStore) List() []swarm.Node {
+	out := make([]swarm.Node, len(f.nodes))
 	copy(out, f.nodes)
 
 	return out
 }
 
-type fakeNetworkInspector struct {
-	networks []inspector.NetworkInfo
+type fakeNetworkReader struct {
+	networks []swarm.Network
 	err      error
 	called   int
 }
 
-func (f *fakeNetworkInspector) InspectNetworks(_ context.Context) ([]inspector.NetworkInfo, error) {
+func (f *fakeNetworkReader) List(_ context.Context) ([]swarm.Network, error) {
 	f.called++
 	if f.err != nil {
 		return nil, f.err
 	}
 
-	out := make([]inspector.NetworkInfo, len(f.networks))
+	out := make([]swarm.Network, len(f.networks))
 	copy(out, f.networks)
 
 	return out, nil
 }
 
-type fakePluginInspector struct {
-	plugins []inspector.PluginInfo
+type fakePluginReader struct {
+	plugins []swarm.Plugin
 	err     error
 	called  int
 }
 
-func (f *fakePluginInspector) InspectPlugins(_ context.Context) ([]inspector.PluginInfo, error) {
+func (f *fakePluginReader) List(_ context.Context) ([]swarm.Plugin, error) {
 	f.called++
 	if f.err != nil {
 		return nil, f.err
 	}
 
-	out := make([]inspector.PluginInfo, len(f.plugins))
+	out := make([]swarm.Plugin, len(f.plugins))
 	copy(out, f.plugins)
 
 	return out, nil
 }
 
 type fakeSecretInspector struct {
-	secrets []inspector.SecretInfo
+	secrets []swarm.Secret
 	err     error
 	called  int
 }
 
-func (f *fakeSecretInspector) InspectSecrets(_ context.Context) ([]inspector.SecretInfo, error) {
+func (f *fakeSecretInspector) List(_ context.Context) ([]swarm.Secret, error) {
 	f.called++
 	if f.err != nil {
 		return nil, f.err
 	}
 
-	out := make([]inspector.SecretInfo, len(f.secrets))
+	out := make([]swarm.Secret, len(f.secrets))
 	copy(out, f.secrets)
 
 	return out, nil

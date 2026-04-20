@@ -1,18 +1,13 @@
-package inspector
+package swarm
 
 import (
 	"errors"
+	"fmt"
 	"time"
-
-	"github.com/docker/docker/client"
 )
 
+// ErrServiceNotFound means that service does not exist in swarm.
 var ErrServiceNotFound = errors.New("service not found")
-
-// Inspector reads runtime service/container status from Docker API.
-type Inspector struct {
-	dockerClient *client.Client
-}
 
 // ServiceStatus contains compact status snapshot of a stack service.
 type ServiceStatus struct {
@@ -108,9 +103,43 @@ type ServiceLabels struct {
 	Image map[string]string
 }
 
-// New creates swarm inspector with provided docker API client.
-func New(dockerClient *client.Client) *Inspector {
-	return &Inspector{
-		dockerClient: dockerClient,
+// ServiceLogsOptions configures stack service logs query.
+type ServiceLogsOptions struct {
+	// Limit is max number of latest lines to return.
+	Limit int
+	// Since defines lower bound for log timestamps.
+	Since *time.Time
+	// Until defines upper bound for log timestamps.
+	Until *time.Time
+}
+
+type ServiceReference struct {
+	stackName   string
+	serviceName string
+
+	fullName string
+}
+
+// NewServiceReference creates a service reference from stack and service names.
+func NewServiceReference(stackName, serviceName string) ServiceReference {
+	return ServiceReference{
+		stackName:   stackName,
+		serviceName: serviceName,
+		fullName:    fmt.Sprintf("%s_%s", stackName, serviceName),
 	}
+}
+
+// StackName returns stack name part.
+func (r ServiceReference) StackName() string {
+	return r.stackName
+}
+
+// ServiceName returns service name part.
+func (r ServiceReference) ServiceName() string {
+	return r.serviceName
+}
+
+// Name returns full service name as "<stack>_<service>".
+func (r ServiceReference) Name() string {
+	return r.fullName
 }

@@ -9,8 +9,8 @@ import (
 
 	"github.com/artarts36/swarm-deploy/internal/compose"
 	"github.com/artarts36/swarm-deploy/internal/config"
+	"github.com/artarts36/swarm-deploy/internal/deployer"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
 type stackReconcileResult struct {
@@ -22,7 +22,7 @@ type stackReconcileResult struct {
 type stackReconciler struct {
 	cfg      *config.Config
 	git      gitx.Repository
-	deployer *swarm.Deployer
+	deployer *deployer.Deployer
 }
 
 type stackReconcileError struct {
@@ -31,7 +31,7 @@ type stackReconcileError struct {
 	err      error
 }
 
-func newStackReconciler(cfg *config.Config, gitSync gitx.Repository, deployer *swarm.Deployer) *stackReconciler {
+func newStackReconciler(cfg *config.Config, gitSync gitx.Repository, deployer *deployer.Deployer) *stackReconciler {
 	return &stackReconciler{
 		cfg:      cfg,
 		git:      gitSync,
@@ -141,7 +141,7 @@ func (r *stackReconciler) runInitJobs(ctx context.Context, stackName string, ser
 	for _, service := range services {
 		// Jobs are run in declaration order per service to keep behavior deterministic.
 		for _, job := range service.InitJobs {
-			err := r.deployer.RunInitJob(ctx, swarm.InitJobSpec{
+			err := r.deployer.RunInitJob(ctx, deployer.InitJobSpec{
 				StackName:      stackName,
 				ServiceName:    service.Name,
 				DefaultNetwork: service.Networks,

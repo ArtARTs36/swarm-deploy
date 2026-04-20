@@ -13,6 +13,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/assistant"
 	"github.com/artarts36/swarm-deploy/internal/config"
 	"github.com/artarts36/swarm-deploy/internal/controller"
+	"github.com/artarts36/swarm-deploy/internal/deployer"
 	"github.com/artarts36/swarm-deploy/internal/differ"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/healthserver"
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver"
@@ -27,11 +28,11 @@ import (
 	notify2 "github.com/artarts36/swarm-deploy/internal/event/notify"
 	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/artarts36/swarm-deploy/internal/metrics"
+	swarmnode "github.com/artarts36/swarm-deploy/internal/node"
 	"github.com/artarts36/swarm-deploy/internal/registry"
 	"github.com/artarts36/swarm-deploy/internal/security"
 	"github.com/artarts36/swarm-deploy/internal/service"
 	"github.com/artarts36/swarm-deploy/internal/swarm"
-	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
 	"github.com/cappuccinotm/slogx"
 	"github.com/cappuccinotm/slogx/slogm"
 	"github.com/docker/docker/client"
@@ -91,27 +92,30 @@ func main() {
 		os.Exit(1)
 	}
 
-	deployer := swarm.NewDeployer(
-		cfg.Spec.Swarm.Command,
+	swarmService := swarm.NewSwarm(dockerClient, cfg.Spec.Swarm.Command)
+
+	deployerSvc := deployer.NewDeployer(
 		cfg.Spec.Swarm.StackDeployArgs,
 		cfg.Spec.Swarm.InitJobPollEvery.Value,
 		cfg.Spec.Swarm.InitJobMaxDuration.Value,
-		swarm.ExecRunner{},
+		swarmService.BinaryRunner,
 		dockerClient,
+		swarmService,
+		metricsGroup.Deploys,
 	)
 
-	inspectorSvc := swarminspector.New(dockerClient)
-
-	serviceManager := swarm.NewServiceManager(dockerClient)
-
-	nodeStore, err := swarminspector.NewNodeStore(filepath.Join(cfg.Spec.DataDir, "nodes.json"))
+	nodeStore, err := swarmnode.NewNodeStore(filepath.Join(cfg.Spec.DataDir, "nodes.json"))
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to init node store", slog.Any("err", err))
 		os.Exit(1)
 	}
-	nodeCollector := swarminspector.NewNodeCollector(inspectorSvc, nodeStore)
+	nodeCollector := swarmnode.NewNodeCollector(swarmService.Nodes, nodeStore)
 
-	eventDispatcher, eventHistory, serviceStore, err := buildEventDispatcher(cfg, inspectorSvc, metricsGroup.Events)
+	eventDispatcher, eventHistory, serviceStore, err := buildEventDispatcher(
+		cfg,
+		swarmService.Services,
+		metricsGroup.Events,
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to build event dispatcher", slog.Any("err", err))
 		os.Exit(1)
@@ -120,7 +124,7 @@ func main() {
 	control := controller.New(
 		cfg,
 		gitRepository,
-		deployer,
+		deployerSvc,
 		metricsGroup,
 		eventDispatcher,
 	)
@@ -130,8 +134,7 @@ func main() {
 		serviceStore,
 		eventHistory,
 		nodeStore,
-		inspectorSvc,
-		serviceManager,
+		swarmService,
 		gitRepository,
 		control,
 		eventDispatcher,
@@ -145,7 +148,7 @@ func main() {
 	webApplication, err := webserver.NewApplication(
 		cfg.Spec.Web.Address,
 		control,
-		inspectorSvc,
+		swarmService.Services,
 		eventHistory,
 		serviceStore,
 		nodeStore,
@@ -211,9 +214,8 @@ func buildAssistantService(
 	cfg *config.Config,
 	serviceStore *service.Store,
 	eventHistory *history.Store,
-	nodeStore *swarminspector.NodeStore,
-	inspectorSvc *swarminspector.Inspector,
-	serviceManager *swarm.ServiceManager,
+	nodeStore *swarmnode.Store,
+	swarmService *swarm.Swarm,
 	gitRepository gitx.Repository,
 	control *controller.Controller,
 	eventDispatcher dispatcher.Dispatcher,
@@ -243,13 +245,8 @@ func buildAssistantService(
 	toolExecutor := mcpserver.NewExecutor(
 		eventHistory,
 		nodeStore,
-		inspectorSvc,
-		inspectorSvc,
-		inspectorSvc,
-		inspectorSvc,
-		inspectorSvc,
+		swarmService,
 		serviceStore,
-		serviceManager,
 		imageVersionResolver,
 		gitRepository,
 		cfg.Spec.Stacks,
@@ -276,7 +273,7 @@ func buildAssistantService(
 
 func buildEventDispatcher(
 	cfg *config.Config,
-	inspectorSvc *swarminspector.Inspector,
+	serviceLabelsInspector service.LabelsInspector,
 	eventMetrics metrics.Events,
 ) (dispatcher.Dispatcher, *history.Store, *service.Store, error) {
 	historyStore, err := history.NewStore(
@@ -309,7 +306,7 @@ func buildEventDispatcher(
 
 	eventDispatcher.Subscribe(
 		events.TypeDeploySuccess,
-		service.NewSubscriber(serviceStore, inspectorSvc, service.NewMetadataExtractor()),
+		service.NewSubscriber(serviceStore, serviceLabelsInspector, service.NewMetadataExtractor()),
 	)
 	subscribersCount++
 
@@ -322,6 +319,7 @@ func buildEventDispatcher(
 				notifiers.TelegramOptions{
 					ChatThreadID:  tg.ChatThreadID,
 					Message:       tg.Message,
+					Retries:       cfg.Spec.Notifications.Messengers.Telegram.Retries,
 					SOCKS5Address: cfg.Spec.Notifications.Messengers.Telegram.Proxy.SOCKS5.Address.Value,
 				},
 			)

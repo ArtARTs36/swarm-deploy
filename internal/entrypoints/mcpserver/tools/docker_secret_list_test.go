@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDockerSecretListExecute(t *testing.T) {
 	tool := NewDockerSecretList(&fakeSecretInspector{
-		secrets: []inspector.SecretInfo{
+		secrets: []swarm.Secret{
 			{
 				ID:     "secret-1",
 				Name:   "db_password",
@@ -30,7 +30,7 @@ func TestDockerSecretListExecute(t *testing.T) {
 	require.NoError(t, err, "execute docker_secret_list")
 
 	var payload struct {
-		Secrets []inspector.SecretInfo `json:"secrets"`
+		Secrets []swarm.Secret `json:"secrets"`
 	}
 
 	encoded, err := json.Marshal(response.Payload)
@@ -42,12 +42,12 @@ func TestDockerSecretListExecute(t *testing.T) {
 	assert.Equal(t, "external-vault", payload.Secrets[0].Driver, "unexpected secret driver")
 }
 
-func TestDockerSecretListExecuteFailsOnInspectError(t *testing.T) {
+func TestDockerSecretListExecuteFailsOnListError(t *testing.T) {
 	tool := NewDockerSecretList(&fakeSecretInspector{
 		err: errors.New("docker unavailable"),
 	})
 
 	_, err := tool.Execute(context.Background(), routing.Request{})
 	require.Error(t, err, "expected execute error")
-	assert.Contains(t, err.Error(), "inspect secrets", "unexpected error")
+	assert.Contains(t, err.Error(), "list secrets", "unexpected error")
 }

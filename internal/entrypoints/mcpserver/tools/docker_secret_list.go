@@ -5,18 +5,18 @@ import (
 	"fmt"
 
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
 // DockerSecretList returns current Docker secrets snapshot.
 type DockerSecretList struct {
-	inspector SecretInspector
+	secrets SecretReader
 }
 
 // NewDockerSecretList creates docker_secret_list component.
-func NewDockerSecretList(secretInspector SecretInspector) *DockerSecretList {
+func NewDockerSecretList(secretReader SecretReader) *DockerSecretList {
 	return &DockerSecretList{
-		inspector: secretInspector,
+		secrets: secretReader,
 	}
 }
 
@@ -34,13 +34,13 @@ func (l *DockerSecretList) Definition() routing.ToolDefinition {
 
 // Execute runs docker_secret_list tool.
 func (l *DockerSecretList) Execute(ctx context.Context, _ routing.Request) (routing.Response, error) {
-	secrets, err := l.inspector.InspectSecrets(ctx)
+	secrets, err := l.secrets.List(ctx)
 	if err != nil {
-		return routing.Response{}, fmt.Errorf("inspect secrets: %w", err)
+		return routing.Response{}, fmt.Errorf("list secrets: %w", err)
 	}
 
 	payload := struct {
-		Secrets []inspector.SecretInfo `json:"secrets"`
+		Secrets []swarm.Secret `json:"secrets"`
 	}{
 		Secrets: secrets,
 	}

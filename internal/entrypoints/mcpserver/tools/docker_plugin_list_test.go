@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/swarm/inspector"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDockerPluginListExecute(t *testing.T) {
-	tool := NewDockerPluginList(&fakePluginInspector{
-		plugins: []inspector.PluginInfo{
+	tool := NewDockerPluginList(&fakePluginReader{
+		plugins: []swarm.Plugin{
 			{
 				ID:          "plugin-1",
 				Name:        "local/my-plugin",
@@ -31,7 +31,7 @@ func TestDockerPluginListExecute(t *testing.T) {
 	require.NoError(t, err, "execute docker_plugin_list")
 
 	var payload struct {
-		Plugins []inspector.PluginInfo `json:"plugins"`
+		Plugins []swarm.Plugin `json:"plugins"`
 	}
 
 	encoded, err := json.Marshal(response.Payload)
@@ -44,11 +44,11 @@ func TestDockerPluginListExecute(t *testing.T) {
 }
 
 func TestDockerPluginListExecuteFailsOnInspectError(t *testing.T) {
-	tool := NewDockerPluginList(&fakePluginInspector{
+	tool := NewDockerPluginList(&fakePluginReader{
 		err: errors.New("docker unavailable"),
 	})
 
 	_, err := tool.Execute(context.Background(), routing.Request{})
 	require.Error(t, err, "expected execute error")
-	assert.Contains(t, err.Error(), "inspect plugins", "unexpected error")
+	assert.Contains(t, err.Error(), "list plugins", "unexpected error")
 }

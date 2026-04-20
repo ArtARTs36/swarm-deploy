@@ -10,7 +10,7 @@ import (
 	"github.com/artarts36/swarm-deploy/internal/service"
 	serviceType "github.com/artarts36/swarm-deploy/internal/service/stype"
 	"github.com/artarts36/swarm-deploy/internal/service/webroute"
-	swarminspector "github.com/artarts36/swarm-deploy/internal/swarm/inspector"
+	"github.com/artarts36/swarm-deploy/internal/swarm"
 )
 
 func toGeneratedStacks(stacks []controller.StackView) []generated.StackView {
@@ -74,7 +74,7 @@ func toOptDateTime(value time.Time) generated.OptDateTime {
 	return generated.NewOptDateTime(value)
 }
 
-func toGeneratedServiceStatus(status swarminspector.ServiceStatus) *generated.ServiceStatusResponse {
+func toGeneratedServiceStatus(status swarm.ServiceStatus) *generated.ServiceStatusResponse {
 	resp := &generated.ServiceStatusResponse{
 		Stack:   status.Stack,
 		Service: status.Service,
@@ -84,7 +84,7 @@ func toGeneratedServiceStatus(status swarminspector.ServiceStatus) *generated.Se
 	return resp
 }
 
-func toGeneratedServiceSpec(spec swarminspector.ServiceSpec) generated.ServiceSpecResponse {
+func toGeneratedServiceSpec(spec swarm.ServiceSpec) generated.ServiceSpecResponse {
 	mapped := generated.ServiceSpecResponse{
 		Image:             spec.Image,
 		Mode:              spec.Mode,
@@ -108,7 +108,7 @@ func toGeneratedServiceSpec(spec swarminspector.ServiceSpec) generated.ServiceSp
 	return mapped
 }
 
-func toGeneratedServiceSpecSecrets(secrets []swarminspector.ServiceSecret) []generated.ServiceSpecSecretResponse {
+func toGeneratedServiceSpecSecrets(secrets []swarm.ServiceSecret) []generated.ServiceSpecSecretResponse {
 	if len(secrets) == 0 {
 		return nil
 	}
@@ -130,7 +130,7 @@ func toGeneratedServiceSpecSecrets(secrets []swarminspector.ServiceSecret) []gen
 	return mapped
 }
 
-func toGeneratedServiceSpecNetworks(networks []swarminspector.ServiceNetwork) []generated.ServiceSpecNetworkResponse {
+func toGeneratedServiceSpecNetworks(networks []swarm.ServiceNetwork) []generated.ServiceSpecNetworkResponse {
 	if len(networks) == 0 {
 		return nil
 	}
@@ -202,7 +202,7 @@ func toGeneratedWebRoutes(routes []webroute.Route) []generated.WebRoute {
 	return mapped
 }
 
-func toGeneratedNodes(nodes []swarminspector.NodeInfo) []generated.NodeInfo {
+func toGeneratedNodes(nodes []swarm.Node) []generated.NodeInfo {
 	mapped := make([]generated.NodeInfo, 0, len(nodes))
 	for _, node := range nodes {
 		mapped = append(mapped, generated.NodeInfo{
@@ -210,7 +210,7 @@ func toGeneratedNodes(nodes []swarminspector.NodeInfo) []generated.NodeInfo {
 			Hostname:      node.Hostname,
 			Status:        node.Status,
 			Availability:  node.Availability,
-			ManagerStatus: node.ManagerStatus,
+			ManagerStatus: string(node.ManagerStatus),
 			EngineVersion: node.EngineVersion,
 			Addr:          node.Addr,
 		})
