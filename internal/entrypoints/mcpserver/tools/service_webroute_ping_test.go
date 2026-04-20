@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
 	"github.com/swarm-deploy/swarm-deploy/internal/service"
-	"github.com/swarm-deploy/swarm-deploy/internal/service/webroute"
+	"github.com/swarm-deploy/webroute"
 )
 
 func TestPingWebRoutesExecute(t *testing.T) {

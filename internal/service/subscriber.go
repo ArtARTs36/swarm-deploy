@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
-	"github.com/swarm-deploy/swarm-deploy/internal/service/webroute"
 	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
@@ -21,7 +20,7 @@ type Subscriber struct {
 	store            *Store
 	inspector        LabelsInspector
 	metadata         *MetadataExtractor
-	webRouteResolver *webroute.Resolver
+	webRouteResolver *WebRouteResolver
 }
 
 // NewSubscriber creates a service metadata event subscriber.
@@ -30,7 +29,7 @@ func NewSubscriber(store *Store, inspector LabelsInspector, metadata *MetadataEx
 		store:            store,
 		inspector:        inspector,
 		metadata:         metadata,
-		webRouteResolver: webroute.NewResolver(),
+		webRouteResolver: NewWebRouteResolver(),
 	}
 }
 

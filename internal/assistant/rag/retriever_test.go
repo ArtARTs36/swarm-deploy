@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/swarm-deploy/swarm-deploy/internal/service"
-	"github.com/swarm-deploy/swarm-deploy/internal/service/webroute"
+	"github.com/swarm-deploy/webroute"
 )
 
 type fakeServiceStore struct {

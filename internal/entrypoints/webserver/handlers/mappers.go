@@ -9,8 +9,8 @@ import (
 	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
 	"github.com/swarm-deploy/swarm-deploy/internal/service"
 	serviceType "github.com/swarm-deploy/swarm-deploy/internal/service/stype"
-	"github.com/swarm-deploy/swarm-deploy/internal/service/webroute"
 	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
+	"github.com/swarm-deploy/webroute"
 )
 
 func toGeneratedStacks(stacks []controller.StackView) []generated.StackView {

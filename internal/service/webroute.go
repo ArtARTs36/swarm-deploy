@@ -1,43 +1,51 @@
-package webroute
+package service
 
-import "strings"
+import (
+	"log/slog"
+	"strings"
 
-const (
-	envSplitParts = 2
+	"github.com/swarm-deploy/webroute"
 )
 
-// Provider resolves web routes for a specific reverse proxy from env values.
-type Provider interface {
-	// ResolveRoutes resolves routes from normalized environment map.
-	ResolveRoutes(env map[string]string) []Route
+const envSplitParts = 2
+
+type WebRouteResolver struct {
+	providers []webroute.Provider
 }
 
-// Resolver resolves public routes using a list of proxy-specific providers.
-type Resolver struct {
-	providers []Provider
+type webroutableService struct {
+	environment map[string]string
 }
 
-// NewResolver creates a resolver with built-in providers.
-func NewResolver() *Resolver {
-	return &Resolver{
-		providers: []Provider{
-			&nginxProxyProvider{},
-		},
+func NewWebRouteResolver() *WebRouteResolver {
+	return &WebRouteResolver{
+		providers: webroute.Providers(),
 	}
 }
 
+func (s *webroutableService) Environment() (map[string]string, error) {
+	return s.environment, nil
+}
+
 // Resolve resolves all routes from container env vars.
-func (r *Resolver) Resolve(containerEnv []string) []Route {
+func (r *WebRouteResolver) Resolve(containerEnv []string) []webroute.Route {
 	env := parseContainerEnv(containerEnv)
 	if len(env) == 0 {
 		return nil
 	}
 
-	out := make([]Route, 0)
+	out := make([]webroute.Route, 0)
 	seen := map[string]struct{}{}
 
 	for _, provider := range r.providers {
-		for _, route := range provider.ResolveRoutes(env) {
+		prRoutes, err := provider.Resolve(&webroutableService{
+			environment: env,
+		})
+		if err != nil {
+			slog.Info("[service] failed to resolve web routes", slog.Any("err", err))
+		}
+
+		for _, route := range prRoutes {
 			key := route.Domain + "\x00" + route.Address + "\x00" + route.Port
 			if _, ok := seen[key]; ok {
 				continue

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/swarm-deploy/swarm-deploy/internal/service/webroute"
+	"github.com/swarm-deploy/webroute"
 )
 
 const fileModePrivate = 0o600
