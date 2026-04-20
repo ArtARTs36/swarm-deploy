@@ -92,14 +92,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	swarmService := swarm.NewSwarm(dockerClient)
+	swarmService := swarm.NewSwarm(dockerClient, cfg.Spec.Swarm.Command)
 
 	deployerSvc := deployer.NewDeployer(
-		cfg.Spec.Swarm.Command,
 		cfg.Spec.Swarm.StackDeployArgs,
 		cfg.Spec.Swarm.InitJobPollEvery.Value,
 		cfg.Spec.Swarm.InitJobMaxDuration.Value,
-		swarm.ExecRunner{},
+		swarmService.BinaryRunner,
 		dockerClient,
 		swarmService,
 	)

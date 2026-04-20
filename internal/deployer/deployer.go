@@ -16,7 +16,6 @@ import (
 const deployArgsExtraCount = 3
 
 type Deployer struct {
-	command         string
 	stackDeployArgs []string
 	initJobPoll     time.Duration
 	initJobTimeout  time.Duration
@@ -38,7 +37,6 @@ type InitJobSpec struct {
 }
 
 func NewDeployer(
-	command string,
 	stackDeployArgs []string,
 	initJobPoll time.Duration,
 	initJobTimeout time.Duration,
@@ -47,7 +45,6 @@ func NewDeployer(
 	swarmService *swarm.Swarm,
 ) *Deployer {
 	return &Deployer{
-		command:         command,
 		stackDeployArgs: stackDeployArgs,
 		initJobPoll:     initJobPoll,
 		initJobTimeout:  initJobTimeout,
@@ -64,7 +61,7 @@ func (d *Deployer) DeployStack(ctx context.Context, stackName, composePath strin
 	args = append(args, d.stackDeployArgs...)
 	args = append(args, "-c", composePath, stackName)
 
-	if _, err := d.runner.Run(ctx, d.command, args...); err != nil {
+	if _, err := d.runner.Run(ctx, args...); err != nil {
 		return fmt.Errorf("deploy stack %s: %w", stackName, err)
 	}
 	return nil
