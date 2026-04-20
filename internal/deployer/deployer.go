@@ -53,8 +53,7 @@ func NewDeployer(
 		runner:          runner,
 		initJobRunner: NewInitJobRunner(
 			dockerClient,
-			swarmService.Services,
-			swarmService.Secrets,
+			swarmService,
 			initJobPoll,
 			initJobTimeout,
 			initJobMetrics,

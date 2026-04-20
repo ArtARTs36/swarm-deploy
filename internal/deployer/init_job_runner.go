@@ -15,6 +15,7 @@ import (
 	"github.com/avast/retry-go/v5"
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/filters"
+	dockernetwork "github.com/docker/docker/api/types/network"
 	dockerswarm "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -33,11 +34,10 @@ type initJobDeleteTask struct {
 
 // InitJobRunner creates and tracks init jobs for stack services.
 type InitJobRunner struct {
-	dockerClient   *client.Client
-	serviceManager *swarm.ServiceManager
-	secretResolver *swarm.SecretManager
-	authManager    registry.AuthManager
-	metrics        InitJobMetrics
+	dockerClient *client.Client
+	swarmService *swarm.Swarm
+	authManager  registry.AuthManager
+	metrics      InitJobMetrics
 
 	pollInterval time.Duration
 	timeout      time.Duration
@@ -48,21 +48,19 @@ type InitJobRunner struct {
 // NewInitJobRunner creates init job runner with async cleanup queue.
 func NewInitJobRunner(
 	dockerClient *client.Client,
-	serviceManager *swarm.ServiceManager,
-	secretResolver *swarm.SecretManager,
+	swarmService *swarm.Swarm,
 	pollInterval time.Duration,
 	timeout time.Duration,
 	metrics InitJobMetrics,
 ) *InitJobRunner {
 	runner := &InitJobRunner{
-		dockerClient:   dockerClient,
-		serviceManager: serviceManager,
-		secretResolver: secretResolver,
-		authManager:    registry.NewAuthManager(),
-		metrics:        metrics,
-		pollInterval:   pollInterval,
-		timeout:        timeout,
-		deleteTasks:    make(chan initJobDeleteTask, initJobDeleteTasksBuffer),
+		dockerClient: dockerClient,
+		swarmService: swarmService,
+		authManager:  registry.NewAuthManager(),
+		metrics:      metrics,
+		pollInterval: pollInterval,
+		timeout:      timeout,
+		deleteTasks:  make(chan initJobDeleteTask, initJobDeleteTasksBuffer),
 	}
 
 	go runner.runDeleteWorker()
@@ -179,8 +177,109 @@ func (r *InitJobRunner) waitJob(
 	}
 }
 
+func (r *InitJobRunner) buildInitServiceSpec(
+	ctx context.Context,
+	spec InitJobSpec,
+	serviceName string,
+) (dockerswarm.ServiceSpec, error) {
+	containerSpec := &dockerswarm.ContainerSpec{
+		Image:   spec.Job.Image,
+		Command: spec.Job.Command,
+	}
+
+	if len(spec.Job.Environment) > 0 {
+		containerSpec.Env = make([]string, 0, len(spec.Job.Environment))
+		for key, val := range spec.Job.Environment {
+			containerSpec.Env = append(containerSpec.Env, fmt.Sprintf("%s=%s", key, val))
+		}
+	}
+
+	networks := spec.Job.Networks
+	if len(networks) == 0 {
+		networks = spec.DefaultNetwork
+	}
+	networks = uniqueStrings(networks)
+
+	networkAttachments := make([]dockerswarm.NetworkAttachmentConfig, 0, len(networks))
+	for _, network := range networks {
+		target := r.resolveNetworkTarget(ctx, spec.StackName, network)
+		if target == "" {
+			continue
+		}
+		networkAttachments = append(networkAttachments, dockerswarm.NetworkAttachmentConfig{Target: target})
+	}
+
+	secrets := mergeObjectRefs(spec.ServiceSecrets, spec.Job.Secrets)
+	containerSpec.Secrets = make([]*dockerswarm.SecretReference, 0, len(secrets))
+	for _, secret := range secrets {
+		ref, err := r.swarmService.Secrets.ResolveReference(ctx, secret.Source, secret.Target)
+		if err != nil {
+			return dockerswarm.ServiceSpec{}, err
+		}
+		containerSpec.Secrets = append(containerSpec.Secrets, ref)
+	}
+
+	configs := mergeObjectRefs(spec.ServiceConfigs, spec.Job.Configs)
+	containerSpec.Configs = make([]*dockerswarm.ConfigReference, 0, len(configs))
+	for _, cfg := range configs {
+		ref, err := r.swarmService.Configs.ResolveReference(ctx, cfg.Source, cfg.Target)
+		if err != nil {
+			return dockerswarm.ServiceSpec{}, err
+		}
+		containerSpec.Configs = append(containerSpec.Configs, ref)
+	}
+
+	replicas := uint64(1)
+
+	return dockerswarm.ServiceSpec{
+		Annotations: dockerswarm.Annotations{
+			Name: serviceName,
+			Labels: map[string]string{
+				"org.swarm-deploy.init-job.name":    serviceName,
+				"org.swarm-deploy.init-job.stack":   spec.StackName,
+				"org.swarm-deploy.init-job.service": spec.ServiceName,
+			},
+		},
+		TaskTemplate: dockerswarm.TaskSpec{
+			ContainerSpec: containerSpec,
+			Networks:      networkAttachments,
+			RestartPolicy: &dockerswarm.RestartPolicy{
+				Condition: dockerswarm.RestartPolicyConditionNone,
+			},
+		},
+		Mode: dockerswarm.ServiceMode{
+			Replicated: &dockerswarm.ReplicatedService{
+				Replicas: &replicas,
+			},
+		},
+	}, nil
+}
+
+func (r *InitJobRunner) resolveNetworkTarget(ctx context.Context, stackName, network string) string {
+	candidates := []string{network}
+	if !strings.HasPrefix(network, stackName+"_") {
+		candidates = append(candidates, stackName+"_"+network)
+	}
+	if network == "default" {
+		candidates = append(candidates, stackName+"_default")
+	}
+
+	for _, candidate := range uniqueStrings(candidates) {
+		netResource, err := r.dockerClient.NetworkInspect(ctx, candidate, dockernetwork.InspectOptions{})
+		if err == nil {
+			return netResource.ID
+		}
+		if !cerrdefs.IsNotFound(err) {
+			// Fall through to try other candidates.
+			continue
+		}
+	}
+
+	return network
+}
+
 func (r *InitJobRunner) loadServiceLogs(ctx context.Context, serviceRef swarm.ServiceReference) []string {
-	logs, err := r.serviceManager.Logs(ctx, serviceRef, swarm.ServiceLogsOptions{})
+	logs, err := r.swarmService.Services.Logs(ctx, serviceRef, swarm.ServiceLogsOptions{})
 	if err != nil {
 		slog.WarnContext(
 			ctx,
