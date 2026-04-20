@@ -53,19 +53,19 @@ func TestResolveRepositoryURL(t *testing.T) {
 	t.Run("uses oci source as fallback", func(t *testing.T) {
 		labels := Labels{
 			Image: map[string]string{
-				labelOCIImageSource: "github.com/artarts36/swarm-deploy",
+				labelOCIImageSource: "github.com/swarmdeployorg/swarm-deploy",
 			},
 		}
 
 		resolved := ResolveRepositoryURL(labels)
 
-		assert.Equal(t, "github.com/artarts36/swarm-deploy", resolved, "unexpected repository URL")
+		assert.Equal(t, "github.com/swarmdeployorg/swarm-deploy", resolved, "unexpected repository URL")
 	})
 
 	t.Run("ignores git ssh format", func(t *testing.T) {
 		labels := Labels{
 			Image: map[string]string{
-				labelOCIImageSource: "git@github.com:artarts36/swarm-deploy.git",
+				labelOCIImageSource: "git@github.com:swarmdeployorg/swarm-deploy.git",
 			},
 		}
 
@@ -77,7 +77,7 @@ func TestResolveRepositoryURL(t *testing.T) {
 	t.Run("ignores ssh scheme url", func(t *testing.T) {
 		labels := Labels{
 			Image: map[string]string{
-				labelOCIImageSource: "ssh://git@github.com/artarts36/swarm-deploy.git",
+				labelOCIImageSource: "ssh://git@github.com/swarmdeployorg/swarm-deploy.git",
 			},
 		}
 

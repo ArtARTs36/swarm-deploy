@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/cappuccinotm/slogx"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
 )
 
 type eventTypeKey struct{}

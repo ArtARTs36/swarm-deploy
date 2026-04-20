@@ -4,10 +4,10 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/artarts36/swarm-deploy/internal/registry"
 	dockerregistry "github.com/docker/docker/api/types/registry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/swarm-deploy/swarm-deploy/internal/registry"
 )
 
 const privateImage = "wmb-prod.cr.cloud.ru/services/content-discovery-migrations:latest"

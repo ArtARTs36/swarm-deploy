@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
-	"github.com/artarts36/swarm-deploy/internal/event/events"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/dispatcher"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
 )
 
 // RestartService restarts stack service by scaling replicas to zero and restoring previous value.

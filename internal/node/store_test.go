@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 func TestNodeStoreReplaceAndLoad(t *testing.T) {

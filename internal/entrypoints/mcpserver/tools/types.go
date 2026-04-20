@@ -4,12 +4,12 @@ import (
 	"context"
 	"net"
 
-	"github.com/artarts36/swarm-deploy/internal/differ"
-	"github.com/artarts36/swarm-deploy/internal/event/history"
-	gitx "github.com/artarts36/swarm-deploy/internal/git"
-	"github.com/artarts36/swarm-deploy/internal/registry"
-	"github.com/artarts36/swarm-deploy/internal/service"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/swarm-deploy/swarm-deploy/internal/differ"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
+	gitx "github.com/swarm-deploy/swarm-deploy/internal/git"
+	"github.com/swarm-deploy/swarm-deploy/internal/registry"
+	"github.com/swarm-deploy/swarm-deploy/internal/service"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 // HistoryReader reads current event history snapshot.

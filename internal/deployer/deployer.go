@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/compose"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/docker/docker/client"
+	"github.com/swarm-deploy/swarm-deploy/internal/compose"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 const deployArgsExtraCount = 3

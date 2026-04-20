@@ -7,14 +7,14 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/compose"
-	"github.com/artarts36/swarm-deploy/internal/config"
-	"github.com/artarts36/swarm-deploy/internal/deployer"
-	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
-	"github.com/artarts36/swarm-deploy/internal/event/events"
-	gitx "github.com/artarts36/swarm-deploy/internal/git"
-	"github.com/artarts36/swarm-deploy/internal/metrics"
-	"github.com/artarts36/swarm-deploy/internal/security"
+	"github.com/swarm-deploy/swarm-deploy/internal/compose"
+	"github.com/swarm-deploy/swarm-deploy/internal/config"
+	"github.com/swarm-deploy/swarm-deploy/internal/deployer"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/dispatcher"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
+	gitx "github.com/swarm-deploy/swarm-deploy/internal/git"
+	"github.com/swarm-deploy/swarm-deploy/internal/metrics"
+	"github.com/swarm-deploy/swarm-deploy/internal/security"
 )
 
 type TriggerReason string

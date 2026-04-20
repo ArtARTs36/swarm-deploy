@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/artarts36/specw"
-	"github.com/artarts36/swarm-deploy/internal/config"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -19,6 +18,7 @@ import (
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/swarm-deploy/swarm-deploy/internal/config"
 )
 
 func TestResolveAuthMethodAnonymous(t *testing.T) {

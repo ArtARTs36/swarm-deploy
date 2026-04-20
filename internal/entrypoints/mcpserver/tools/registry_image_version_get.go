@@ -7,7 +7,7 @@ import (
 
 	"github.com/distribution/reference"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
 )
 
 // GetActualImageVersion returns actual image version from registry.

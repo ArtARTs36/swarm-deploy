@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/event/history"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
 )
 
 const (

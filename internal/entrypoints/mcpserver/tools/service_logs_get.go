@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 const (

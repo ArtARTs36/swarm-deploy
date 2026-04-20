@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/artarts36/swarm-deploy/internal/event/events"
-	"github.com/artarts36/swarm-deploy/internal/service/webroute"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
+	"github.com/swarm-deploy/swarm-deploy/internal/service/webroute"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 // LabelsInspector provides labels from service, container and image inspect.

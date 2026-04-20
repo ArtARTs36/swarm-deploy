@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/compose"
-	"github.com/artarts36/swarm-deploy/internal/registry"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/avast/retry-go/v5"
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/filters"
 	dockerswarm "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
+	"github.com/swarm-deploy/swarm-deploy/internal/compose"
+	"github.com/swarm-deploy/swarm-deploy/internal/registry"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 const (

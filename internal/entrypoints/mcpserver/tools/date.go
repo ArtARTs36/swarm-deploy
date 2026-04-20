@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
 )
 
 // Date returns current time for the requested timezone.

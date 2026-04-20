@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/artarts36/swarm-deploy/internal/config"
-	git "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/swarm-deploy/swarm-deploy/internal/config"
+	git "github.com/swarm-deploy/swarm-deploy/internal/git"
 )
 
 func TestReloadStacksUsesRepositoryDirFirst(t *testing.T) {

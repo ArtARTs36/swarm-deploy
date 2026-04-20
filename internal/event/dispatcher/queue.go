@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/event/events"
-	"github.com/artarts36/swarm-deploy/internal/event/logx"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/logx"
 )
 
 const (

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
 )
 
 // SelfMetricsList returns current internal Prometheus metrics snapshot.

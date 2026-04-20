@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/swarm"
 	dockerevents "github.com/docker/docker/api/types/events"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 const defaultCollectorReconnectDelay = 5 * time.Second

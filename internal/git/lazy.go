@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/artarts36/swarm-deploy/internal/config"
+	"github.com/swarm-deploy/swarm-deploy/internal/config"
 )
 
 func NewLazyProxy(spec config.GitSpec, path string) *LazyProxy {

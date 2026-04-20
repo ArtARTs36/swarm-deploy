@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/artarts36/swarm-deploy/internal/config"
-	"github.com/artarts36/swarm-deploy/internal/differ"
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/git"
+	"github.com/swarm-deploy/swarm-deploy/internal/config"
+	"github.com/swarm-deploy/swarm-deploy/internal/differ"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/git"
 )
 
 // GitCommitDiff resolves semantic compose changes for a git commit.

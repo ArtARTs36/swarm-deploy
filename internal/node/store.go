@@ -9,7 +9,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 const storeFileModePrivate = 0o600

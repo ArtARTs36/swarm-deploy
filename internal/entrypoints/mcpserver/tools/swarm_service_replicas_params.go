@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 func parseServiceReplicasTarget(payload map[string]any) (swarm.ServiceReference, error) {

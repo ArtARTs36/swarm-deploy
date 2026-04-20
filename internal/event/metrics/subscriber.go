@@ -3,7 +3,7 @@ package metrics
 import (
 	"context"
 
-	"github.com/artarts36/swarm-deploy/internal/event/events"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
 )
 
 type EventRecorder interface {

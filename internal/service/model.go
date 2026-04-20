@@ -1,8 +1,8 @@
 package service
 
 import (
-	serviceType "github.com/artarts36/swarm-deploy/internal/service/stype"
-	"github.com/artarts36/swarm-deploy/internal/service/webroute"
+	serviceType "github.com/swarm-deploy/swarm-deploy/internal/service/stype"
+	"github.com/swarm-deploy/swarm-deploy/internal/service/webroute"
 )
 
 // Info is a persisted service metadata record.

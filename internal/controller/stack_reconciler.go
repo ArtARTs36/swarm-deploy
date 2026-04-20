@@ -7,10 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/artarts36/swarm-deploy/internal/compose"
-	"github.com/artarts36/swarm-deploy/internal/config"
-	"github.com/artarts36/swarm-deploy/internal/deployer"
-	gitx "github.com/artarts36/swarm-deploy/internal/git"
+	"github.com/swarm-deploy/swarm-deploy/internal/compose"
+	"github.com/swarm-deploy/swarm-deploy/internal/config"
+	"github.com/swarm-deploy/swarm-deploy/internal/deployer"
+	gitx "github.com/swarm-deploy/swarm-deploy/internal/git"
 )
 
 type stackReconcileResult struct {

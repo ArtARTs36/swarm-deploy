@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/config"
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	mcpTools "github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/tools"
-	"github.com/artarts36/swarm-deploy/internal/event/dispatcher"
-	"github.com/artarts36/swarm-deploy/internal/metrics"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/swarm-deploy/swarm-deploy/internal/config"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	mcpTools "github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/tools"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/dispatcher"
+	"github.com/swarm-deploy/swarm-deploy/internal/metrics"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 const selfMetricsNamePrefix = "swarm_deploy_"

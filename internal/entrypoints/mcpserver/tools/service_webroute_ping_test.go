@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/service"
-	"github.com/artarts36/swarm-deploy/internal/service/webroute"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/service"
+	"github.com/swarm-deploy/swarm-deploy/internal/service/webroute"
 )
 
 func TestPingWebRoutesExecute(t *testing.T) {

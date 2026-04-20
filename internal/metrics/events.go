@@ -1,8 +1,8 @@
 package metrics
 
 import (
-	"github.com/artarts36/swarm-deploy/internal/event/events"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
 )
 
 type Events interface {

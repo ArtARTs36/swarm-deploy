@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
 )
 
 func (g *graph) executeToolCall(ctx context.Context, modelToolCall modelToolCall) (string, error) {

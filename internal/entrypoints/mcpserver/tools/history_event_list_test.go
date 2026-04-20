@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	"github.com/artarts36/swarm-deploy/internal/event/events"
-	"github.com/artarts36/swarm-deploy/internal/event/history"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
 )
 
 func TestListHistoryEventsExecute(t *testing.T) {

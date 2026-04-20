@@ -4,13 +4,13 @@ import (
 	"math"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/controller"
-	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
-	"github.com/artarts36/swarm-deploy/internal/event/history"
-	"github.com/artarts36/swarm-deploy/internal/service"
-	serviceType "github.com/artarts36/swarm-deploy/internal/service/stype"
-	"github.com/artarts36/swarm-deploy/internal/service/webroute"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/swarm-deploy/swarm-deploy/internal/controller"
+	generated "github.com/swarm-deploy/swarm-deploy/internal/entrypoints/webserver/generated"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
+	"github.com/swarm-deploy/swarm-deploy/internal/service"
+	serviceType "github.com/swarm-deploy/swarm-deploy/internal/service/stype"
+	"github.com/swarm-deploy/swarm-deploy/internal/service/webroute"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 func toGeneratedStacks(stacks []controller.StackView) []generated.StackView {

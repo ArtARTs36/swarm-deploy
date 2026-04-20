@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	generated "github.com/swarm-deploy/swarm-deploy/internal/entrypoints/webserver/generated"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 func (h *handler) GetServiceStatus(

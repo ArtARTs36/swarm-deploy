@@ -3,13 +3,13 @@ package handlers
 import (
 	"context"
 
-	"github.com/artarts36/swarm-deploy/internal/assistant"
-	"github.com/artarts36/swarm-deploy/internal/controller"
-	generated "github.com/artarts36/swarm-deploy/internal/entrypoints/webserver/generated"
-	"github.com/artarts36/swarm-deploy/internal/event/history"
-	swarmnode "github.com/artarts36/swarm-deploy/internal/node"
-	"github.com/artarts36/swarm-deploy/internal/service"
-	"github.com/artarts36/swarm-deploy/internal/swarm"
+	"github.com/swarm-deploy/swarm-deploy/internal/assistant"
+	"github.com/swarm-deploy/swarm-deploy/internal/controller"
+	generated "github.com/swarm-deploy/swarm-deploy/internal/entrypoints/webserver/generated"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
+	swarmnode "github.com/swarm-deploy/swarm-deploy/internal/node"
+	"github.com/swarm-deploy/swarm-deploy/internal/service"
+	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
 
 // ServiceStatusInspector reads compact status snapshot for a stack service.

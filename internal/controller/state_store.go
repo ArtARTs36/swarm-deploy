@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/compose"
-	"github.com/artarts36/swarm-deploy/internal/config"
+	"github.com/swarm-deploy/swarm-deploy/internal/compose"
+	"github.com/swarm-deploy/swarm-deploy/internal/config"
 )
 
 type serviceState struct {

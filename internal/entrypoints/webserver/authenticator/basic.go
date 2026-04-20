@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/artarts36/specw"
-	"github.com/artarts36/swarm-deploy/internal/security"
+	"github.com/swarm-deploy/swarm-deploy/internal/security"
 	"github.com/tg123/go-htpasswd"
 )
 

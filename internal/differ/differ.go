@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/artarts36/swarm-deploy/internal/compose"
+	"github.com/swarm-deploy/swarm-deploy/internal/compose"
 )
 
 // ComposeFile contains old/new compose snapshots for one stack.

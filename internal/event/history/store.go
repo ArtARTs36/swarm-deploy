@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/artarts36/swarm-deploy/internal/event/events"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
 )
 
 const fileModePrivate = 0o600

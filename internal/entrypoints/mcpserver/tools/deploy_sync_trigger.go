@@ -3,7 +3,7 @@ package tools
 import (
 	"context"
 
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
 )
 
 // Sync triggers manual synchronization run.

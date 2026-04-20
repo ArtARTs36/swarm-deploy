@@ -6,12 +6,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/artarts36/swarm-deploy/internal/config"
-	"github.com/artarts36/swarm-deploy/internal/differ"
-	"github.com/artarts36/swarm-deploy/internal/entrypoints/mcpserver/routing"
-	gitx "github.com/artarts36/swarm-deploy/internal/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/swarm-deploy/swarm-deploy/internal/config"
+	"github.com/swarm-deploy/swarm-deploy/internal/differ"
+	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	gitx "github.com/swarm-deploy/swarm-deploy/internal/git"
 )
 
 func TestGitCommitDiffExecute(t *testing.T) {
