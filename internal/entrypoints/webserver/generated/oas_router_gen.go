@@ -449,6 +449,31 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 				}
 
+			case 'u': // Prefix: "users/me"
+
+				if l := len("users/me"); len(elem) >= l && elem[0:l] == "users/me" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch r.Method {
+					case "GET":
+						s.handleGetCurrentUserRequest([0]string{}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, notAllowedParams{
+							allowedMethods: "GET",
+							allowedHeaders: nil,
+							acceptPost:     "",
+							acceptPatch:    "",
+						})
+					}
+
+					return
+				}
+
 			}
 
 		}
@@ -921,6 +946,31 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						}
 					}
 
+				}
+
+			case 'u': // Prefix: "users/me"
+
+				if l := len("users/me"); len(elem) >= l && elem[0:l] == "users/me" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch method {
+					case "GET":
+						r.name = GetCurrentUserOperation
+						r.summary = ""
+						r.operationID = "getCurrentUser"
+						r.operationGroup = ""
+						r.pathPattern = "/api/v1/users/me"
+						r.args = args
+						r.count = 0
+						return r, true
+					default:
+						return
+					}
 				}
 
 			}

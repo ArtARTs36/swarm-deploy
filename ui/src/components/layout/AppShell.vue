@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { RouterView, useRoute } from "vue-router";
 
 import { useAssistantStore } from "../../stores/assistant";
+import { useCurrentUserStore } from "../../stores/currentUser";
 import { useOverviewStore } from "../../stores/overview";
 import { useUIStore } from "../../stores/ui";
 import AssistantDrawer from "../assistant/AssistantDrawer.vue";
@@ -15,6 +16,7 @@ import SecretDetailsModal from "../secrets/SecretDetailsModal.vue";
 const route = useRoute();
 const overviewStore = useOverviewStore();
 const assistantStore = useAssistantStore();
+const currentUserStore = useCurrentUserStore();
 const uiStore = useUIStore();
 
 const isOverviewRoute = computed(() => route.path === "/overview");
@@ -41,6 +43,10 @@ function handleAssistantToggle() {
 
   uiStore.toggleAssistantDrawer();
 }
+
+onMounted(() => {
+  void currentUserStore.loadCurrentUser();
+});
 </script>
 
 <template>

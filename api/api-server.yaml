@@ -168,6 +168,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchResponse'
+  /api/v1/users/me:
+    get:
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Current authenticated user profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserResponse'
 components:
   schemas:
     AssistantChatRequest:
@@ -532,4 +542,10 @@ components:
         service:
           type: string
         secret_name:
+          type: string
+    CurrentUserResponse:
+      type: object
+      required: [name]
+      properties:
+        name:
           type: string

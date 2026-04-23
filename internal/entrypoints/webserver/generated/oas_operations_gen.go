@@ -7,6 +7,7 @@ type OperationName = string
 
 const (
 	AssistantChatOperation          OperationName = "AssistantChat"
+	GetCurrentUserOperation         OperationName = "GetCurrentUser"
 	GetSecretByNameOperation        OperationName = "GetSecretByName"
 	GetServiceStatusOperation       OperationName = "GetServiceStatus"
 	ListEventsOperation             OperationName = "ListEvents"

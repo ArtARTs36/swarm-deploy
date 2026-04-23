@@ -50,6 +50,10 @@ export interface QueueResponse {
   queued: boolean;
 }
 
+export interface CurrentUserResponse {
+  name: string;
+}
+
 export interface EventHistoryItem {
   type: string;
   created_at: string;

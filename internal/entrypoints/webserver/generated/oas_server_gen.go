@@ -12,6 +12,10 @@ type Handler interface {
 	//
 	// POST /api/v1/assistant/chat
 	AssistantChat(ctx context.Context, req *AssistantChatRequest) (*AssistantChatResponse, error)
+	// GetCurrentUser implements getCurrentUser operation.
+	//
+	// GET /api/v1/users/me
+	GetCurrentUser(ctx context.Context) (*CurrentUserResponse, error)
 	// GetSecretByName implements getSecretByName operation.
 	//
 	// GET /api/v1/secrets/{name}

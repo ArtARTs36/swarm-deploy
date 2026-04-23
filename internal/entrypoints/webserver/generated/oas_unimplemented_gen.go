@@ -20,6 +20,13 @@ func (UnimplementedHandler) AssistantChat(ctx context.Context, req *AssistantCha
 	return r, ht.ErrNotImplemented
 }
 
+// GetCurrentUser implements getCurrentUser operation.
+//
+// GET /api/v1/users/me
+func (UnimplementedHandler) GetCurrentUser(ctx context.Context) (r *CurrentUserResponse, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetSecretByName implements getSecretByName operation.
 //
 // GET /api/v1/secrets/{name}

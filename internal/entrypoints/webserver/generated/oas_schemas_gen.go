@@ -188,6 +188,21 @@ func (s *AssistantChatResponseStatus) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/CurrentUserResponse
+type CurrentUserResponse struct {
+	Name string `json:"name"`
+}
+
+// GetName returns the value of Name.
+func (s *CurrentUserResponse) GetName() string {
+	return s.Name
+}
+
+// SetName sets the value of Name.
+func (s *CurrentUserResponse) SetName(val string) {
+	s.Name = val
+}
+
 // Ref: #/components/schemas/EventHistoryItem
 type EventHistoryItem struct {
 	Type      string                     `json:"type"`

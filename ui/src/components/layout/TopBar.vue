@@ -4,6 +4,7 @@ import { RouterLink } from "vue-router";
 
 import { fetchSearch } from "../../api/search";
 import type { SearchResult } from "../../api/types";
+import { useCurrentUserStore } from "../../stores/currentUser";
 import { useOverviewStore } from "../../stores/overview";
 import { useSecretDetailsStore } from "../../stores/secretDetails";
 
@@ -25,6 +26,7 @@ const MIN_QUERY_LENGTH = 2;
 const SEARCH_DEBOUNCE_MS = 300;
 
 const overviewStore = useOverviewStore();
+const currentUserStore = useCurrentUserStore();
 const secretDetailsStore = useSecretDetailsStore();
 
 const searchRootRef = ref<HTMLElement | null>(null);
@@ -49,6 +51,7 @@ const secretResults = computed(() => visibleResults.value.filter((item) => item.
 const showNoResults = computed(
   () => searchOpen.value && !searchLoading.value && !searchError.value && visibleResults.value.length === 0,
 );
+const currentUserLabel = computed(() => currentUserStore.displayName.trim() || "User");
 
 function resetSearchState() {
   searchResults.value = [];
@@ -215,7 +218,7 @@ onUnmounted(() => {
       <button type="button" :disabled="!assistantEnabled" @click="emit('toggleAssistant')">
         {{ assistantOpen ? "Assistant Open" : "Assistant" }}
       </button>
-      <button type="button" class="button-ghost">User</button>
+      <button type="button" class="button-ghost">{{ currentUserLabel }}</button>
     </div>
   </header>
 </template>
