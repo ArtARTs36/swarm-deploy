@@ -51,22 +51,54 @@ onUnmounted(() => {
           Failed to load secret details: {{ secretDetailsStore.error }}
         </p>
         <div v-else-if="secretDetailsStore.secret" class="service-metrics">
-          <p><strong>ID:</strong> <code>{{ secretDetailsStore.secret.id }}</code></p>
-          <p><strong>Name:</strong> {{ secretDetailsStore.secret.name }}</p>
-          <p><strong>Version ID:</strong> {{ secretDetailsStore.secret.version_id }}</p>
-          <p><strong>Created At:</strong> {{ formatDate(secretDetailsStore.secret.created_at) }}</p>
-          <p><strong>Updated At:</strong> {{ formatDate(secretDetailsStore.secret.updated_at) }}</p>
-          <p><strong>Driver:</strong> {{ secretDetailsStore.secret.driver || "n/a" }}</p>
-          <p><strong>External Path:</strong> {{ secretDetailsStore.secret.external?.path || "n/a" }}</p>
-          <p><strong>External Version ID:</strong> {{ secretDetailsStore.secret.external?.version_id || "n/a" }}</p>
-          <p><strong>Labels</strong></p>
-          <ul v-if="secretLabels.length > 0" class="event-details">
-            <li v-for="[key, value] in secretLabels" :key="key" class="event-detail">
-              <span class="event-detail-key">{{ key }}</span>
-              <code class="event-detail-value">{{ value }}</code>
-            </li>
-          </ul>
-          <p v-else class="meta">No labels.</p>
+          <table class="service-status-summary-table" aria-label="Secret summary">
+            <tbody>
+              <tr>
+                <th scope="row">ID</th>
+                <td><code>{{ secretDetailsStore.secret.id }}</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Name</th>
+                <td>{{ secretDetailsStore.secret.name }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Version ID</th>
+                <td>{{ secretDetailsStore.secret.version_id }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Created At</th>
+                <td>{{ formatDate(secretDetailsStore.secret.created_at) }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Updated At</th>
+                <td>{{ formatDate(secretDetailsStore.secret.updated_at) }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Driver</th>
+                <td>{{ secretDetailsStore.secret.driver || "n/a" }}</td>
+              </tr>
+              <tr>
+                <th scope="row">External Path</th>
+                <td>{{ secretDetailsStore.secret.external?.path || "n/a" }}</td>
+              </tr>
+              <tr>
+                <th scope="row">External Version ID</th>
+                <td>{{ secretDetailsStore.secret.external?.version_id || "n/a" }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Labels</th>
+                <td>
+                  <ul v-if="secretLabels.length > 0" class="event-details">
+                    <li v-for="[key, value] in secretLabels" :key="key" class="event-detail">
+                      <span class="event-detail-key">{{ key }}</span>
+                      <code class="event-detail-value">{{ value }}</code>
+                    </li>
+                  </ul>
+                  <span v-else class="meta">No labels.</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
