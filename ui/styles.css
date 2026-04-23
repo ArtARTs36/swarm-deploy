@@ -279,6 +279,29 @@ button:hover,
   overflow-wrap: anywhere;
 }
 
+.service-label-toggle {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.service-label-toggle:hover {
+  filter: brightness(0.95);
+}
+
+.service-label-toggle:focus-visible {
+  outline: 2px solid rgba(247, 178, 103, 0.65);
+  outline-offset: 1px;
+}
+
+.service-details-docker-tags {
+  margin-top: 6px;
+}
+
 .service-deployments-list {
   margin: 0;
   padding: 0;

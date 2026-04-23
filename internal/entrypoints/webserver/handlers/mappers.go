@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"math"
+	"strings"
 	"time"
 
 	"github.com/swarm-deploy/swarm-deploy/internal/controller"
@@ -18,6 +19,7 @@ import (
 const (
 	externalPathLabel      = "external_path"
 	externalVersionIDLabel = "external_version_id"
+	dockerLabelPrefix      = "com.docker."
 )
 
 func toGeneratedStacks(stacks []controller.StackView) []generated.StackView {
@@ -149,11 +151,28 @@ func toGeneratedServiceSpec(spec swarm.ServiceSpec) generated.ServiceSpecRespons
 	}
 
 	if len(spec.Labels) > 0 {
-		labels := make(generated.ServiceSpecResponseLabels, len(spec.Labels))
+		dockerLabels := make(generated.ServiceSpecLabelGroupResponse)
+		customLabels := make(generated.ServiceSpecLabelGroupResponse)
+
 		for key, value := range spec.Labels {
-			labels[key] = value
+			if strings.HasPrefix(key, dockerLabelPrefix) {
+				dockerLabels[key] = value
+				continue
+			}
+
+			customLabels[key] = value
 		}
-		mapped.Labels = generated.NewOptServiceSpecResponseLabels(labels)
+
+		groupedLabels := generated.ServiceSpecLabelsResponse{}
+		if len(dockerLabels) > 0 {
+			groupedLabels.Docker = generated.NewOptServiceSpecLabelGroupResponse(dockerLabels)
+		}
+		if len(customLabels) > 0 {
+			groupedLabels.Custom = generated.NewOptServiceSpecLabelGroupResponse(customLabels)
+		}
+		if groupedLabels.Docker.IsSet() || groupedLabels.Custom.IsSet() {
+			mapped.Labels = generated.NewOptServiceSpecLabelsResponse(groupedLabels)
+		}
 	}
 
 	return mapped

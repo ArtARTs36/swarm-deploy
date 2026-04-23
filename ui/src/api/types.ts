@@ -76,6 +76,11 @@ export interface ServiceSpecNetworkResponse {
   aliases?: string[];
 }
 
+export interface ServiceSpecLabelsResponse {
+  docker?: Record<string, string>;
+  custom?: Record<string, string>;
+}
+
 export interface ServiceSpecResponse {
   image: string;
   mode: string;
@@ -84,7 +89,7 @@ export interface ServiceSpecResponse {
   requested_cpu_nano: number;
   limit_ram_bytes: number;
   limit_cpu_nano: number;
-  labels?: Record<string, string>;
+  labels?: ServiceSpecLabelsResponse;
   secrets?: ServiceSpecSecretResponse[];
   network?: ServiceSpecNetworkResponse[];
 }

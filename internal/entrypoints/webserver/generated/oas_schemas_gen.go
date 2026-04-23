@@ -603,38 +603,38 @@ func (o OptSecretExternalInfo) Or(d SecretExternalInfo) SecretExternalInfo {
 	return d
 }
 
-// NewOptServiceSpecResponseLabels returns new OptServiceSpecResponseLabels with value set to v.
-func NewOptServiceSpecResponseLabels(v ServiceSpecResponseLabels) OptServiceSpecResponseLabels {
-	return OptServiceSpecResponseLabels{
+// NewOptServiceSpecLabelGroupResponse returns new OptServiceSpecLabelGroupResponse with value set to v.
+func NewOptServiceSpecLabelGroupResponse(v ServiceSpecLabelGroupResponse) OptServiceSpecLabelGroupResponse {
+	return OptServiceSpecLabelGroupResponse{
 		Value: v,
 		Set:   true,
 	}
 }
 
-// OptServiceSpecResponseLabels is optional ServiceSpecResponseLabels.
-type OptServiceSpecResponseLabels struct {
-	Value ServiceSpecResponseLabels
+// OptServiceSpecLabelGroupResponse is optional ServiceSpecLabelGroupResponse.
+type OptServiceSpecLabelGroupResponse struct {
+	Value ServiceSpecLabelGroupResponse
 	Set   bool
 }
 
-// IsSet returns true if OptServiceSpecResponseLabels was set.
-func (o OptServiceSpecResponseLabels) IsSet() bool { return o.Set }
+// IsSet returns true if OptServiceSpecLabelGroupResponse was set.
+func (o OptServiceSpecLabelGroupResponse) IsSet() bool { return o.Set }
 
 // Reset unsets value.
-func (o *OptServiceSpecResponseLabels) Reset() {
-	var v ServiceSpecResponseLabels
+func (o *OptServiceSpecLabelGroupResponse) Reset() {
+	var v ServiceSpecLabelGroupResponse
 	o.Value = v
 	o.Set = false
 }
 
 // SetTo sets value to v.
-func (o *OptServiceSpecResponseLabels) SetTo(v ServiceSpecResponseLabels) {
+func (o *OptServiceSpecLabelGroupResponse) SetTo(v ServiceSpecLabelGroupResponse) {
 	o.Set = true
 	o.Value = v
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o OptServiceSpecResponseLabels) Get() (v ServiceSpecResponseLabels, ok bool) {
+func (o OptServiceSpecLabelGroupResponse) Get() (v ServiceSpecLabelGroupResponse, ok bool) {
 	if !o.Set {
 		return v, false
 	}
@@ -642,7 +642,53 @@ func (o OptServiceSpecResponseLabels) Get() (v ServiceSpecResponseLabels, ok boo
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o OptServiceSpecResponseLabels) Or(d ServiceSpecResponseLabels) ServiceSpecResponseLabels {
+func (o OptServiceSpecLabelGroupResponse) Or(d ServiceSpecLabelGroupResponse) ServiceSpecLabelGroupResponse {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptServiceSpecLabelsResponse returns new OptServiceSpecLabelsResponse with value set to v.
+func NewOptServiceSpecLabelsResponse(v ServiceSpecLabelsResponse) OptServiceSpecLabelsResponse {
+	return OptServiceSpecLabelsResponse{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptServiceSpecLabelsResponse is optional ServiceSpecLabelsResponse.
+type OptServiceSpecLabelsResponse struct {
+	Value ServiceSpecLabelsResponse
+	Set   bool
+}
+
+// IsSet returns true if OptServiceSpecLabelsResponse was set.
+func (o OptServiceSpecLabelsResponse) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptServiceSpecLabelsResponse) Reset() {
+	var v ServiceSpecLabelsResponse
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptServiceSpecLabelsResponse) SetTo(v ServiceSpecLabelsResponse) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptServiceSpecLabelsResponse) Get() (v ServiceSpecLabelsResponse, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptServiceSpecLabelsResponse) Or(d ServiceSpecLabelsResponse) ServiceSpecLabelsResponse {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1395,6 +1441,44 @@ func (s *ServiceInfoType) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/ServiceSpecLabelGroupResponse
+type ServiceSpecLabelGroupResponse map[string]string
+
+func (s *ServiceSpecLabelGroupResponse) init() ServiceSpecLabelGroupResponse {
+	m := *s
+	if m == nil {
+		m = map[string]string{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/ServiceSpecLabelsResponse
+type ServiceSpecLabelsResponse struct {
+	Docker OptServiceSpecLabelGroupResponse `json:"docker"`
+	Custom OptServiceSpecLabelGroupResponse `json:"custom"`
+}
+
+// GetDocker returns the value of Docker.
+func (s *ServiceSpecLabelsResponse) GetDocker() OptServiceSpecLabelGroupResponse {
+	return s.Docker
+}
+
+// GetCustom returns the value of Custom.
+func (s *ServiceSpecLabelsResponse) GetCustom() OptServiceSpecLabelGroupResponse {
+	return s.Custom
+}
+
+// SetDocker sets the value of Docker.
+func (s *ServiceSpecLabelsResponse) SetDocker(val OptServiceSpecLabelGroupResponse) {
+	s.Docker = val
+}
+
+// SetCustom sets the value of Custom.
+func (s *ServiceSpecLabelsResponse) SetCustom(val OptServiceSpecLabelGroupResponse) {
+	s.Custom = val
+}
+
 // Ref: #/components/schemas/ServiceSpecNetworkResponse
 type ServiceSpecNetworkResponse struct {
 	Target  string   `json:"target"`
@@ -1430,7 +1514,7 @@ type ServiceSpecResponse struct {
 	RequestedCPUNano  int64                        `json:"requested_cpu_nano"`
 	LimitRAMBytes     int64                        `json:"limit_ram_bytes"`
 	LimitCPUNano      int64                        `json:"limit_cpu_nano"`
-	Labels            OptServiceSpecResponseLabels `json:"labels"`
+	Labels            OptServiceSpecLabelsResponse `json:"labels"`
 	Secrets           []ServiceSpecSecretResponse  `json:"secrets"`
 	Network           []ServiceSpecNetworkResponse `json:"network"`
 }
@@ -1471,7 +1555,7 @@ func (s *ServiceSpecResponse) GetLimitCPUNano() int64 {
 }
 
 // GetLabels returns the value of Labels.
-func (s *ServiceSpecResponse) GetLabels() OptServiceSpecResponseLabels {
+func (s *ServiceSpecResponse) GetLabels() OptServiceSpecLabelsResponse {
 	return s.Labels
 }
 
@@ -1521,7 +1605,7 @@ func (s *ServiceSpecResponse) SetLimitCPUNano(val int64) {
 }
 
 // SetLabels sets the value of Labels.
-func (s *ServiceSpecResponse) SetLabels(val OptServiceSpecResponseLabels) {
+func (s *ServiceSpecResponse) SetLabels(val OptServiceSpecLabelsResponse) {
 	s.Labels = val
 }
 
@@ -1533,17 +1617,6 @@ func (s *ServiceSpecResponse) SetSecrets(val []ServiceSpecSecretResponse) {
 // SetNetwork sets the value of Network.
 func (s *ServiceSpecResponse) SetNetwork(val []ServiceSpecNetworkResponse) {
 	s.Network = val
-}
-
-type ServiceSpecResponseLabels map[string]string
-
-func (s *ServiceSpecResponseLabels) init() ServiceSpecResponseLabels {
-	m := *s
-	if m == nil {
-		m = map[string]string{}
-		*s = m
-	}
-	return m
 }
 
 // Ref: #/components/schemas/ServiceSpecSecretResponse

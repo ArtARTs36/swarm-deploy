@@ -1232,21 +1232,21 @@ func (s *OptSecretExternalInfo) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes ServiceSpecResponseLabels as json.
-func (o OptServiceSpecResponseLabels) Encode(e *jx.Encoder) {
+// Encode encodes ServiceSpecLabelGroupResponse as json.
+func (o OptServiceSpecLabelGroupResponse) Encode(e *jx.Encoder) {
 	if !o.Set {
 		return
 	}
 	o.Value.Encode(e)
 }
 
-// Decode decodes ServiceSpecResponseLabels from json.
-func (o *OptServiceSpecResponseLabels) Decode(d *jx.Decoder) error {
+// Decode decodes ServiceSpecLabelGroupResponse from json.
+func (o *OptServiceSpecLabelGroupResponse) Decode(d *jx.Decoder) error {
 	if o == nil {
-		return errors.New("invalid: unable to decode OptServiceSpecResponseLabels to nil")
+		return errors.New("invalid: unable to decode OptServiceSpecLabelGroupResponse to nil")
 	}
 	o.Set = true
-	o.Value = make(ServiceSpecResponseLabels)
+	o.Value = make(ServiceSpecLabelGroupResponse)
 	if err := o.Value.Decode(d); err != nil {
 		return err
 	}
@@ -1254,14 +1254,47 @@ func (o *OptServiceSpecResponseLabels) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s OptServiceSpecResponseLabels) MarshalJSON() ([]byte, error) {
+func (s OptServiceSpecLabelGroupResponse) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptServiceSpecResponseLabels) UnmarshalJSON(data []byte) error {
+func (s *OptServiceSpecLabelGroupResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ServiceSpecLabelsResponse as json.
+func (o OptServiceSpecLabelsResponse) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ServiceSpecLabelsResponse from json.
+func (o *OptServiceSpecLabelsResponse) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptServiceSpecLabelsResponse to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptServiceSpecLabelsResponse) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptServiceSpecLabelsResponse) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -3001,6 +3034,142 @@ func (s *ServiceInfoType) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s ServiceSpecLabelGroupResponse) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s ServiceSpecLabelGroupResponse) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		e.Str(elem)
+	}
+}
+
+// Decode decodes ServiceSpecLabelGroupResponse from json.
+func (s *ServiceSpecLabelGroupResponse) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ServiceSpecLabelGroupResponse to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem string
+		if err := func() error {
+			v, err := d.Str()
+			elem = string(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ServiceSpecLabelGroupResponse")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ServiceSpecLabelGroupResponse) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ServiceSpecLabelGroupResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ServiceSpecLabelsResponse) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ServiceSpecLabelsResponse) encodeFields(e *jx.Encoder) {
+	{
+		if s.Docker.Set {
+			e.FieldStart("docker")
+			s.Docker.Encode(e)
+		}
+	}
+	{
+		if s.Custom.Set {
+			e.FieldStart("custom")
+			s.Custom.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfServiceSpecLabelsResponse = [2]string{
+	0: "docker",
+	1: "custom",
+}
+
+// Decode decodes ServiceSpecLabelsResponse from json.
+func (s *ServiceSpecLabelsResponse) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ServiceSpecLabelsResponse to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "docker":
+			if err := func() error {
+				s.Docker.Reset()
+				if err := s.Docker.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"docker\"")
+			}
+		case "custom":
+			if err := func() error {
+				s.Custom.Reset()
+				if err := s.Custom.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"custom\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ServiceSpecLabelsResponse")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ServiceSpecLabelsResponse) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ServiceSpecLabelsResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *ServiceSpecNetworkResponse) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -3394,62 +3563,6 @@ func (s *ServiceSpecResponse) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ServiceSpecResponse) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s ServiceSpecResponseLabels) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields implements json.Marshaler.
-func (s ServiceSpecResponseLabels) encodeFields(e *jx.Encoder) {
-	for k, elem := range s {
-		e.FieldStart(k)
-
-		e.Str(elem)
-	}
-}
-
-// Decode decodes ServiceSpecResponseLabels from json.
-func (s *ServiceSpecResponseLabels) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ServiceSpecResponseLabels to nil")
-	}
-	m := s.init()
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		var elem string
-		if err := func() error {
-			v, err := d.Str()
-			elem = string(v)
-			if err != nil {
-				return err
-			}
-			return nil
-		}(); err != nil {
-			return errors.Wrapf(err, "decode field %q", k)
-		}
-		m[string(k)] = elem
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode ServiceSpecResponseLabels")
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s ServiceSpecResponseLabels) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ServiceSpecResponseLabels) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

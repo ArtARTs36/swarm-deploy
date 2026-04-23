@@ -54,6 +54,52 @@ func TestHandlerGetServiceStatus(t *testing.T) {
 	assert.Equal(t, "api", resp.Service)
 	assert.Equal(t, "ghcr.io/swarm-deploy/payments-api:v1.2.3", resp.Spec.Image)
 	assert.Equal(t, "replicated", resp.Spec.Mode)
+	assert.False(t, resp.Spec.Labels.IsSet())
+}
+
+func TestHandlerGetServiceStatus_MapsGroupedLabels(t *testing.T) {
+	t.Parallel()
+
+	h := &handler{
+		serviceInspector: fakeServiceStatusInspector{
+			status: swarm.ServiceStatus{
+				Stack:   "payments",
+				Service: "api",
+				Spec: swarm.ServiceSpec{
+					Image: "ghcr.io/swarm-deploy/payments-api:v1.2.3",
+					Mode:  "replicated",
+					Labels: map[string]string{
+						"com.docker.stack.namespace": "payments",
+						"com.docker.service.name":    "payments_api",
+						"app.env":                    "prod",
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := h.GetServiceStatus(context.Background(), generated.GetServiceStatusParams{
+		Stack:   "payments",
+		Service: "api",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	labels, ok := resp.Spec.Labels.Get()
+	require.True(t, ok)
+
+	dockerLabels, ok := labels.Docker.Get()
+	require.True(t, ok)
+	assert.Equal(t, generated.ServiceSpecLabelGroupResponse{
+		"com.docker.stack.namespace": "payments",
+		"com.docker.service.name":    "payments_api",
+	}, dockerLabels)
+
+	customLabels, ok := labels.Custom.Get()
+	require.True(t, ok)
+	assert.Equal(t, generated.ServiceSpecLabelGroupResponse{
+		"app.env": "prod",
+	}, customLabels)
 }
 
 func TestHandlerListServiceDeployments_MapsFromHistory(t *testing.T) {

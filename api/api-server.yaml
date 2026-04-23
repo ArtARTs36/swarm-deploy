@@ -429,9 +429,7 @@ components:
           format: int64
           minimum: 0
         labels:
-          type: object
-          additionalProperties:
-            type: string
+          $ref: '#/components/schemas/ServiceSpecLabelsResponse'
         secrets:
           type: array
           items:
@@ -440,6 +438,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ServiceSpecNetworkResponse'
+    ServiceSpecLabelsResponse:
+      type: object
+      properties:
+        docker:
+          $ref: '#/components/schemas/ServiceSpecLabelGroupResponse'
+        custom:
+          $ref: '#/components/schemas/ServiceSpecLabelGroupResponse'
+    ServiceSpecLabelGroupResponse:
+      type: object
+      additionalProperties:
+        type: string
     ServiceSpecSecretResponse:
       type: object
       required: [secret_name]
