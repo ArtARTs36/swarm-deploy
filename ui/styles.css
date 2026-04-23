@@ -203,6 +203,7 @@ button:hover,
   border-radius: 16px;
   background: var(--card);
   padding: 14px;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -212,6 +213,14 @@ button:hover,
 .stack-title {
   margin: 0;
   font-size: 1.1rem;
+  padding-right: 96px;
+  overflow-wrap: anywhere;
+}
+
+.stack-card-status {
+  position: absolute;
+  top: 14px;
+  right: 14px;
 }
 
 .services-page {

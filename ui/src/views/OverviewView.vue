@@ -71,7 +71,7 @@ onUnmounted(() => {
       <article v-for="stack in overviewStore.stacks" :key="stack.name" class="stack-card">
         <h3 class="stack-title">{{ stack.name }}</h3>
         <span
-          class="status"
+          class="status stack-card-status"
           :class="{
             success: isStatusClass(stack.last_status || 'unknown', 'success'),
             failed: isStatusClass(stack.last_status || 'unknown', 'failed'),
