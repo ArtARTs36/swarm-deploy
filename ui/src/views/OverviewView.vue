@@ -34,10 +34,6 @@ async function refreshOverview() {
   await overviewStore.loadOverview();
 }
 
-async function openServiceStatus(stackName: string, serviceName: string) {
-  await overviewStore.openServiceStatusModal(stackName, serviceName);
-}
-
 onMounted(async () => {
   await refreshOverview();
   refreshTimer = setInterval(() => {
@@ -88,22 +84,6 @@ onUnmounted(() => {
         <p class="meta">last deploy: {{ formatDate(stack.last_deploy_at) }}</p>
         <p class="meta">commit: {{ stack.last_commit || "n/a" }}</p>
         <p v-if="stack.last_error" class="meta">error: {{ stack.last_error }}</p>
-        <ul class="services">
-          <li v-if="!stack.services || stack.services.length === 0">No services captured yet.</li>
-          <li v-for="service in stack.services || []" :key="service.name" class="service-item">
-            <div>
-              <strong>{{ service.name || "unknown" }}</strong><br />
-              <span>{{ service.image || "unknown image" }} ({{ service.image_version || "unknown" }})</span>
-            </div>
-            <button
-              type="button"
-              class="service-status-btn"
-              @click="openServiceStatus(stack.name, service.name)"
-            >
-              Status
-            </button>
-          </li>
-        </ul>
       </article>
     </div>
   </section>

@@ -33,31 +33,12 @@ func toGeneratedStack(stack controller.StackView) generated.StackView {
 		Name:        stack.Name,
 		ComposeFile: stack.ComposeFile,
 		LastStatus:  stack.LastStatus,
-		Services:    toGeneratedServices(stack.Services),
 		LastError:   toOptString(stack.LastError),
 		LastCommit:  toOptString(stack.LastCommit),
 		LastDeployAt: toOptDateTime(
 			stack.LastDeployAt,
 		),
 		SourceDigest: toOptString(stack.SourceDigest),
-	}
-
-	return mapped
-}
-
-func toGeneratedServices(services []controller.ServiceView) []generated.ServiceView {
-	mapped := make([]generated.ServiceView, 0, len(services))
-
-	for _, service := range services {
-		mappedService := generated.ServiceView{
-			Name:         service.Name,
-			Image:        service.Image,
-			ImageVersion: service.ImageVersion,
-			LastStatus:   toOptString(service.LastStatus),
-			LastDeployAt: toOptDateTime(service.LastDeployAt),
-		}
-
-		mapped = append(mapped, mappedService)
 	}
 
 	return mapped

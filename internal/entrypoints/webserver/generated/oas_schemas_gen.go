@@ -1454,65 +1454,6 @@ func (s *ServiceStatusResponse) SetSpec(val ServiceSpecResponse) {
 	s.Spec = val
 }
 
-// Ref: #/components/schemas/ServiceView
-type ServiceView struct {
-	Name         string      `json:"name"`
-	Image        string      `json:"image"`
-	ImageVersion string      `json:"image_version"`
-	LastStatus   OptString   `json:"last_status"`
-	LastDeployAt OptDateTime `json:"last_deploy_at"`
-}
-
-// GetName returns the value of Name.
-func (s *ServiceView) GetName() string {
-	return s.Name
-}
-
-// GetImage returns the value of Image.
-func (s *ServiceView) GetImage() string {
-	return s.Image
-}
-
-// GetImageVersion returns the value of ImageVersion.
-func (s *ServiceView) GetImageVersion() string {
-	return s.ImageVersion
-}
-
-// GetLastStatus returns the value of LastStatus.
-func (s *ServiceView) GetLastStatus() OptString {
-	return s.LastStatus
-}
-
-// GetLastDeployAt returns the value of LastDeployAt.
-func (s *ServiceView) GetLastDeployAt() OptDateTime {
-	return s.LastDeployAt
-}
-
-// SetName sets the value of Name.
-func (s *ServiceView) SetName(val string) {
-	s.Name = val
-}
-
-// SetImage sets the value of Image.
-func (s *ServiceView) SetImage(val string) {
-	s.Image = val
-}
-
-// SetImageVersion sets the value of ImageVersion.
-func (s *ServiceView) SetImageVersion(val string) {
-	s.ImageVersion = val
-}
-
-// SetLastStatus sets the value of LastStatus.
-func (s *ServiceView) SetLastStatus(val OptString) {
-	s.LastStatus = val
-}
-
-// SetLastDeployAt sets the value of LastDeployAt.
-func (s *ServiceView) SetLastDeployAt(val OptDateTime) {
-	s.LastDeployAt = val
-}
-
 // Ref: #/components/schemas/ServicesResponse
 type ServicesResponse struct {
 	Services []ServiceInfo `json:"services"`
@@ -1530,14 +1471,13 @@ func (s *ServicesResponse) SetServices(val []ServiceInfo) {
 
 // Ref: #/components/schemas/StackView
 type StackView struct {
-	Name         string        `json:"name"`
-	ComposeFile  string        `json:"compose_file"`
-	LastStatus   string        `json:"last_status"`
-	LastError    OptString     `json:"last_error"`
-	LastCommit   OptString     `json:"last_commit"`
-	LastDeployAt OptDateTime   `json:"last_deploy_at"`
-	SourceDigest OptString     `json:"source_digest"`
-	Services     []ServiceView `json:"services"`
+	Name         string      `json:"name"`
+	ComposeFile  string      `json:"compose_file"`
+	LastStatus   string      `json:"last_status"`
+	LastError    OptString   `json:"last_error"`
+	LastCommit   OptString   `json:"last_commit"`
+	LastDeployAt OptDateTime `json:"last_deploy_at"`
+	SourceDigest OptString   `json:"source_digest"`
 }
 
 // GetName returns the value of Name.
@@ -1575,11 +1515,6 @@ func (s *StackView) GetSourceDigest() OptString {
 	return s.SourceDigest
 }
 
-// GetServices returns the value of Services.
-func (s *StackView) GetServices() []ServiceView {
-	return s.Services
-}
-
 // SetName sets the value of Name.
 func (s *StackView) SetName(val string) {
 	s.Name = val
@@ -1613,11 +1548,6 @@ func (s *StackView) SetLastDeployAt(val OptDateTime) {
 // SetSourceDigest sets the value of SourceDigest.
 func (s *StackView) SetSourceDigest(val OptString) {
 	s.SourceDigest = val
-}
-
-// SetServices sets the value of Services.
-func (s *StackView) SetServices(val []ServiceView) {
-	s.Services = val
 }
 
 // Ref: #/components/schemas/StacksResponse

@@ -416,7 +416,7 @@ components:
             type: string
     StackView:
       type: object
-      required: [name, compose_file, last_status, services]
+      required: [name, compose_file, last_status]
       properties:
         name:
           type: string
@@ -433,10 +433,6 @@ components:
           format: date-time
         source_digest:
           type: string
-        services:
-          type: array
-          items:
-            $ref: '#/components/schemas/ServiceView'
     StacksResponse:
       type: object
       required: [stacks, sync]

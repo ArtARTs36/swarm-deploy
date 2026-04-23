@@ -7,14 +7,6 @@ export interface SyncInfo {
   [key: string]: string | undefined;
 }
 
-export interface ServiceView {
-  name: string;
-  image: string;
-  image_version: string;
-  last_status?: string;
-  last_deploy_at?: string;
-}
-
 export interface StackView {
   name: string;
   compose_file: string;
@@ -23,12 +15,33 @@ export interface StackView {
   last_commit?: string;
   last_deploy_at?: string;
   source_digest?: string;
-  services: ServiceView[];
 }
 
 export interface StacksResponse {
   stacks: StackView[];
   sync: SyncInfo;
+}
+
+export type ServiceType = "application" | "monitoring" | "delivery" | "reverseProxy" | "database";
+
+export interface WebRoute {
+  domain: string;
+  address: string;
+  port: string;
+}
+
+export interface ServiceInfo {
+  name: string;
+  stack: string;
+  type: ServiceType;
+  image: string;
+  description?: string;
+  repository_url?: string;
+  web_routes?: WebRoute[];
+}
+
+export interface ServicesResponse {
+  services: ServiceInfo[];
 }
 
 export interface QueueResponse {
