@@ -80,6 +80,7 @@ func NewApplication(
 	address string,
 	control *controller.Controller,
 	serviceInspector *swarm.ServiceManager,
+	secretReader *swarm.SecretManager,
 	eventHistory *history.Store,
 	serviceStore *service.Store,
 	nodeStore *swarmnode.Store,
@@ -87,7 +88,7 @@ func NewApplication(
 	eventDispatcher dispatcher.Dispatcher,
 	authCfg config.AuthenticationSpec,
 ) (*Application, error) {
-	h := handlers.New(control, serviceInspector, eventHistory, serviceStore, nodeStore, assistantService)
+	h := handlers.New(control, serviceInspector, secretReader, eventHistory, serviceStore, nodeStore, assistantService)
 
 	apiHandler, err := generated.NewServer(h, generated.WithErrorHandler(handlers.HandleHTTPError))
 	if err != nil {

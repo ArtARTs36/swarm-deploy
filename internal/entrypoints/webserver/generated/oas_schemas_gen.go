@@ -496,6 +496,52 @@ func (o OptInt32) Or(d int32) int32 {
 	return d
 }
 
+// NewOptSecretExternalInfo returns new OptSecretExternalInfo with value set to v.
+func NewOptSecretExternalInfo(v SecretExternalInfo) OptSecretExternalInfo {
+	return OptSecretExternalInfo{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptSecretExternalInfo is optional SecretExternalInfo.
+type OptSecretExternalInfo struct {
+	Value SecretExternalInfo
+	Set   bool
+}
+
+// IsSet returns true if OptSecretExternalInfo was set.
+func (o OptSecretExternalInfo) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptSecretExternalInfo) Reset() {
+	var v SecretExternalInfo
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptSecretExternalInfo) SetTo(v SecretExternalInfo) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptSecretExternalInfo) Get() (v SecretExternalInfo, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptSecretExternalInfo) Or(d SecretExternalInfo) SecretExternalInfo {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptServiceSpecResponseLabels returns new OptServiceSpecResponseLabels with value set to v.
 func NewOptServiceSpecResponseLabels(v ServiceSpecResponseLabels) OptServiceSpecResponseLabels {
 	return OptServiceSpecResponseLabels{
@@ -601,6 +647,106 @@ func (s *QueueResponse) GetQueued() bool {
 // SetQueued sets the value of Queued.
 func (s *QueueResponse) SetQueued(val bool) {
 	s.Queued = val
+}
+
+// Ref: #/components/schemas/SecretExternalInfo
+type SecretExternalInfo struct {
+	Path      OptString `json:"path"`
+	VersionID OptString `json:"version_id"`
+}
+
+// GetPath returns the value of Path.
+func (s *SecretExternalInfo) GetPath() OptString {
+	return s.Path
+}
+
+// GetVersionID returns the value of VersionID.
+func (s *SecretExternalInfo) GetVersionID() OptString {
+	return s.VersionID
+}
+
+// SetPath sets the value of Path.
+func (s *SecretExternalInfo) SetPath(val OptString) {
+	s.Path = val
+}
+
+// SetVersionID sets the value of VersionID.
+func (s *SecretExternalInfo) SetVersionID(val OptString) {
+	s.VersionID = val
+}
+
+// Ref: #/components/schemas/SecretInfo
+type SecretInfo struct {
+	ID        string                `json:"id"`
+	Name      string                `json:"name"`
+	VersionID int64                 `json:"version_id"`
+	CreatedAt time.Time             `json:"created_at"`
+	External  OptSecretExternalInfo `json:"external"`
+}
+
+// GetID returns the value of ID.
+func (s *SecretInfo) GetID() string {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *SecretInfo) GetName() string {
+	return s.Name
+}
+
+// GetVersionID returns the value of VersionID.
+func (s *SecretInfo) GetVersionID() int64 {
+	return s.VersionID
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *SecretInfo) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetExternal returns the value of External.
+func (s *SecretInfo) GetExternal() OptSecretExternalInfo {
+	return s.External
+}
+
+// SetID sets the value of ID.
+func (s *SecretInfo) SetID(val string) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *SecretInfo) SetName(val string) {
+	s.Name = val
+}
+
+// SetVersionID sets the value of VersionID.
+func (s *SecretInfo) SetVersionID(val int64) {
+	s.VersionID = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *SecretInfo) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetExternal sets the value of External.
+func (s *SecretInfo) SetExternal(val OptSecretExternalInfo) {
+	s.External = val
+}
+
+// Ref: #/components/schemas/SecretsResponse
+type SecretsResponse struct {
+	Secrets []SecretInfo `json:"secrets"`
+}
+
+// GetSecrets returns the value of Secrets.
+func (s *SecretsResponse) GetSecrets() []SecretInfo {
+	return s.Secrets
+}
+
+// SetSecrets sets the value of Secrets.
+func (s *SecretsResponse) SetSecrets(val []SecretInfo) {
+	s.Secrets = val
 }
 
 // Ref: #/components/schemas/ServiceInfo

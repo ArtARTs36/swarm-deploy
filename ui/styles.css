@@ -229,6 +229,28 @@ button:hover,
   font-size: 1.2rem;
 }
 
+.secrets-toolbar {
+  display: grid;
+  gap: 6px;
+}
+
+.secrets-search-input {
+  width: 100%;
+  border: 1px solid rgba(161, 192, 204, 0.34);
+  border-radius: 999px;
+  background: rgba(9, 18, 28, 0.92);
+  color: var(--text);
+  padding: 10px 14px;
+}
+
+.secrets-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 4px 10px 10px;
+}
+
 .services-empty {
   border: 1px dashed rgba(161, 192, 204, 0.3);
   border-radius: 12px;

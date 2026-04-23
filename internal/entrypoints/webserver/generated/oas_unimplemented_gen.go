@@ -41,6 +41,13 @@ func (UnimplementedHandler) ListNodes(ctx context.Context) (r *NodesResponse, _ 
 	return r, ht.ErrNotImplemented
 }
 
+// ListSecrets implements listSecrets operation.
+//
+// GET /api/v1/secrets
+func (UnimplementedHandler) ListSecrets(ctx context.Context) (r *SecretsResponse, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListServices implements listServices operation.
 //
 // GET /api/v1/services

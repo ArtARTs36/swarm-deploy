@@ -10,6 +10,7 @@ const (
 	GetServiceStatusOperation OperationName = "GetServiceStatus"
 	ListEventsOperation       OperationName = "ListEvents"
 	ListNodesOperation        OperationName = "ListNodes"
+	ListSecretsOperation      OperationName = "ListSecrets"
 	ListServicesOperation     OperationName = "ListServices"
 	ListStacksOperation       OperationName = "ListStacks"
 	TriggerSyncOperation      OperationName = "TriggerSync"

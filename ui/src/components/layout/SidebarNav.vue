@@ -7,7 +7,7 @@ const links = [
   { to: "/overview", label: "Overview" },
   { to: "/services", label: "Services" },
   { to: "/cluster", label: "Cluster" },
-  { to: "/secrets", label: "Secrets & Config" },
+  { to: "/secrets", label: "Secrets" },
 ];
 
 function isActive(path: string): boolean {

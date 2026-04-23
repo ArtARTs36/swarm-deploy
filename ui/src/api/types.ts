@@ -90,6 +90,23 @@ export interface NodesResponse {
   nodes: NodeInfo[];
 }
 
+export interface SecretExternalInfo {
+  path?: string;
+  version_id?: string;
+}
+
+export interface SecretInfo {
+  id: string;
+  name: string;
+  version_id: number;
+  created_at: string;
+  external?: SecretExternalInfo;
+}
+
+export interface SecretsResponse {
+  secrets: SecretInfo[];
+}
+
 export type AssistantStatus = "in_progress" | "completed" | "failed" | "rejected" | "disabled";
 
 export interface AssistantChatRequest {

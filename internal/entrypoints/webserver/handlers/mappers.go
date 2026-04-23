@@ -13,6 +13,11 @@ import (
 	"github.com/swarm-deploy/webroute"
 )
 
+const (
+	externalPathLabel      = "external_path"
+	externalVersionIDLabel = "external_version_id"
+)
+
 func toGeneratedStacks(stacks []controller.StackView) []generated.StackView {
 	mapped := make([]generated.StackView, 0, len(stacks))
 
@@ -217,6 +222,48 @@ func toGeneratedNodes(nodes []swarm.Node) []generated.NodeInfo {
 	}
 
 	return mapped
+}
+
+func toGeneratedSecrets(secrets []swarm.Secret) []generated.SecretInfo {
+	mapped := make([]generated.SecretInfo, 0, len(secrets))
+	for _, secret := range secrets {
+		item := generated.SecretInfo{
+			ID:        secret.ID,
+			Name:      secret.Name,
+			VersionID: toInt64FromUint64(secret.VersionID),
+			CreatedAt: secret.CreatedAt,
+			External:  toGeneratedSecretExternal(secret.Labels),
+		}
+
+		mapped = append(mapped, item)
+	}
+
+	return mapped
+}
+
+func toGeneratedSecretExternal(labels map[string]string) generated.OptSecretExternalInfo {
+	if len(labels) == 0 {
+		return generated.OptSecretExternalInfo{}
+	}
+
+	external := generated.SecretExternalInfo{}
+	hasExternalData := false
+
+	if path, ok := labels[externalPathLabel]; ok && path != "" {
+		external.Path = generated.NewOptString(path)
+		hasExternalData = true
+	}
+
+	if versionID, ok := labels[externalVersionIDLabel]; ok && versionID != "" {
+		external.VersionID = generated.NewOptString(versionID)
+		hasExternalData = true
+	}
+
+	if !hasExternalData {
+		return generated.OptSecretExternalInfo{}
+	}
+
+	return generated.NewOptSecretExternalInfo(external)
 }
 
 func toGeneratedServiceType(typ serviceType.Type) generated.ServiceInfoType {
