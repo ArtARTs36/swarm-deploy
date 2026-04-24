@@ -54,8 +54,13 @@ export interface CurrentUserResponse {
   name: string;
 }
 
+export type EventSeverity = "info" | "warn" | "error" | "alert";
+export type EventCategory = "sync" | "security";
+
 export interface EventHistoryItem {
   type: string;
+  severity: EventSeverity;
+  category: EventCategory;
   created_at: string;
   message: string;
   details?: Record<string, string>;
