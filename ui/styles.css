@@ -883,6 +883,43 @@ button:hover,
   margin: 0;
 }
 
+.event-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-severity {
+  display: inline-block;
+  min-width: 52px;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.event-severity-info {
+  color: #13202d;
+  background: rgba(161, 192, 204, 0.9);
+}
+
+.event-severity-warn {
+  color: #13202d;
+  background: rgba(247, 178, 103, 0.9);
+}
+
+.event-severity-error {
+  color: #13202d;
+  background: rgba(244, 124, 124, 0.94);
+}
+
+.event-severity-alert {
+  color: #fff;
+  background: rgba(176, 64, 64, 0.94);
+}
+
 .event-details {
   margin: 8px 0 0;
   padding: 0;

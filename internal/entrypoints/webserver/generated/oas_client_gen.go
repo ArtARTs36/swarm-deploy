@@ -46,7 +46,7 @@ type Invoker interface {
 	// ListEvents invokes listEvents operation.
 	//
 	// GET /api/v1/events
-	ListEvents(ctx context.Context) (*EventHistoryResponse, error)
+	ListEvents(ctx context.Context, params ListEventsParams) (*EventHistoryResponse, error)
 	// ListNodes invokes listNodes operation.
 	//
 	// GET /api/v1/nodes
@@ -466,12 +466,12 @@ func (c *Client) sendGetServiceStatus(ctx context.Context, params GetServiceStat
 // ListEvents invokes listEvents operation.
 //
 // GET /api/v1/events
-func (c *Client) ListEvents(ctx context.Context) (*EventHistoryResponse, error) {
-	res, err := c.sendListEvents(ctx)
+func (c *Client) ListEvents(ctx context.Context, params ListEventsParams) (*EventHistoryResponse, error) {
+	res, err := c.sendListEvents(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendListEvents(ctx context.Context) (res *EventHistoryResponse, err error) {
+func (c *Client) sendListEvents(ctx context.Context, params ListEventsParams) (res *EventHistoryResponse, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listEvents"),
 		semconv.HTTPRequestMethodKey.String("GET"),
@@ -511,6 +511,62 @@ func (c *Client) sendListEvents(ctx context.Context) (res *EventHistoryResponse,
 	var pathParts [1]string
 	pathParts[0] = "/api/v1/events"
 	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "severities" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "severities",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if params.Severities != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.Severities {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(string(item)))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "categories" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "categories",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if params.Categories != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.Categories {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(string(item)))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
 
 	stage = "EncodeRequest"
 	r, err := ht.NewRequest(ctx, "GET", u)

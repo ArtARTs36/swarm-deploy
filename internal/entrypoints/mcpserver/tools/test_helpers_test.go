@@ -6,23 +6,11 @@ import (
 	"time"
 
 	"github.com/swarm-deploy/swarm-deploy/internal/differ"
-	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
 	gitx "github.com/swarm-deploy/swarm-deploy/internal/git"
 	"github.com/swarm-deploy/swarm-deploy/internal/registry"
 	"github.com/swarm-deploy/swarm-deploy/internal/service"
 	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
 )
-
-type fakeHistoryStore struct {
-	entries []history.Entry
-}
-
-func (f *fakeHistoryStore) List() []history.Entry {
-	out := make([]history.Entry, len(f.entries))
-	copy(out, f.entries)
-
-	return out
-}
 
 type fakeSyncControl struct {
 	queued bool

@@ -220,7 +220,9 @@ func toGeneratedEvents(entries []history.Entry) []generated.EventHistoryItem {
 	mapped := make([]generated.EventHistoryItem, 0, len(entries))
 	for _, entry := range entries {
 		item := generated.EventHistoryItem{
-			Type:      string(entry.Type),
+			Type:      entry.Type.String(),
+			Severity:  toGeneratedEventSeverity(entry.Severity),
+			Category:  toGeneratedEventCategory(entry.Category),
 			CreatedAt: entry.CreatedAt,
 			Message:   entry.Message,
 		}
@@ -235,6 +237,32 @@ func toGeneratedEvents(entries []history.Entry) []generated.EventHistoryItem {
 	}
 
 	return mapped
+}
+
+func toGeneratedEventSeverity(severity events.Severity) generated.EventSeverity {
+	switch severity {
+	case events.SeverityWarn:
+		return generated.EventSeverityWarn
+	case events.SeverityError:
+		return generated.EventSeverityError
+	case events.SeverityAlert:
+		return generated.EventSeverityAlert
+	case events.SeverityInfo:
+		fallthrough
+	default:
+		return generated.EventSeverityInfo
+	}
+}
+
+func toGeneratedEventCategory(category events.Category) generated.EventCategory {
+	switch category {
+	case events.CategorySecurity:
+		return generated.EventCategorySecurity
+	case events.CategorySync:
+		fallthrough
+	default:
+		return generated.EventCategorySync
+	}
 }
 
 func toGeneratedServiceInfos(services []service.Info) []generated.ServiceInfo {

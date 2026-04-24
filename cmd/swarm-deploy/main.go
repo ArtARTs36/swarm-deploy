@@ -311,7 +311,12 @@ func buildEventDispatcher(
 	)
 	subscribersCount++
 
-	for eventType, channels := range cfg.Spec.Notifications.On {
+	for eventTypeName, channels := range cfg.Spec.Notifications.On {
+		eventType, ok := events.ParseType(string(eventTypeName))
+		if !ok {
+			return nil, nil, nil, fmt.Errorf("unknown notifications.on event type %q", eventTypeName)
+		}
+
 		for _, tg := range channels.Telegram {
 			tgNotifier, notifierErr := notifiers.NewTelegramNotifier(
 				tg.Name,

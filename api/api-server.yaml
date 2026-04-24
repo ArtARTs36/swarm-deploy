@@ -47,6 +47,21 @@ paths:
   /api/v1/events:
     get:
       operationId: listEvents
+      parameters:
+        - in: query
+          name: severities
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/EventSeverity'
+        - in: query
+          name: categories
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/EventCategory'
       responses:
         '200':
           description: Latest events from local history
@@ -227,12 +242,22 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EventHistoryItem'
+    EventSeverity:
+      type: string
+      enum: [info, warn, error, alert]
+    EventCategory:
+      type: string
+      enum: [sync, security]
     EventHistoryItem:
       type: object
-      required: [type, created_at, message]
+      required: [type, severity, category, created_at, message]
       properties:
         type:
           type: string
+        severity:
+          $ref: '#/components/schemas/EventSeverity'
+        category:
+          $ref: '#/components/schemas/EventCategory'
         created_at:
           type: string
           format: date-time

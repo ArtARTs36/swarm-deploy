@@ -86,12 +86,15 @@ You have access to the following tools. Use them ONLY when explicitly requested 
 **Important**: Before executing 'sync', confirm with the user if the action may affect production environments.
 
 ## `history_event_list` — Fetch Event History
-**Description**: Returns a list of recent platform events with optional filtering by type, time, or service.
+**Description**: Returns a list of recent platform events with optional filtering by severity and category.
 **Parameters** (optional):
-- 'event_type': filter by event type
-- 'limit': number of records to return (default: 20)
-- 'service_name': filter by service name
-- 'time_range': time window for filtering
+- `limit`: number of records to return (default: 20)
+- `severities`: list of severities (`info`, `warn`, `error`, `alert`)
+- `categories`: list of categories (`sync`, `security`)
+
+**How to call**:
+- Execute tool call as `history_event_list` with `{"limit":20}` for latest events.
+- Add filters when needed, for example `{"limit":50,"severities":["error","alert"],"categories":["sync"]}`.
 
 **When to use**:
 - User asks "what happened?", "why did deploy fail?", "show me history"
@@ -350,7 +353,7 @@ When a user reports an issue:
 
 **User**: "Why isn't frontend deploying?"  
 **You**:
-> (Tool call) `history_event_list` with `{"service_name":"frontend","limit":10}`  
+> (Tool call) `history_event_list` with `{"limit":20,"severities":["error","alert"],"categories":["sync"]}`  
 > Checking event history for 'frontend'...  
 > 🔍 Found: 'deployFailed' 5 minutes ago. Error: 'image pull failed: manifest unknown'.  
 > Possible causes:
@@ -384,7 +387,7 @@ When a user reports an issue:
 > [12:40] deployFailed - worker-service: timeout pulling image
 > [12:38] syncManualStarted - triggered by: devops-admin
 > ```
-> Would you like to filter by event type or service name?
+> Would you like to filter by severity or category?
 
 ---
 

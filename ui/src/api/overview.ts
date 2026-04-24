@@ -1,6 +1,8 @@
 import { apiRequest } from "./client";
 import type {
+  EventCategory,
   EventHistoryResponse,
+  EventSeverity,
   QueueResponse,
   ServiceDeploymentsResponse,
   ServiceStatusResponse,
@@ -17,8 +19,23 @@ export function triggerSync(): Promise<QueueResponse> {
   });
 }
 
-export function fetchEvents(): Promise<EventHistoryResponse> {
-  return apiRequest<EventHistoryResponse>("/api/v1/events");
+export interface FetchEventsParams {
+  severities?: EventSeverity[];
+  categories?: EventCategory[];
+}
+
+export function fetchEvents(params?: FetchEventsParams): Promise<EventHistoryResponse> {
+  const searchParams = new URLSearchParams();
+  for (const severity of params?.severities ?? []) {
+    searchParams.append("severities", severity);
+  }
+  for (const category of params?.categories ?? []) {
+    searchParams.append("categories", category);
+  }
+
+  const query = searchParams.toString();
+  const path = query === "" ? "/api/v1/events" : `/api/v1/events?${query}`;
+  return apiRequest<EventHistoryResponse>(path);
 }
 
 export function fetchServiceStatus(stackName: string, serviceName: string): Promise<ServiceStatusResponse> {

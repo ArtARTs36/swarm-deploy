@@ -30,7 +30,7 @@ func newPrometheusEvents(namespace string) *prometheusEvents {
 }
 
 func (e *prometheusEvents) IncTotal(typ events.Type) {
-	e.total.WithLabelValues(string(typ)).Inc()
+	e.total.WithLabelValues(typ.String()).Inc()
 }
 
 func (e *prometheusEvents) collectors() []prometheus.Collector {
