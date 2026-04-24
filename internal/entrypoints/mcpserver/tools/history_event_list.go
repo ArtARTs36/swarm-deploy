@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/mcpserver/routing"
+	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
 	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
 )
 
@@ -41,6 +42,30 @@ func (l *ListHistoryEvents) Definition() routing.ToolDefinition {
 					"maximum":     maxHistoryLimit,
 					"description": "Maximum number of latest events to return.",
 				},
+				"severities": map[string]any{
+					"type":        "array",
+					"description": "Optional event severities filter.",
+					"items": map[string]any{
+						"type": "string",
+						"enum": []string{
+							string(events.SeverityInfo),
+							string(events.SeverityWarn),
+							string(events.SeverityError),
+							string(events.SeverityAlert),
+						},
+					},
+				},
+				"categories": map[string]any{
+					"type":        "array",
+					"description": "Optional event categories filter.",
+					"items": map[string]any{
+						"type": "string",
+						"enum": []string{
+							string(events.CategorySync),
+							string(events.CategorySecurity),
+						},
+					},
+				},
 			},
 		},
 	}
@@ -52,8 +77,16 @@ func (l *ListHistoryEvents) Execute(_ context.Context, request routing.Request) 
 	if err != nil {
 		return routing.Response{}, err
 	}
+	severities, err := parseHistorySeverities(request.Payload["severities"])
+	if err != nil {
+		return routing.Response{}, err
+	}
+	categories, err := parseHistoryCategories(request.Payload["categories"])
+	if err != nil {
+		return routing.Response{}, err
+	}
 
-	entries := l.history.List()
+	entries := history.FilterEntries(l.history.List(), severities, categories)
 	if len(entries) > limit {
 		entries = entries[len(entries)-limit:]
 	}
@@ -108,4 +141,53 @@ func parseHistoryLimit(raw any) (int, error) {
 	}
 
 	return parsed, nil
+}
+
+func parseHistorySeverities(raw any) ([]events.Severity, error) {
+	values, err := parseStringList(raw, "severities")
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]events.Severity, 0, len(values))
+	for _, value := range values {
+		parsed, ok := events.ParseSeverity(value)
+		if !ok {
+			return nil, fmt.Errorf("severities contains unknown value %q", value)
+		}
+		out = append(out, parsed)
+	}
+
+	return out, nil
+}
+
+func parseHistoryCategories(raw any) ([]events.Category, error) {
+	values, err := parseStringList(raw, "categories")
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]events.Category, 0, len(values))
+	for _, value := range values {
+		parsed, ok := events.ParseCategory(value)
+		if !ok {
+			return nil, fmt.Errorf("categories contains unknown value %q", value)
+		}
+		out = append(out, parsed)
+	}
+
+	return out, nil
+}
+
+func parseStringList(raw any, field string) ([]string, error) {
+	if raw == nil {
+		return nil, nil
+	}
+
+	switch value := raw.(type) {
+	case []string:
+		return value, nil
+	default:
+		return nil, fmt.Errorf("%s must be array of strings", field)
+	}
 }

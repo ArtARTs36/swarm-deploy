@@ -19,14 +19,14 @@ func EventTypeFromContext(ctx context.Context) (events.Type, bool) {
 	if ok {
 		return typ, true
 	}
-	return "", false
+	return events.Type{}, false
 }
 
 func EventType() slogx.Middleware {
 	return func(next slogx.HandleFunc) slogx.HandleFunc {
 		return func(ctx context.Context, rec slog.Record) error {
 			if typ, ok := EventTypeFromContext(ctx); ok {
-				rec.AddAttrs(slog.String("event.type", string(typ)))
+				rec.AddAttrs(slog.String("event.type", typ.String()))
 			}
 			return next(ctx, rec)
 		}

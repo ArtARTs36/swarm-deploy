@@ -448,6 +448,46 @@ func (s *CurrentUserResponse) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes EventCategory as json.
+func (s EventCategory) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes EventCategory from json.
+func (s *EventCategory) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode EventCategory to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch EventCategory(v) {
+	case EventCategorySync:
+		*s = EventCategorySync
+	case EventCategorySecurity:
+		*s = EventCategorySecurity
+	default:
+		*s = EventCategory(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s EventCategory) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *EventCategory) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *EventHistoryItem) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -460,6 +500,14 @@ func (s *EventHistoryItem) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("type")
 		e.Str(s.Type)
+	}
+	{
+		e.FieldStart("severity")
+		s.Severity.Encode(e)
+	}
+	{
+		e.FieldStart("category")
+		s.Category.Encode(e)
 	}
 	{
 		e.FieldStart("created_at")
@@ -477,11 +525,13 @@ func (s *EventHistoryItem) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfEventHistoryItem = [4]string{
+var jsonFieldsNameOfEventHistoryItem = [6]string{
 	0: "type",
-	1: "created_at",
-	2: "message",
-	3: "details",
+	1: "severity",
+	2: "category",
+	3: "created_at",
+	4: "message",
+	5: "details",
 }
 
 // Decode decodes EventHistoryItem from json.
@@ -505,8 +555,28 @@ func (s *EventHistoryItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
-		case "created_at":
+		case "severity":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Severity.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"severity\"")
+			}
+		case "category":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Category.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"category\"")
+			}
+		case "created_at":
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.CreatedAt = v
@@ -518,7 +588,7 @@ func (s *EventHistoryItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"created_at\"")
 			}
 		case "message":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Message = string(v)
@@ -549,7 +619,7 @@ func (s *EventHistoryItem) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -753,6 +823,50 @@ func (s *EventHistoryResponse) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *EventHistoryResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes EventSeverity as json.
+func (s EventSeverity) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes EventSeverity from json.
+func (s *EventSeverity) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode EventSeverity to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch EventSeverity(v) {
+	case EventSeverityInfo:
+		*s = EventSeverityInfo
+	case EventSeverityWarn:
+		*s = EventSeverityWarn
+	case EventSeverityError:
+		*s = EventSeverityError
+	case EventSeverityAlert:
+		*s = EventSeverityAlert
+	default:
+		*s = EventSeverity(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s EventSeverity) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *EventSeverity) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

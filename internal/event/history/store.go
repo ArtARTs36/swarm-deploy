@@ -19,6 +19,10 @@ const fileModePrivate = 0o600
 type Entry struct {
 	// Type is a unique event type.
 	Type events.Type `json:"type"`
+	// Severity is an event priority level.
+	Severity events.Severity `json:"severity"`
+	// Category is an event functional group.
+	Category events.Category `json:"category"`
 	// CreatedAt is event creation timestamp.
 	CreatedAt time.Time `json:"created_at"`
 	// Message is a short human-readable event description.
@@ -138,8 +142,12 @@ func (s *Store) flushLocked() error {
 }
 
 func toEntry(now time.Time, event events.Event) Entry {
+	eventType := event.Type()
+
 	return Entry{
-		Type:      event.Type(),
+		Type:      eventType,
+		Severity:  eventType.Severity(),
+		Category:  eventType.Category(),
 		CreatedAt: now,
 		Message:   event.Message(),
 		Details:   cloneDetails(event.Details()),

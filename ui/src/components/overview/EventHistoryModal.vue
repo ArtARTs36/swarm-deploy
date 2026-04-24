@@ -24,6 +24,18 @@ function sortedEventDetails(item: EventHistoryItem): [string, string][] {
   });
 }
 
+function normalizedSeverity(item: EventHistoryItem): "info" | "warn" | "error" | "alert" {
+  switch (item.severity) {
+    case "warn":
+    case "error":
+    case "alert":
+      return item.severity;
+    case "info":
+    default:
+      return "info";
+  }
+}
+
 function closeEventHistoryModal() {
   overviewStore.closeEventsModal();
 }
@@ -58,7 +70,12 @@ onUnmounted(() => {
         <p v-else-if="reversedEvents.length === 0" class="meta">No events yet.</p>
         <div v-else class="event-list">
           <article v-for="event in reversedEvents" :key="`${event.type}-${event.created_at}-${event.message}`" class="event-item">
-            <p><strong>{{ event.type || "unknown" }}</strong> - {{ formatDate(event.created_at) }}</p>
+            <p class="event-item-header">
+              <span class="event-severity" :class="`event-severity-${normalizedSeverity(event)}`">
+                {{ normalizedSeverity(event) }}
+              </span>
+              <span><strong>{{ event.type || "unknown" }}</strong> - {{ formatDate(event.created_at) }}</span>
+            </p>
             <p class="meta">{{ event.message || "No details" }}</p>
             <ul v-if="sortedEventDetails(event).length > 0" class="event-details">
               <li

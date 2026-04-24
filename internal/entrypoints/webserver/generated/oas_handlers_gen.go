@@ -650,8 +650,22 @@ func (s *Server) handleListEventsRequest(args [0]string, argsEscaped bool, w htt
 
 			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
 		}
-		err error
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: ListEventsOperation,
+			ID:   "listEvents",
+		}
 	)
+	params, err := decodeListEventsParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
 
@@ -664,13 +678,22 @@ func (s *Server) handleListEventsRequest(args [0]string, argsEscaped bool, w htt
 			OperationID:      "listEvents",
 			Body:             nil,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "severities",
+					In:   "query",
+				}: params.Severities,
+				{
+					Name: "categories",
+					In:   "query",
+				}: params.Categories,
+			},
+			Raw: r,
 		}
 
 		type (
 			Request  = struct{}
-			Params   = struct{}
+			Params   = ListEventsParams
 			Response = *EventHistoryResponse
 		)
 		response, err = middleware.HookMiddleware[
@@ -680,14 +703,14 @@ func (s *Server) handleListEventsRequest(args [0]string, argsEscaped bool, w htt
 		](
 			m,
 			mreq,
-			nil,
+			unpackListEventsParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.ListEvents(ctx)
+				response, err = s.h.ListEvents(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.ListEvents(ctx)
+		response, err = s.h.ListEvents(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)

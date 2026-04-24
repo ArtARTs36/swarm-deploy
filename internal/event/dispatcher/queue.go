@@ -50,7 +50,7 @@ func (d *QueueDispatcher) Dispatch(ctx context.Context, event events.Event) {
 	}
 
 	slog.InfoContext(ctx, "[event] dispatching event", slog.Any("event", event),
-		slog.String("event.type", string(event.Type())),
+		slog.String("event.type", event.Type().String()),
 	)
 
 	d.queue <- event

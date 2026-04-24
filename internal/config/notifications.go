@@ -13,7 +13,7 @@ type NotificationSpec struct {
 	// Messengers contains global messenger settings used by notification channels.
 	Messengers NotificationMessengersSpec `yaml:"messengers"`
 	// On maps event types to notification channels.
-	On map[events.Type]struct {
+	On map[events.TypeName]struct {
 		// Telegram is a list of Telegram notification channels.
 		Telegram []TelegramChannel `yaml:"telegram"`
 		// Custom is a list of custom webhook notification channels.
@@ -76,23 +76,28 @@ func (c *NotificationSpec) applyDefaults() {
 func (c *NotificationSpec) validate() []error {
 	var errs []error
 
-	for eventType, channels := range c.On {
+	for eventTypeName, channels := range c.On {
+		if !eventTypeName.Valid() {
+			errs = append(errs, fmt.Errorf("notifications.on[%q] has unknown event type", eventTypeName))
+			continue
+		}
+
 		for i, tg := range channels.Telegram {
 			if tg.ChatID == "" {
-				errs = append(errs, fmt.Errorf("notifications.on[%q].telegram[%d].chatId is required", eventType, i))
+				errs = append(errs, fmt.Errorf("notifications.on[%q].telegram[%d].chatId is required", eventTypeName, i))
 			}
 
 			if len(tg.BotToken.Content) == 0 {
 				errs = append(
 					errs,
-					fmt.Errorf("notifications.on[%q].telegram[%d].botTokenPath contains empty token", eventType, i),
+					fmt.Errorf("notifications.on[%q].telegram[%d].botTokenPath contains empty token", eventTypeName, i),
 				)
 			}
 
 			if tg.ChatThreadID < 0 {
 				errs = append(
 					errs,
-					fmt.Errorf("notifications.on[%q].telegram[%d].chatThreadId must be >= 0", eventType, i),
+					fmt.Errorf("notifications.on[%q].telegram[%d].chatThreadId must be >= 0", eventTypeName, i),
 				)
 			}
 		}
@@ -101,7 +106,7 @@ func (c *NotificationSpec) validate() []error {
 			if ch.URL.Value.String() == "" {
 				errs = append(
 					errs,
-					fmt.Errorf("notifications.on[%q].custom[%d].url or urlEnv is required", eventType, i),
+					fmt.Errorf("notifications.on[%q].custom[%d].url or urlEnv is required", eventTypeName, i),
 				)
 			}
 		}

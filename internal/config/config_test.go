@@ -252,6 +252,37 @@ notifications:
 	)
 }
 
+func TestLoadFailsOnUnknownNotificationEventType(t *testing.T) {
+	dir := t.TempDir()
+
+	stacksPath := filepath.Join(dir, "stacks.yaml")
+	stacksPayload := []byte(`
+stacks:
+  - name: app
+    composeFile: app/docker-compose.yml
+`)
+	require.NoError(t, os.WriteFile(stacksPath, stacksPayload, 0o600), "write stacks file")
+
+	configPath := filepath.Join(dir, "swarm-deploy.yaml")
+	configPayload := []byte(`
+git:
+  repository: https://example.com/repo.git
+stacks:
+  file: ./stacks.yaml
+notifications:
+  on:
+    unknownEvent:
+      custom:
+        - name: audit
+          url: https://example.com/hook
+`)
+	require.NoError(t, os.WriteFile(configPath, configPayload, 0o600), "write config file")
+
+	_, err := Load(configPath)
+	require.Error(t, err, "expected error")
+	assert.Contains(t, err.Error(), `notifications.on["unknownEvent"] has unknown event type`, "unexpected error")
+}
+
 func TestLoadFailsWhenAssistantEnabledWithoutTokenPath(t *testing.T) {
 	dir := t.TempDir()
 
