@@ -15,6 +15,10 @@ sync:
   mode: pull
   # Pull polling interval.
   pollInterval: 30s
+  # Synchronization policy.
+  policy:
+    # Automatically restore out-of-sync services.
+    selfHeal: true
 
 # AI assistant settings.
 assistant:
@@ -59,7 +63,7 @@ eventHistory:
 # Notification channels grouped by event type.
 notifications:
   on:
-    # Event type examples: deploySuccess | deployFailed | syncManualStarted | serviceRestarted | userAuthenticated
+    # Event type examples: deploySuccess | deployFailed | syncManualStarted | serviceMissed | serviceRestored | serviceRestoreFailed | serviceReplicasDiverged | serviceRestarted | userAuthenticated
     deploySuccess:
       telegram:
         - name: ops-success

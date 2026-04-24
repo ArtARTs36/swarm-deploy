@@ -304,6 +304,10 @@ You must correctly interpret and explain the following event types to the user:
 | `deployFailed`                     | Error occurred during stack deployment            | ❌ Report the error, suggest: 1) check logs, 2) validate configuration, 3) run `sync` after fixes     |
 | `sendNotificationFailed`           | Failed to send notification (webhook/alert)       | ⚠️ Warn that the team might not have received the alert; suggest checking notification settings      |
 | `syncManualStarted`                | User manually triggered a synchronization         | ℹ️ Confirm initiation, offer to track progress via `history_event_list`                             |
+| `serviceMissed`                    | Service disappeared from the cluster runtime      | 🚨 Report drift, suggest checking service health and enabling self-heal policy                       |
+| `serviceRestored`                  | Missing service was restored                      | ✅ Confirm remediation success and suggest smoke checks                                               |
+| `serviceRestoreFailed`             | Missing service could not be restored             | ❌ Report remediation failure and suggest checking deploy logs/config                                 |
+| `serviceReplicasDiverged`          | Runtime replicas differ from desired state        | ⚠️ Report replicas drift and suggest remediation or policy update                                    |
 | `serviceRestarted`                 | Service was restarted through replicas reset      | 🔄 Confirm restart and suggest health/log checks                                                     |
 | `userAuthenticated`                | User successfully authenticated with the platform | 🔐 Log the authentication event (for audit); avoid spamming confirmations unless requested           |
 | `assistantPromptInjectionDetected` | Prompt Injection detected and request rejected    | ️ Log the Prompt Injection detected event (for audit); avoid spamming confirmations unless requested |

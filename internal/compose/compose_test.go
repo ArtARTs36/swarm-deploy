@@ -104,3 +104,47 @@ networks:
 		"job network alias must resolve to name",
 	)
 }
+
+func TestLoadParsesServiceDeployReplicasAndSyncPolicy(t *testing.T) {
+	dir := t.TempDir()
+	composePath := filepath.Join(dir, "docker-compose.yaml")
+	composePayload := []byte(`
+services:
+  api:
+    image: ghcr.io/acme/api:1.0.0
+    deploy:
+      replicas: 3
+      labels:
+        org.swarm-deploy.service.sync.policy.selfHeal: "false"
+`)
+	require.NoError(t, os.WriteFile(composePath, composePayload, 0o600), "write compose file")
+
+	file, err := Load(composePath)
+	require.NoError(t, err, "load compose")
+	require.Len(t, file.Services, 1, "unexpected services count")
+
+	service := file.Services[0]
+	require.NotNil(t, service.Replicas, "replicas must be parsed")
+	assert.Equal(t, uint64(3), *service.Replicas, "unexpected desired replicas")
+
+	require.NotNil(t, service.SyncPolicy.SelfHeal, "self-heal policy must be parsed")
+	assert.False(t, *service.SyncPolicy.SelfHeal, "unexpected self-heal value")
+}
+
+func TestLoadFailsOnInvalidSyncPolicyLabelValue(t *testing.T) {
+	dir := t.TempDir()
+	composePath := filepath.Join(dir, "docker-compose.yaml")
+	composePayload := []byte(`
+services:
+  api:
+    image: ghcr.io/acme/api:1.0.0
+    deploy:
+      labels:
+        org.swarm-deploy.service.sync.policy.selfHeal: maybe
+`)
+	require.NoError(t, os.WriteFile(composePath, composePayload, 0o600), "write compose file")
+
+	_, err := Load(composePath)
+	require.Error(t, err, "expected invalid self-heal label error")
+	assert.ErrorContains(t, err, "org.swarm-deploy.service.sync.policy.selfHeal", "unexpected error")
+}

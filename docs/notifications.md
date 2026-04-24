@@ -11,6 +11,7 @@ In a Telegram channel you can set:
 Available template fields:
 
 - `.event.stack_name`
+- `.event.service_name` (for service-level events like drift/restore)
 - `.event.services.*.name`
 - `.event.services.*.image`
 - `.event.commit`

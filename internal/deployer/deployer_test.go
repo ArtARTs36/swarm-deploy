@@ -3,6 +3,8 @@ package deployer
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -165,9 +167,106 @@ func TestDeployStackDeploysWithoutInitJobs(t *testing.T) {
 	)
 }
 
+func TestDeployServiceDeploysSingleServiceCompose(t *testing.T) {
+	dir := t.TempDir()
+	sourceComposePath := filepath.Join(dir, "stack.yaml")
+	sourceCompose := []byte(`
+version: "3.9"
+services:
+  api:
+    image: ghcr.io/example/api:1.0.0
+    networks:
+      - backend
+    secrets:
+      - source: app_secret
+        target: app_secret
+    x-init-deploy-jobs:
+      - name: migrate
+        image: ghcr.io/example/migrate:1.0.0
+        command: ["migrate", "up"]
+  worker:
+    image: ghcr.io/example/worker:1.0.0
+networks:
+  backend: {}
+secrets:
+  app_secret:
+    external: true
+volumes:
+  data: {}
+`)
+	require.NoError(t, os.WriteFile(sourceComposePath, sourceCompose, 0o600), "write source compose")
+
+	stackFile, err := compose.Load(sourceComposePath)
+	require.NoError(t, err, "load source compose")
+	require.Len(t, stackFile.Services, 2, "unexpected parsed services count")
+
+	var renderedPath string
+	runner := &fakeRunner{
+		onRun: func(args []string) error {
+			renderedPath = composePathFromDeployArgs(args)
+			require.NotEmpty(t, renderedPath, "compose path must be present in deploy args")
+
+			renderedPayload, readErr := os.ReadFile(renderedPath)
+			require.NoError(t, readErr, "read rendered compose")
+
+			rendered := string(renderedPayload)
+			assert.Contains(t, rendered, "services:", "rendered compose must include services section")
+			assert.Contains(t, rendered, "api:", "target service must be present")
+			assert.NotContains(t, rendered, "worker:", "non-target service must be excluded")
+			assert.Contains(t, rendered, "networks:", "rendered compose must include top-level networks")
+			assert.Contains(t, rendered, "secrets:", "rendered compose must include top-level secrets")
+			assert.Contains(t, rendered, "volumes:", "rendered compose must include top-level volumes")
+
+			return nil
+		},
+	}
+	initJobs := &fakeInitJobExecutor{}
+	deployer := &Deployer{
+		stackDeployArgs: []string{"stack", "deploy"},
+		runner:          runner,
+		initJobRunner:   initJobs,
+	}
+
+	err = deployer.DeployService(context.Background(), "demo", sourceComposePath, stackFile.Services[0])
+	require.NoError(t, err, "deploy service")
+
+	require.Len(t, initJobs.calls, 1, "only target service init jobs must run")
+	assert.Equal(t, "api", initJobs.calls[0].ServiceName, "unexpected init job service name")
+	require.Len(t, runner.calls, 1, "deploy command must be called once")
+	assert.Equal(t, "demo", runner.calls[0][len(runner.calls[0])-1], "stack name must be preserved")
+	assert.NotEmpty(t, renderedPath, "rendered path must be captured")
+	_, statErr := os.Stat(renderedPath)
+	assert.ErrorIs(t, statErr, os.ErrNotExist, "temporary compose file must be removed after deploy")
+}
+
+func TestDeployServiceFailsWhenServiceNotFoundInCompose(t *testing.T) {
+	dir := t.TempDir()
+	sourceComposePath := filepath.Join(dir, "stack.yaml")
+	sourceCompose := []byte(`
+services:
+  api:
+    image: ghcr.io/example/api:1.0.0
+`)
+	require.NoError(t, os.WriteFile(sourceComposePath, sourceCompose, 0o600), "write source compose")
+
+	deployer := &Deployer{
+		stackDeployArgs: []string{"stack", "deploy"},
+		runner:          &fakeRunner{},
+		initJobRunner:   &fakeInitJobExecutor{},
+	}
+
+	err := deployer.DeployService(context.Background(), "demo", sourceComposePath, compose.Service{
+		Name: "worker",
+	})
+	require.Error(t, err, "expected missing service error")
+	assert.ErrorContains(t, err, "service \"worker\" not found", "unexpected error")
+}
+
 type fakeRunner struct {
 	calls  [][]string
 	events *[]string
+	onRun  func(args []string) error
+	err    error
 }
 
 func (r *fakeRunner) Run(_ context.Context, args ...string) (string, error) {
@@ -178,7 +277,25 @@ func (r *fakeRunner) Run(_ context.Context, args ...string) (string, error) {
 		*r.events = append(*r.events, "deploy")
 	}
 
+	if r.onRun != nil {
+		if err := r.onRun(copiedArgs); err != nil {
+			return "", err
+		}
+	}
+	if r.err != nil {
+		return "", r.err
+	}
+
 	return "", nil
+}
+
+func composePathFromDeployArgs(args []string) string {
+	for i := 0; i < len(args)-1; i++ {
+		if args[i] == "-c" {
+			return args[i+1]
+		}
+	}
+	return ""
 }
 
 type fakeInitJobExecutor struct {

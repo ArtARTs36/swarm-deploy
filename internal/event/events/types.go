@@ -19,6 +19,10 @@ const (
 	TypeNameDeployFailed                     TypeName = "deployFailed"
 	TypeNameSendNotificationFailed           TypeName = "sendNotificationFailed"
 	TypeNameSyncManualStarted                TypeName = "syncManualStarted"
+	TypeNameServiceMissed                    TypeName = "serviceMissed"
+	TypeNameServiceRestored                  TypeName = "serviceRestored"
+	TypeNameServiceRestoreFailed             TypeName = "serviceRestoreFailed"
+	TypeNameServiceReplicasDiverged          TypeName = "serviceReplicasDiverged"
 	TypeNameServiceReplicasIncreased         TypeName = "serviceReplicasIncreased"
 	TypeNameServiceReplicasDecreased         TypeName = "serviceReplicasDecreased"
 	TypeNameServiceRestarted                 TypeName = "serviceRestarted"
@@ -75,6 +79,26 @@ var (
 		severity: SeverityInfo,
 		category: CategorySync,
 	}
+	TypeServiceMissed = Type{
+		name:     TypeNameServiceMissed,
+		severity: SeverityAlert,
+		category: CategorySync,
+	}
+	TypeServiceRestored = Type{
+		name:     TypeNameServiceRestored,
+		severity: SeverityInfo,
+		category: CategorySync,
+	}
+	TypeServiceRestoreFailed = Type{
+		name:     TypeNameServiceRestoreFailed,
+		severity: SeverityAlert,
+		category: CategorySync,
+	}
+	TypeServiceReplicasDiverged = Type{
+		name:     TypeNameServiceReplicasDiverged,
+		severity: SeverityWarn,
+		category: CategorySync,
+	}
 	TypeServiceReplicasIncreased = Type{
 		name:     TypeNameServiceReplicasIncreased,
 		severity: SeverityInfo,
@@ -106,6 +130,10 @@ var (
 		TypeDeployFailed,
 		TypeSendNotificationFailed,
 		TypeSyncManualStarted,
+		TypeServiceMissed,
+		TypeServiceRestored,
+		TypeServiceRestoreFailed,
+		TypeServiceReplicasDiverged,
 		TypeServiceReplicasIncreased,
 		TypeServiceReplicasDecreased,
 		TypeServiceRestarted,
@@ -165,6 +193,14 @@ func (n TypeName) Valid() bool {
 		return true
 	case TypeNameSyncManualStarted:
 		return true
+	case TypeNameServiceMissed:
+		return true
+	case TypeNameServiceRestored:
+		return true
+	case TypeNameServiceRestoreFailed:
+		return true
+	case TypeNameServiceReplicasDiverged:
+		return true
 	case TypeNameServiceReplicasIncreased:
 		return true
 	case TypeNameServiceReplicasDecreased:
@@ -191,6 +227,14 @@ func ParseType(name string) (Type, bool) {
 		return TypeSendNotificationFailed, true
 	case TypeNameSyncManualStarted:
 		return TypeSyncManualStarted, true
+	case TypeNameServiceMissed:
+		return TypeServiceMissed, true
+	case TypeNameServiceRestored:
+		return TypeServiceRestored, true
+	case TypeNameServiceRestoreFailed:
+		return TypeServiceRestoreFailed, true
+	case TypeNameServiceReplicasDiverged:
+		return TypeServiceReplicasDiverged, true
 	case TypeNameServiceReplicasIncreased:
 		return TypeServiceReplicasIncreased, true
 	case TypeNameServiceReplicasDecreased:

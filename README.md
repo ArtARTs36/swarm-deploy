@@ -19,6 +19,7 @@ GitOps controller for Docker Swarm with an ArgoCD-inspired, but Swarm-native, co
 - [AI assistant with long-poll chat API and RAG over service metadata](./docs/assistant.md)
 - [Init Deploy Jobs](./docs/init-deploy-jobs.md)
 - [Secrets Rotation](./docs/secrets-rotation.md)
+- [Drift detection and self-heal policy](./docs/drift.md)
 
 ## Usage examples
 - [Basic: deploy public repositories](./example/01-basic)

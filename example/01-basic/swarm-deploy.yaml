@@ -15,6 +15,10 @@ sync:
   mode: pull
   # Pull polling interval.
   pollInterval: 30s
+  # Synchronization policy.
+  policy:
+    # Automatically restore out-of-sync services.
+    selfHeal: true
 
 # Stacks source settings.
 stacks:
@@ -29,7 +33,7 @@ eventHistory:
 # Notification channels grouped by event type.
 notifications:
   on:
-    # Event type: deploySuccess | deployFailed | syncManualStarted | userAuthenticated
+    # Event type examples: deploySuccess | deployFailed | syncManualStarted | serviceMissed | serviceRestored | serviceRestoreFailed | serviceReplicasDiverged | userAuthenticated
     deploySuccess:
       telegram:
         - name: ops-success
