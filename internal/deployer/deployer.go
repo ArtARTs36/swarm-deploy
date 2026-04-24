@@ -16,12 +16,17 @@ type Deployer struct {
 	stackDeployArgs []string
 	runner          Runner
 
-	initJobRunner *InitJobRunner
+	initJobRunner initJobExecutor
 }
 
 type InitJobMetrics interface {
 	// RecordInitJobRun records one init job run by stack and service.
 	RecordInitJobRun(stack, service string)
+}
+
+type initJobExecutor interface {
+	// Run executes one init job based on deployment context and job spec.
+	Run(ctx context.Context, spec InitJobSpec) error
 }
 
 type InitJobSpec struct {
@@ -61,7 +66,11 @@ func NewDeployer(
 	}
 }
 
-func (d *Deployer) DeployStack(ctx context.Context, stackName, composePath string) error {
+func (d *Deployer) DeployStack(ctx context.Context, stackName, composePath string, services []compose.Service) error {
+	if err := d.runInitJobs(ctx, stackName, services); err != nil {
+		return err
+	}
+
 	args := make([]string, 0, len(d.stackDeployArgs)+deployArgsExtraCount)
 	args = append(args, d.stackDeployArgs...)
 	args = append(args, "-c", composePath, stackName)
@@ -72,6 +81,22 @@ func (d *Deployer) DeployStack(ctx context.Context, stackName, composePath strin
 	return nil
 }
 
-func (d *Deployer) RunInitJob(ctx context.Context, spec InitJobSpec) error {
-	return d.initJobRunner.Run(ctx, spec)
+func (d *Deployer) runInitJobs(ctx context.Context, stackName string, services []compose.Service) error {
+	for _, service := range services {
+		// Jobs are run in declaration order per service to keep behavior deterministic.
+		for _, job := range service.InitJobs {
+			err := d.initJobRunner.Run(ctx, InitJobSpec{
+				StackName:      stackName,
+				ServiceName:    service.Name,
+				DefaultNetwork: service.Networks,
+				ServiceSecrets: service.Secrets,
+				ServiceConfigs: service.Configs,
+				Job:            job,
+			})
+			if err != nil {
+				return fmt.Errorf("service %s init job %s: %w", service.Name, job.Name, err)
+			}
+		}
+	}
+	return nil
 }

@@ -121,40 +121,14 @@ func (r *stackReconciler) Reconcile(
 		deployComposePath = renderedPath
 	}
 
-	// Init jobs are executed before stack deployment to satisfy runtime prerequisites
-	// (for example schema/bootstrap tasks expected by service startup).
-	err = r.runInitJobs(ctx, stackCfg.Name, stackFile.Services)
-	if err != nil {
-		return result, wrapStackReconcileError("init jobs", result.Services, err)
-	}
-
-	err = r.deployer.DeployStack(ctx, stackCfg.Name, deployComposePath)
+	// Deployer encapsulates init jobs orchestration and stack deployment.
+	err = r.deployer.DeployStack(ctx, stackCfg.Name, deployComposePath, stackFile.Services)
 	if err != nil {
 		return result, wrapStackReconcileError("deploy", result.Services, err)
 	}
 
 	result.SourceDigest = digest
 	return result, nil
-}
-
-func (r *stackReconciler) runInitJobs(ctx context.Context, stackName string, services []compose.Service) error {
-	for _, service := range services {
-		// Jobs are run in declaration order per service to keep behavior deterministic.
-		for _, job := range service.InitJobs {
-			err := r.deployer.RunInitJob(ctx, deployer.InitJobSpec{
-				StackName:      stackName,
-				ServiceName:    service.Name,
-				DefaultNetwork: service.Networks,
-				ServiceSecrets: service.Secrets,
-				ServiceConfigs: service.Configs,
-				Job:            job,
-			})
-			if err != nil {
-				return fmt.Errorf("service %s init job %s: %w", service.Name, job.Name, err)
-			}
-		}
-	}
-	return nil
 }
 
 func (r *stackReconciler) writeRenderedCompose(stackName string, stackFile *compose.File) (string, error) {
