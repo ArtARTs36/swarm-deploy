@@ -127,6 +127,7 @@ func main() {
 		deployerSvc,
 		metricsGroup,
 		eventDispatcher,
+		swarmService.Services,
 	)
 
 	assistantService, err := buildAssistantService(

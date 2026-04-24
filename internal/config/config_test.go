@@ -148,6 +148,36 @@ stacks:
 	assert.Equal(t, defaultWebhookAddress, cfg.Spec.Sync.Webhook.Address, "expected sync.webhook.address")
 }
 
+func TestLoadUsesSyncPolicyValuesFromConfig(t *testing.T) {
+	dir := t.TempDir()
+
+	stacksPath := filepath.Join(dir, "stacks.yaml")
+	stacksPayload := []byte(`
+stacks:
+  - name: app
+    composeFile: app/docker-compose.yml
+`)
+	require.NoError(t, os.WriteFile(stacksPath, stacksPayload, 0o600), "write stacks file")
+
+	configPath := filepath.Join(dir, "swarm-deploy.yaml")
+	configPayload := []byte(`
+git:
+  repository: https://example.com/repo.git
+sync:
+  mode: pull
+  pollInterval: 45s
+  policy:
+    selfHeal: true
+stacks:
+  file: ./stacks.yaml
+`)
+	require.NoError(t, os.WriteFile(configPath, configPayload, 0o600), "write config file")
+
+	cfg, err := Load(configPath)
+	require.NoError(t, err, "load config")
+	assert.True(t, cfg.Spec.Sync.Policy.SelfHeal, "expected self-heal from config")
+}
+
 func TestReloadStacksPrefersFirstAvailableBaseDir(t *testing.T) {
 	dir := t.TempDir()
 	configDir := filepath.Join(dir, "config")

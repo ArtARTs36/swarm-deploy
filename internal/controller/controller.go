@@ -9,6 +9,7 @@ import (
 
 	"github.com/swarm-deploy/swarm-deploy/internal/compose"
 	"github.com/swarm-deploy/swarm-deploy/internal/config"
+	"github.com/swarm-deploy/swarm-deploy/internal/controller/drift"
 	"github.com/swarm-deploy/swarm-deploy/internal/deployer"
 	"github.com/swarm-deploy/swarm-deploy/internal/event/dispatcher"
 	"github.com/swarm-deploy/swarm-deploy/internal/event/events"
@@ -56,6 +57,7 @@ type Controller struct {
 
 	stateStore      *runtimeStateStore
 	stackReconciler *stackReconciler
+	driftAnalyzer   *drift.Analyzer
 
 	triggerCh chan triggerTask
 }
@@ -71,7 +73,13 @@ func New(
 	deployer *deployer.Deployer,
 	metricGroup *metrics.Group,
 	eventDispatcher dispatcher.Dispatcher,
+	serviceReader drift.ServiceReader,
 ) *Controller {
+	var driftAnalyzer *drift.Analyzer
+	if serviceReader != nil {
+		driftAnalyzer = drift.NewAnalyzer(serviceReader)
+	}
+
 	return &Controller{
 		cfg:        cfg,
 		git:        git,
@@ -84,16 +92,13 @@ func New(
 			git,
 			deployer,
 		),
-		triggerCh: make(chan triggerTask, 1),
+		driftAnalyzer: driftAnalyzer,
+		triggerCh:     make(chan triggerTask, 1),
 	}
 }
 
 func (c *Controller) Run(ctx context.Context) error {
-	var ticker *time.Ticker
-	if c.cfg.Spec.Sync.Mode == config.SyncModePull || c.cfg.Spec.Sync.Mode == config.SyncModeHybrid {
-		ticker = time.NewTicker(c.cfg.Spec.Sync.PollInterval.Value)
-		defer ticker.Stop()
-	}
+	ticker := time.NewTicker(c.cfg.Spec.Sync.Interval.Value)
 
 	slog.InfoContext(ctx, "[controller] trigger startup sync")
 
@@ -214,18 +219,6 @@ func (c *Controller) syncOnce(ctx context.Context, task triggerTask) { //nolint:
 		slog.Int("count", len(c.cfg.Spec.Stacks)),
 	)
 
-	if !syncResult.Updated && task.reason != TriggerManual {
-		c.metrics.Sync.RecordSyncRun(string(task.reason), "no_change", time.Since(startedAt))
-		c.updateState(func(s *runtimeState) {
-			s.LastSyncAt = time.Now()
-			s.LastSyncReason = string(task.reason)
-			s.LastSyncResult = "no_change"
-			s.LastSyncError = ""
-			s.GitRevision = syncResult.NewRevision
-		})
-		return
-	}
-
 	var deployErrs []error
 	for _, stackCfg := range c.cfg.Spec.Stacks {
 		err = c.syncStack(ctx, stackCfg, syncResult.NewRevision)
@@ -238,6 +231,16 @@ func (c *Controller) syncOnce(ctx context.Context, task triggerTask) { //nolint:
 				slog.Any("err", err),
 			)
 		}
+	}
+
+	driftErrs := c.runPollDriftPass(ctx, syncResult.NewRevision)
+	deployErrs = append(deployErrs, driftErrs...)
+	for _, driftErr := range driftErrs {
+		slog.ErrorContext(ctx, "poll drift handling failed",
+			slog.String("reason", string(task.reason)),
+			slog.String("commit", syncResult.NewRevision),
+			slog.Any("err", driftErr),
+		)
 	}
 
 	result := "success"
@@ -268,16 +271,32 @@ func (c *Controller) reloadStacks() (string, error) {
 	return c.cfg.ReloadStacks(c.git.WorkingDir())
 }
 
-func (c *Controller) syncStack(ctx context.Context, stackCfg config.StackSpec, commit string) error {
+func (c *Controller) syncStack(
+	ctx context.Context,
+	stackCfg config.StackSpec,
+	commit string,
+) error {
 	currentState := c.snapshotState()
 	prev, exists := currentState.Stacks[stackCfg.Name]
-	reconcileResult, err := c.stackReconciler.Reconcile(ctx, stackCfg, prev.SourceDigest, exists)
+	reconcileResult, err := c.stackReconciler.Reconcile(
+		ctx,
+		stackCfg,
+		prev.SourceDigest,
+		exists,
+	)
 	if err != nil {
 		c.recordStackFailure(stackCfg.Name, commit, failedServicesFromReconcileError(err), err)
 		return fmt.Errorf("stack %s %w", stackCfg.Name, err)
 	}
+
 	if reconcileResult.Skipped {
 		return nil
+	}
+
+	err = c.deployer.DeployStack(ctx, stackCfg.Name, reconcileResult.DeployCompose, reconcileResult.Services)
+	if err != nil {
+		c.recordStackFailure(stackCfg.Name, commit, reconcileResult.Services, err)
+		return fmt.Errorf("deploy stack %s: %w", stackCfg.Name, err)
 	}
 
 	now := time.Now()
@@ -285,7 +304,7 @@ func (c *Controller) syncStack(ctx context.Context, stackCfg config.StackSpec, c
 	for _, service := range reconcileResult.Services {
 		servicesState[service.Name] = serviceState{
 			Image:        service.Image,
-			LastStatus:   "success",
+			LastStatus:   string(drift.SyncStatusSynced),
 			LastDeployAt: now,
 		}
 		c.metrics.Deploys.RecordDeploy(stackCfg.Name, service.Name, "success")
@@ -310,13 +329,171 @@ func (c *Controller) syncStack(ctx context.Context, stackCfg config.StackSpec, c
 	return nil
 }
 
+func (c *Controller) runPollDriftPass(ctx context.Context, commit string) []error {
+	if c.driftAnalyzer == nil {
+		return nil
+	}
+
+	driftErrs := make([]error, 0)
+	for _, stackCfg := range c.cfg.Spec.Stacks {
+		currentState := c.snapshotState()
+		prev, exists := currentState.Stacks[stackCfg.Name]
+
+		reconcileResult, err := c.stackReconciler.Reconcile(ctx, stackCfg, prev.SourceDigest, exists)
+		if err != nil {
+			driftErrs = append(driftErrs, fmt.Errorf("stack %s reconcile for drift: %w", stackCfg.Name, err))
+			continue
+		}
+
+		err = c.analyzeStackDrift(ctx, stackCfg, commit, reconcileResult)
+		if err != nil {
+			driftErrs = append(driftErrs, fmt.Errorf("stack %s drift analysis: %w", stackCfg.Name, err))
+		}
+	}
+
+	return driftErrs
+}
+
+func (c *Controller) analyzeStackDrift(
+	ctx context.Context,
+	stackCfg config.StackSpec,
+	commit string,
+	reconcileResult stackReconcileResult,
+) error {
+	if c.driftAnalyzer == nil {
+		return nil
+	}
+
+	currentState := c.snapshotState()
+	prev := currentState.Stacks[stackCfg.Name]
+	servicesState := cloneServiceStates(prev.Services)
+	now := time.Now()
+	hasRemediationRun := false
+	var remediationErrs []error
+
+	for _, service := range reconcileResult.Services {
+		driftResult, err := c.driftAnalyzer.Analyze(ctx, stackCfg.Name, service)
+		if err != nil {
+			remediationErrs = append(remediationErrs, fmt.Errorf("analyze service %s: %w", service.Name, err))
+			continue
+		}
+
+		currentServiceState := servicesState[service.Name]
+		currentServiceState.Image = service.Image
+		if currentServiceState.LastStatus == "" {
+			currentServiceState.LastStatus = string(drift.SyncStatusSynced)
+		}
+
+		if !driftResult.OutOfSync {
+			currentServiceState.LastStatus = string(drift.SyncStatusSynced)
+			servicesState[service.Name] = currentServiceState
+			continue
+		}
+
+		if driftResult.ServiceMissed {
+			c.event.Dispatch(ctx, &events.ServiceMissed{
+				StackName:   stackCfg.Name,
+				ServiceName: service.Name,
+			})
+		}
+		if driftResult.Replicas.OutOfSync {
+			c.event.Dispatch(ctx, &events.ServiceReplicasDiverged{
+				StackName:   stackCfg.Name,
+				ServiceName: service.Name,
+			})
+		}
+
+		currentServiceState.LastStatus = string(drift.SyncStatusOutOfSync)
+		servicesState[service.Name] = currentServiceState
+
+		if !resolveSelfHealEnabled(service.SyncPolicy.SelfHeal, c.cfg.Spec.Sync.Policy.SelfHeal) {
+			continue
+		}
+
+		hasRemediationRun = true
+		err = c.deployer.DeployService(ctx, stackCfg.Name, reconcileResult.DeployCompose, service)
+		if err != nil {
+			c.metrics.Deploys.RecordDeploy(stackCfg.Name, service.Name, "failed")
+
+			if driftResult.ServiceMissed {
+				c.event.Dispatch(ctx, &events.ServiceRestoreFailed{
+					StackName:   stackCfg.Name,
+					ServiceName: service.Name,
+				})
+			}
+
+			currentServiceState.LastStatus = string(drift.SyncStatusSyncFailed)
+			currentServiceState.LastDeployAt = now
+			servicesState[service.Name] = currentServiceState
+			remediationErrs = append(remediationErrs, fmt.Errorf("restore service %s: %w", service.Name, err))
+			continue
+		}
+
+		c.metrics.Deploys.RecordDeploy(stackCfg.Name, service.Name, "success")
+		currentServiceState.LastStatus = string(drift.SyncStatusSynced)
+		currentServiceState.LastDeployAt = now
+		servicesState[service.Name] = currentServiceState
+
+		if driftResult.ServiceMissed {
+			c.event.Dispatch(ctx, &events.ServiceRestored{
+				StackName:   stackCfg.Name,
+				ServiceName: service.Name,
+			})
+		}
+	}
+
+	c.updateState(func(s *runtimeState) {
+		stackRuntimeState := s.Stacks[stackCfg.Name]
+		stackRuntimeState.SourceDigest = reconcileResult.SourceDigest
+		if commit != "" {
+			stackRuntimeState.LastCommit = commit
+		}
+		if stackRuntimeState.LastStatus == "" {
+			stackRuntimeState.LastStatus = "success"
+		}
+		stackRuntimeState.LastError = ""
+		if hasRemediationRun {
+			stackRuntimeState.LastDeployAt = now
+		}
+		stackRuntimeState.Services = servicesState
+		s.Stacks[stackCfg.Name] = stackRuntimeState
+	})
+
+	if len(remediationErrs) > 0 {
+		return errors.Join(remediationErrs...)
+	}
+
+	return nil
+}
+
+func cloneServiceStates(in map[string]serviceState) map[string]serviceState {
+	if len(in) == 0 {
+		return map[string]serviceState{}
+	}
+
+	out := make(map[string]serviceState, len(in))
+	for name, state := range in {
+		out[name] = state
+	}
+
+	return out
+}
+
+func resolveSelfHealEnabled(servicePolicy *bool, globalPolicy bool) bool {
+	if servicePolicy != nil {
+		return *servicePolicy
+	}
+
+	return globalPolicy
+}
+
 func (c *Controller) recordStackFailure(stackName, commit string, services []compose.Service, reason error) {
 	now := time.Now()
 	servicesState := map[string]serviceState{}
 	for _, service := range services {
 		servicesState[service.Name] = serviceState{
 			Image:        service.Image,
-			LastStatus:   "failed",
+			LastStatus:   string(drift.SyncStatusSyncFailed),
 			LastDeployAt: now,
 		}
 		c.metrics.Deploys.RecordDeploy(stackName, service.Name, "failed")

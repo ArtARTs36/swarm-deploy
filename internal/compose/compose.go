@@ -39,6 +39,12 @@ type Service struct {
 	Secrets     []ObjectRef       `json:"secrets,omitempty"`
 	Configs     []ObjectRef       `json:"configs,omitempty"`
 	InitJobs    []InitJob         `json:"init_jobs,omitempty"`
+	Replicas    *uint64           `json:"replicas,omitempty"`
+	SyncPolicy  ServiceSyncPolicy `json:"sync_policy,omitempty"`
+}
+
+type ServiceSyncPolicy struct {
+	SelfHeal *bool `json:"self_heal,omitempty"`
 }
 
 type File struct {
@@ -50,6 +56,8 @@ type File struct {
 const envPairParts = 2
 
 var rotatableObjectTypes = []string{"configs", "secrets"}
+
+const serviceSyncPolicySelfHealLabel = "org.swarm-deploy.service.sync.policy.selfHeal"
 
 func Load(path string) (*File, error) {
 	raw, err := os.ReadFile(path)
@@ -248,6 +256,10 @@ func parseServices(root map[string]any) ([]Service, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parse services.%s.x-init-deploy-jobs: %w", name, err)
 		}
+		replicas, syncPolicy, err := parseDeploySpec(serviceMap["deploy"])
+		if err != nil {
+			return nil, fmt.Errorf("parse services.%s.deploy: %w", name, err)
+		}
 
 		services = append(services, Service{
 			Name:        name,
@@ -257,10 +269,144 @@ func parseServices(root map[string]any) ([]Service, error) {
 			Secrets:     parseObjectRefs(serviceMap["secrets"]),
 			Configs:     parseObjectRefs(serviceMap["configs"]),
 			InitJobs:    initJobs,
+			Replicas:    replicas,
+			SyncPolicy:  syncPolicy,
 		})
 	}
 
 	return services, nil
+}
+
+func parseDeploySpec(raw any) (*uint64, ServiceSyncPolicy, error) {
+	deployMap, hasDeploy := asMap(raw)
+	if !hasDeploy {
+		return nil, ServiceSyncPolicy{}, nil
+	}
+
+	replicas, err := parseReplicas(deployMap["replicas"])
+	if err != nil {
+		return nil, ServiceSyncPolicy{}, fmt.Errorf("replicas: %w", err)
+	}
+
+	labels := parseLabels(deployMap["labels"])
+	selfHeal, err := parseOptionalBoolLabel(labels[serviceSyncPolicySelfHealLabel])
+	if err != nil {
+		return nil, ServiceSyncPolicy{}, fmt.Errorf("%s: %w", serviceSyncPolicySelfHealLabel, err)
+	}
+
+	return replicas, ServiceSyncPolicy{
+		SelfHeal: selfHeal,
+	}, nil
+}
+
+func parseReplicas(raw any) (*uint64, error) {
+	if raw == nil {
+		return nil, nil
+	}
+
+	switch typed := raw.(type) {
+	case int:
+		if typed < 0 {
+			return nil, errors.New("must be >= 0")
+		}
+		replicas := uint64(typed)
+		return &replicas, nil
+	case int64:
+		if typed < 0 {
+			return nil, errors.New("must be >= 0")
+		}
+		replicas := uint64(typed)
+		return &replicas, nil
+	case float64:
+		if typed < 0 {
+			return nil, errors.New("must be >= 0")
+		}
+		replicas := uint64(typed)
+		if float64(replicas) != typed {
+			return nil, errors.New("must be integer")
+		}
+		return &replicas, nil
+	case string:
+		trimmed := strings.TrimSpace(typed)
+		if trimmed == "" {
+			return nil, nil
+		}
+
+		replicas, err := strconv.ParseUint(trimmed, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return &replicas, nil
+	default:
+		return nil, fmt.Errorf("unsupported type %T", raw)
+	}
+}
+
+func parseLabels(raw any) map[string]string {
+	if raw == nil {
+		return nil
+	}
+
+	if labelsMap, isMap := asMap(raw); isMap {
+		out := make(map[string]string, len(labelsMap))
+		for key, value := range labelsMap {
+			trimmedKey := strings.TrimSpace(key)
+			if trimmedKey == "" {
+				continue
+			}
+			out[trimmedKey] = strings.TrimSpace(asString(value))
+		}
+		if len(out) == 0 {
+			return nil
+		}
+		return out
+	}
+
+	items, isArray := raw.([]any)
+	if !isArray {
+		return nil
+	}
+
+	out := make(map[string]string, len(items))
+	for _, item := range items {
+		label := strings.TrimSpace(asString(item))
+		if label == "" {
+			continue
+		}
+
+		chunks := strings.SplitN(label, "=", envPairParts)
+		if len(chunks) != envPairParts {
+			continue
+		}
+
+		trimmedKey := strings.TrimSpace(chunks[0])
+		if trimmedKey == "" {
+			continue
+		}
+
+		out[trimmedKey] = strings.TrimSpace(chunks[1])
+	}
+
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func parseOptionalBoolLabel(raw string) (*bool, error) {
+	trimmed := strings.ToLower(strings.TrimSpace(raw))
+	switch trimmed {
+	case "":
+		return nil, nil
+	case "true", "1", "yes", "y", "on":
+		value := true
+		return &value, nil
+	case "false", "0", "no", "n", "off":
+		value := false
+		return &value, nil
+	default:
+		return nil, fmt.Errorf("must be boolean, got %q", raw)
+	}
 }
 
 func parseInitJobs(raw any, networkNames map[string]string) ([]InitJob, error) {
