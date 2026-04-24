@@ -27,6 +27,10 @@ func (s *Subscriber) Name() string {
 	return s.notifier.Name()
 }
 
+func (s *Subscriber) Slow() bool {
+	return true
+}
+
 func (s *Subscriber) Handle(ctx context.Context, event events.Event) error {
 	err := s.notifier.Notify(ctx, notifiers.Message{
 		Payload: event,

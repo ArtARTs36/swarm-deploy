@@ -47,6 +47,10 @@ func (*IndexSubscriber) Name() string {
 	return "assistant-rag-index"
 }
 
+func (*IndexSubscriber) Slow() bool {
+	return true
+}
+
 // Handle rebuilds embeddings index after deploySuccess events.
 func (s *IndexSubscriber) Handle(ctx context.Context, event events.Event) error {
 	if _, ok := event.(*events.DeploySuccess); !ok {

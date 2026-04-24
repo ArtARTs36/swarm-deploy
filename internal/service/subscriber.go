@@ -37,6 +37,10 @@ func (s *Subscriber) Name() string {
 	return "save-service-metadata"
 }
 
+func (s *Subscriber) Slow() bool {
+	return true
+}
+
 // Handle processes deploySuccess events and persists resolved services snapshot.
 func (s *Subscriber) Handle(ctx context.Context, event events.Event) error {
 	deploySuccess, ok := event.(*events.DeploySuccess)

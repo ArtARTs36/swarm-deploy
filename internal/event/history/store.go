@@ -63,6 +63,10 @@ func (s *Store) Name() string {
 	return "save-event-history"
 }
 
+func (s *Store) Slow() bool {
+	return false
+}
+
 // Handle appends event to history and persists updated file.
 func (s *Store) Handle(_ context.Context, event events.Event) error {
 	s.mu.Lock()
