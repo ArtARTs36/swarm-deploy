@@ -56,8 +56,6 @@ export interface CurrentUserResponse {
 
 export interface EventHistoryItem {
   type: string;
-  severity: EventSeverity;
-  category: EventCategory;
   created_at: string;
   message: string;
   details?: Record<string, string>;
@@ -66,9 +64,6 @@ export interface EventHistoryItem {
 export interface EventHistoryResponse {
   events: EventHistoryItem[];
 }
-
-export type EventSeverity = "info" | "warn" | "error" | "alert";
-export type EventCategory = "sync" | "security";
 
 export interface ServiceSpecSecretResponse {
   secret_id?: string;

@@ -203,53 +203,9 @@ func (s *CurrentUserResponse) SetName(val string) {
 	s.Name = val
 }
 
-// Ref: #/components/schemas/EventCategory
-type EventCategory string
-
-const (
-	EventCategorySync     EventCategory = "sync"
-	EventCategorySecurity EventCategory = "security"
-)
-
-// AllValues returns all EventCategory values.
-func (EventCategory) AllValues() []EventCategory {
-	return []EventCategory{
-		EventCategorySync,
-		EventCategorySecurity,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s EventCategory) MarshalText() ([]byte, error) {
-	switch s {
-	case EventCategorySync:
-		return []byte(s), nil
-	case EventCategorySecurity:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *EventCategory) UnmarshalText(data []byte) error {
-	switch EventCategory(data) {
-	case EventCategorySync:
-		*s = EventCategorySync
-		return nil
-	case EventCategorySecurity:
-		*s = EventCategorySecurity
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/EventHistoryItem
 type EventHistoryItem struct {
 	Type      string                     `json:"type"`
-	Severity  EventSeverity              `json:"severity"`
-	Category  EventCategory              `json:"category"`
 	CreatedAt time.Time                  `json:"created_at"`
 	Message   string                     `json:"message"`
 	Details   OptEventHistoryItemDetails `json:"details"`
@@ -258,16 +214,6 @@ type EventHistoryItem struct {
 // GetType returns the value of Type.
 func (s *EventHistoryItem) GetType() string {
 	return s.Type
-}
-
-// GetSeverity returns the value of Severity.
-func (s *EventHistoryItem) GetSeverity() EventSeverity {
-	return s.Severity
-}
-
-// GetCategory returns the value of Category.
-func (s *EventHistoryItem) GetCategory() EventCategory {
-	return s.Category
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -288,16 +234,6 @@ func (s *EventHistoryItem) GetDetails() OptEventHistoryItemDetails {
 // SetType sets the value of Type.
 func (s *EventHistoryItem) SetType(val string) {
 	s.Type = val
-}
-
-// SetSeverity sets the value of Severity.
-func (s *EventHistoryItem) SetSeverity(val EventSeverity) {
-	s.Severity = val
-}
-
-// SetCategory sets the value of Category.
-func (s *EventHistoryItem) SetCategory(val EventCategory) {
-	s.Category = val
 }
 
 // SetCreatedAt sets the value of CreatedAt.
@@ -339,62 +275,6 @@ func (s *EventHistoryResponse) GetEvents() []EventHistoryItem {
 // SetEvents sets the value of Events.
 func (s *EventHistoryResponse) SetEvents(val []EventHistoryItem) {
 	s.Events = val
-}
-
-// Ref: #/components/schemas/EventSeverity
-type EventSeverity string
-
-const (
-	EventSeverityInfo  EventSeverity = "info"
-	EventSeverityWarn  EventSeverity = "warn"
-	EventSeverityError EventSeverity = "error"
-	EventSeverityAlert EventSeverity = "alert"
-)
-
-// AllValues returns all EventSeverity values.
-func (EventSeverity) AllValues() []EventSeverity {
-	return []EventSeverity{
-		EventSeverityInfo,
-		EventSeverityWarn,
-		EventSeverityError,
-		EventSeverityAlert,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s EventSeverity) MarshalText() ([]byte, error) {
-	switch s {
-	case EventSeverityInfo:
-		return []byte(s), nil
-	case EventSeverityWarn:
-		return []byte(s), nil
-	case EventSeverityError:
-		return []byte(s), nil
-	case EventSeverityAlert:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *EventSeverity) UnmarshalText(data []byte) error {
-	switch EventSeverity(data) {
-	case EventSeverityInfo:
-		*s = EventSeverityInfo
-		return nil
-	case EventSeverityWarn:
-		*s = EventSeverityWarn
-		return nil
-	case EventSeverityError:
-		*s = EventSeverityError
-		return nil
-	case EventSeverityAlert:
-		*s = EventSeverityAlert
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 // Ref: #/components/schemas/NodeInfo
