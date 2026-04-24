@@ -11,6 +11,7 @@ import SidebarNav from "./SidebarNav.vue";
 import TopBar from "./TopBar.vue";
 import EventHistoryModal from "../overview/EventHistoryModal.vue";
 import ServiceStatusModal from "../overview/ServiceStatusModal.vue";
+import CommitDetailsModal from "../overview/CommitDetailsModal.vue";
 import SecretDetailsModal from "../secrets/SecretDetailsModal.vue";
 
 const route = useRoute();
@@ -74,6 +75,7 @@ onMounted(() => {
     </div>
     <EventHistoryModal />
     <ServiceStatusModal />
+    <CommitDetailsModal />
     <SecretDetailsModal />
     <AssistantDrawer />
   </div>

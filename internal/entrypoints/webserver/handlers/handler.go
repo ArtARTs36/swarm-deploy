@@ -7,6 +7,7 @@ import (
 	"github.com/swarm-deploy/swarm-deploy/internal/controller"
 	generated "github.com/swarm-deploy/swarm-deploy/internal/entrypoints/webserver/generated"
 	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
+	gitx "github.com/swarm-deploy/swarm-deploy/internal/git"
 	swarmnode "github.com/swarm-deploy/swarm-deploy/internal/node"
 	"github.com/swarm-deploy/swarm-deploy/internal/service"
 	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
@@ -33,12 +34,14 @@ type handler struct {
 	services         *service.Store
 	nodes            *swarmnode.Store
 	assistant        assistant.Assistant
+	git              gitx.Repository
 }
 
 var _ generated.Handler = (*handler)(nil)
 
 func New(
 	control *controller.Controller,
+	gitRepository gitx.Repository,
 	serviceInspector ServiceStatusInspector,
 	secrets SecretsReader,
 	history *history.Store,
@@ -54,5 +57,6 @@ func New(
 		services:         services,
 		nodes:            nodes,
 		assistant:        assistantService,
+		git:              gitRepository,
 	}
 }

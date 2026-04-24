@@ -18,6 +18,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StacksResponse'
+  /api/v1/git/commits/{commit}:
+    get:
+      operationId: getGitCommit
+      parameters:
+        - in: path
+          name: commit
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Git commit details by hash.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitCommitDetailsResponse'
   /api/v1/sync:
     post:
       operationId: triggerSync
@@ -400,6 +416,21 @@ components:
       type: object
       additionalProperties:
         type: string
+    GitCommitDetailsResponse:
+      type: object
+      required: [full_hash, author, date, changed_files]
+      properties:
+        full_hash:
+          type: string
+        author:
+          type: string
+        date:
+          type: string
+          format: date-time
+        changed_files:
+          type: array
+          items:
+            type: string
     ServiceView:
       type: object
       required: [name, image, image_version]

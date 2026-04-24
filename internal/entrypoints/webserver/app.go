@@ -19,6 +19,7 @@ import (
 	"github.com/swarm-deploy/swarm-deploy/internal/entrypoints/webserver/middlewares"
 	"github.com/swarm-deploy/swarm-deploy/internal/event/dispatcher"
 	"github.com/swarm-deploy/swarm-deploy/internal/event/history"
+	gitx "github.com/swarm-deploy/swarm-deploy/internal/git"
 	swarmnode "github.com/swarm-deploy/swarm-deploy/internal/node"
 	"github.com/swarm-deploy/swarm-deploy/internal/service"
 	"github.com/swarm-deploy/swarm-deploy/internal/swarm"
@@ -81,6 +82,7 @@ func buildSPAFallbackHandler(uiFS fs.FS) http.Handler {
 func NewApplication(
 	address string,
 	control *controller.Controller,
+	gitRepository gitx.Repository,
 	serviceInspector *swarm.ServiceManager,
 	secretReader *swarm.SecretManager,
 	eventHistory *history.Store,
@@ -90,7 +92,16 @@ func NewApplication(
 	eventDispatcher dispatcher.Dispatcher,
 	authCfg config.AuthenticationSpec,
 ) (*Application, error) {
-	h := handlers.New(control, serviceInspector, secretReader, eventHistory, serviceStore, nodeStore, assistantService)
+	h := handlers.New(
+		control,
+		gitRepository,
+		serviceInspector,
+		secretReader,
+		eventHistory,
+		serviceStore,
+		nodeStore,
+		assistantService,
+	)
 
 	apiHandler, err := generated.NewServer(h, generated.WithErrorHandler(handlers.HandleHTTPError))
 	if err != nil {

@@ -217,6 +217,29 @@ func (s EventSeverity) Validate() error {
 	}
 }
 
+func (s *GitCommitDetailsResponse) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.ChangedFiles == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "changed_files",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s *NodesResponse) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer

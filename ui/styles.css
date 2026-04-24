@@ -610,6 +610,19 @@ button:hover,
   cursor: not-allowed;
 }
 
+.stack-commit-badge {
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 0.78rem;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: transparent;
+  color: var(--muted);
+}
+
+.stack-commit-badge:hover {
+  transform: none;
+}
+
 .modal {
   position: fixed;
   inset: 0;

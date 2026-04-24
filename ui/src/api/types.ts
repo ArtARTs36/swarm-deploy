@@ -22,6 +22,13 @@ export interface StacksResponse {
   sync: SyncInfo;
 }
 
+export interface GitCommitDetailsResponse {
+  full_hash: string;
+  author: string;
+  date: string;
+  changed_files: string[];
+}
+
 export type ServiceType = "application" | "monitoring" | "delivery" | "reverseProxy" | "database";
 
 export interface WebRoute {

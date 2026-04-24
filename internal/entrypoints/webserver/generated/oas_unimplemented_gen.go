@@ -27,6 +27,13 @@ func (UnimplementedHandler) GetCurrentUser(ctx context.Context) (r *CurrentUserR
 	return r, ht.ErrNotImplemented
 }
 
+// GetGitCommit implements getGitCommit operation.
+//
+// GET /api/v1/git/commits/{commit}
+func (UnimplementedHandler) GetGitCommit(ctx context.Context, params GetGitCommitParams) (r *GitCommitDetailsResponse, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetSecretByName implements getSecretByName operation.
 //
 // GET /api/v1/secrets/{name}

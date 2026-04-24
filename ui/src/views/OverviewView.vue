@@ -8,26 +8,29 @@ const overviewStore = useOverviewStore();
 
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
-const syncStatusText = computed(() => {
-  if (overviewStore.loadingError) {
-    return `Failed to load state: ${overviewStore.loadingError}`;
-  }
-  if (!overviewStore.syncInfo) {
-    return "Sync status is unavailable.";
-  }
-
-  const syncInfo = overviewStore.syncInfo;
-  return (
-    `Last sync: ${formatDate(syncInfo.last_sync_at)} | ` +
-    `reason: ${syncInfo.last_sync_reason || "n/a"} | ` +
-    `result: ${syncInfo.last_sync_result || "n/a"} | ` +
-    `revision: ${syncInfo.git_revision || "n/a"}` +
-    (syncInfo.last_sync_error ? ` | error: ${syncInfo.last_sync_error}` : "")
-  );
-});
+const syncInfo = computed(() => overviewStore.syncInfo);
+const syncRevision = computed(() => String(syncInfo.value?.git_revision ?? "").trim());
 
 function isStatusClass(status: string, expected: string): boolean {
   return status.toLowerCase() === expected;
+}
+
+function shortCommitHash(hash: string | undefined): string {
+  const value = String(hash || "").trim();
+  if (!value) {
+    return "n/a";
+  }
+
+  return value.slice(0, 6);
+}
+
+async function openCommitDetails(commitHash: string | undefined) {
+  const hash = String(commitHash || "").trim();
+  if (!hash) {
+    return;
+  }
+
+  await overviewStore.openCommitDetailsModal(hash);
 }
 
 async function refreshOverview() {
@@ -51,7 +54,22 @@ onUnmounted(() => {
 
 <template>
   <section class="status-panel">
-    <p class="meta">{{ syncStatusText }}</p>
+    <p v-if="overviewStore.loadingError" class="meta">Failed to load state: {{ overviewStore.loadingError }}</p>
+    <p v-else-if="!syncInfo" class="meta">Sync status is unavailable.</p>
+    <p v-else class="meta">
+      Last sync: {{ formatDate(syncInfo.last_sync_at) }} | reason: {{ syncInfo.last_sync_reason || "n/a" }} | result:
+      {{ syncInfo.last_sync_result || "n/a" }} | revision:
+      <button
+        v-if="syncRevision"
+        type="button"
+        class="stack-commit-badge status unknown"
+        @click="openCommitDetails(syncRevision)"
+      >
+        {{ shortCommitHash(syncRevision) }}
+      </button>
+      <span v-else> n/a</span>
+      <template v-if="syncInfo.last_sync_error"> | error: {{ syncInfo.last_sync_error }}</template>
+    </p>
   </section>
 
   <section>
@@ -82,7 +100,18 @@ onUnmounted(() => {
         </span>
         <p class="meta">compose: {{ stack.compose_file }}</p>
         <p class="meta">last deploy: {{ formatDate(stack.last_deploy_at) }}</p>
-        <p class="meta">commit: {{ stack.last_commit || "n/a" }}</p>
+        <p class="meta">
+          commit:
+          <button
+            v-if="stack.last_commit"
+            type="button"
+            class="stack-commit-badge status unknown"
+            @click="openCommitDetails(stack.last_commit)"
+          >
+            {{ shortCommitHash(stack.last_commit) }}
+          </button>
+          <span v-else> n/a</span>
+        </p>
         <p v-if="stack.last_error" class="meta">error: {{ stack.last_error }}</p>
       </article>
     </div>

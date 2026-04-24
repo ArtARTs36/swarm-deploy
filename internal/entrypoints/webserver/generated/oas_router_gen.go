@@ -117,6 +117,42 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
+			case 'g': // Prefix: "git/commits/"
+
+				if l := len("git/commits/"); len(elem) >= l && elem[0:l] == "git/commits/" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				// Param: "commit"
+				// Leaf parameter, slashes are prohibited
+				idx := strings.IndexByte(elem, '/')
+				if idx >= 0 {
+					break
+				}
+				args[0] = elem
+				elem = ""
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch r.Method {
+					case "GET":
+						s.handleGetGitCommitRequest([1]string{
+							args[0],
+						}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, notAllowedParams{
+							allowedMethods: "GET",
+							allowedHeaders: nil,
+							acceptPost:     "",
+							acceptPatch:    "",
+						})
+					}
+
+					return
+				}
+
 			case 'n': // Prefix: "nodes"
 
 				if l := len("nodes"); len(elem) >= l && elem[0:l] == "nodes" {
@@ -618,6 +654,40 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						r.pathPattern = "/api/v1/events"
 						r.args = args
 						r.count = 0
+						return r, true
+					default:
+						return
+					}
+				}
+
+			case 'g': // Prefix: "git/commits/"
+
+				if l := len("git/commits/"); len(elem) >= l && elem[0:l] == "git/commits/" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				// Param: "commit"
+				// Leaf parameter, slashes are prohibited
+				idx := strings.IndexByte(elem, '/')
+				if idx >= 0 {
+					break
+				}
+				args[0] = elem
+				elem = ""
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch method {
+					case "GET":
+						r.name = GetGitCommitOperation
+						r.summary = ""
+						r.operationID = "getGitCommit"
+						r.operationGroup = ""
+						r.pathPattern = "/api/v1/git/commits/{commit}"
+						r.args = args
+						r.count = 1
 						return r, true
 					default:
 						return

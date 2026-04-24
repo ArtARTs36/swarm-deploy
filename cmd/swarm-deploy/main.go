@@ -148,6 +148,7 @@ func main() {
 	webApplication, err := webserver.NewApplication(
 		cfg.Spec.Web.Address,
 		control,
+		gitRepository,
 		swarmService.Services,
 		swarmService.Secrets,
 		eventHistory,

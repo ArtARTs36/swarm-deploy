@@ -397,6 +397,54 @@ func (s *EventSeverity) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/GitCommitDetailsResponse
+type GitCommitDetailsResponse struct {
+	FullHash     string    `json:"full_hash"`
+	Author       string    `json:"author"`
+	Date         time.Time `json:"date"`
+	ChangedFiles []string  `json:"changed_files"`
+}
+
+// GetFullHash returns the value of FullHash.
+func (s *GitCommitDetailsResponse) GetFullHash() string {
+	return s.FullHash
+}
+
+// GetAuthor returns the value of Author.
+func (s *GitCommitDetailsResponse) GetAuthor() string {
+	return s.Author
+}
+
+// GetDate returns the value of Date.
+func (s *GitCommitDetailsResponse) GetDate() time.Time {
+	return s.Date
+}
+
+// GetChangedFiles returns the value of ChangedFiles.
+func (s *GitCommitDetailsResponse) GetChangedFiles() []string {
+	return s.ChangedFiles
+}
+
+// SetFullHash sets the value of FullHash.
+func (s *GitCommitDetailsResponse) SetFullHash(val string) {
+	s.FullHash = val
+}
+
+// SetAuthor sets the value of Author.
+func (s *GitCommitDetailsResponse) SetAuthor(val string) {
+	s.Author = val
+}
+
+// SetDate sets the value of Date.
+func (s *GitCommitDetailsResponse) SetDate(val time.Time) {
+	s.Date = val
+}
+
+// SetChangedFiles sets the value of ChangedFiles.
+func (s *GitCommitDetailsResponse) SetChangedFiles(val []string) {
+	s.ChangedFiles = val
+}
+
 // Ref: #/components/schemas/NodeInfo
 type NodeInfo struct {
 	ID            string `json:"id"`

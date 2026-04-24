@@ -1,6 +1,7 @@
 import { apiRequest } from "./client";
 import type {
   EventHistoryResponse,
+  GitCommitDetailsResponse,
   QueueResponse,
   ServiceDeploymentsResponse,
   ServiceStatusResponse,
@@ -9,6 +10,11 @@ import type {
 
 export function fetchStacks(): Promise<StacksResponse> {
   return apiRequest<StacksResponse>("/api/v1/stacks");
+}
+
+export function fetchGitCommit(commitHash: string): Promise<GitCommitDetailsResponse> {
+  const encodedCommitHash = encodeURIComponent(commitHash);
+  return apiRequest<GitCommitDetailsResponse>(`/api/v1/git/commits/${encodedCommitHash}`);
 }
 
 export function triggerSync(): Promise<QueueResponse> {

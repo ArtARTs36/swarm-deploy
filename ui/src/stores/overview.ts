@@ -1,8 +1,22 @@
 import { defineStore } from "pinia";
 
-import { fetchEvents, fetchServiceDeployments, fetchServiceStatus, fetchStacks, triggerSync } from "../api/overview";
+import {
+  fetchEvents,
+  fetchGitCommit,
+  fetchServiceDeployments,
+  fetchServiceStatus,
+  fetchStacks,
+  triggerSync,
+} from "../api/overview";
 import { fetchServices } from "../api/services";
-import type { EventHistoryItem, ServiceInfo, ServiceStatusResponse, StackView, SyncInfo } from "../api/types";
+import type {
+  EventHistoryItem,
+  GitCommitDetailsResponse,
+  ServiceInfo,
+  ServiceStatusResponse,
+  StackView,
+  SyncInfo,
+} from "../api/types";
 
 interface OverviewState {
   stacks: StackView[];
@@ -22,6 +36,11 @@ interface OverviewState {
   serviceStatusStack: string;
   serviceStatusService: string;
   serviceStatusLatestDeploymentAt: string;
+  commitDetailsData: GitCommitDetailsResponse | null;
+  commitDetailsLoading: boolean;
+  commitDetailsError: string;
+  commitDetailsModalOpen: boolean;
+  commitDetailsHash: string;
 }
 
 export const useOverviewStore = defineStore("overview", {
@@ -43,6 +62,11 @@ export const useOverviewStore = defineStore("overview", {
     serviceStatusStack: "",
     serviceStatusService: "",
     serviceStatusLatestDeploymentAt: "",
+    commitDetailsData: null,
+    commitDetailsLoading: false,
+    commitDetailsError: "",
+    commitDetailsModalOpen: false,
+    commitDetailsHash: "",
   }),
   actions: {
     async loadOverview() {
@@ -148,6 +172,28 @@ export const useOverviewStore = defineStore("overview", {
       this.serviceStatusStack = "";
       this.serviceStatusService = "";
       this.serviceStatusLatestDeploymentAt = "";
+    },
+    async openCommitDetailsModal(commitHash: string) {
+      this.commitDetailsModalOpen = true;
+      this.commitDetailsLoading = true;
+      this.commitDetailsError = "";
+      this.commitDetailsData = null;
+      this.commitDetailsHash = commitHash;
+
+      try {
+        this.commitDetailsData = await fetchGitCommit(commitHash);
+      } catch (error) {
+        this.commitDetailsError = error instanceof Error ? error.message : "Failed to load commit details";
+      } finally {
+        this.commitDetailsLoading = false;
+      }
+    },
+    closeCommitDetailsModal() {
+      this.commitDetailsModalOpen = false;
+      this.commitDetailsData = null;
+      this.commitDetailsLoading = false;
+      this.commitDetailsError = "";
+      this.commitDetailsHash = "";
     },
   },
 });
