@@ -39,6 +39,12 @@ const (
 	CategorySecurity Category = "security"
 )
 
+const (
+	defaultSyncDedupWindow   = 5 * time.Second
+	serviceDedupWindow       = 15 * time.Second
+	securityAlertDedupWindow = 30 * time.Second
+)
+
 // Type describes event name and attached metadata.
 type Type struct {
 	name     TypeName
@@ -79,25 +85,25 @@ var (
 		name:     TypeNameSyncManualStarted,
 		severity: SeverityInfo,
 		category: CategorySync,
-		window:   5 * time.Second,
+		window:   defaultSyncDedupWindow,
 	}
 	TypeServiceReplicasIncreased = Type{
 		name:     TypeNameServiceReplicasIncreased,
 		severity: SeverityInfo,
 		category: CategorySync,
-		window:   15 * time.Second,
+		window:   serviceDedupWindow,
 	}
 	TypeServiceReplicasDecreased = Type{
 		name:     TypeNameServiceReplicasDecreased,
 		severity: SeverityInfo,
 		category: CategorySync,
-		window:   15 * time.Second,
+		window:   serviceDedupWindow,
 	}
 	TypeServiceRestarted = Type{
 		name:     TypeNameServiceRestarted,
 		severity: SeverityInfo,
 		category: CategorySync,
-		window:   15 * time.Second,
+		window:   serviceDedupWindow,
 	}
 	TypeUserAuthenticated = Type{
 		name:     TypeNameUserAuthenticated,
@@ -109,7 +115,7 @@ var (
 		name:     TypeNameAssistantPromptInjectionDetected,
 		severity: SeverityAlert,
 		category: CategorySecurity,
-		window:   30 * time.Second,
+		window:   securityAlertDedupWindow,
 	}
 
 	Types = []Type{
