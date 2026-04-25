@@ -147,7 +147,6 @@ func deduplicateKey(event events.Event) string {
 
 	sort.Strings(keys)
 
-	//nolint:gosec // Non-cryptographic hash is sufficient for deduplication key generation.
 	hash := fnv.New64a()
 	_, _ = hash.Write([]byte(event.Type().String()))
 	_, _ = hash.Write([]byte{0})
