@@ -6,6 +6,10 @@ GitOps controller for Docker Swarm with an ArgoCD-inspired, but Swarm-native, co
 
 ## Capabilities
 
+- Sync:
+- - Stacks
+- - Services
+- - Networks
 - Operating modes:
   - `pull` (polling),
   - `webhook`,
