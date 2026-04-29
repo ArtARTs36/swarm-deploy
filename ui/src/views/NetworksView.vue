@@ -105,7 +105,6 @@ onMounted(() => {
         <thead>
           <tr>
             <th>Name</th>
-            <th>Scope</th>
             <th>Driver</th>
             <th>Attachable</th>
             <th>Internal</th>
@@ -117,7 +116,6 @@ onMounted(() => {
         <tbody>
           <tr v-for="network in filteredNetworks" :key="network.id">
             <td>{{ network.name || "n/a" }}</td>
-            <td>{{ network.scope || "n/a" }}</td>
             <td>{{ network.driver || "n/a" }}</td>
             <td>{{ boolText(network.attachable) }}</td>
             <td>{{ boolText(network.internal) }}</td>
