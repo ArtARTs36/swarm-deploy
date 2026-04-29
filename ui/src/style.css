@@ -264,6 +264,10 @@ body {
   }
 
   .sidebar {
+    order: 1;
+  }
+
+  .shell-main {
     order: 2;
   }
 }
