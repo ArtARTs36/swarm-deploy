@@ -110,8 +110,16 @@ func NewApplication(
 		return nil, fmt.Errorf("build ogen api server: %w", err)
 	}
 
+	auth, err := authenticator.Create(authCfg)
+	if err != nil {
+		return nil, fmt.Errorf("build authenticator: %w", err)
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler)
+	if routesMounter, ok := auth.(authenticator.APIRoutesMounter); ok {
+		routesMounter.MountAPIRoutes(mux)
+	}
 
 	uiHandler := buildSPAFallbackHandler(ui.FS)
 	mux.HandleFunc("/ui", func(w http.ResponseWriter, r *http.Request) {
@@ -123,10 +131,6 @@ func NewApplication(
 	mux.Handle("/", uiHandler)
 
 	rootHandler := http.Handler(mux)
-	auth, err := authenticator.Create(authCfg)
-	if err != nil {
-		return nil, fmt.Errorf("build authenticator: %w", err)
-	}
 
 	return &Application{
 		server: &http.Server{

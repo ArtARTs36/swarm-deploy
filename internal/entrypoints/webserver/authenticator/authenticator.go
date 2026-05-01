@@ -15,6 +15,18 @@ type Authenticator interface {
 	Challenge(w http.ResponseWriter)
 }
 
+// APIRoutesMounter mounts additional API routes required by authenticator implementation.
+type APIRoutesMounter interface {
+	// MountAPIRoutes mounts authenticator-specific routes into api mux.
+	MountAPIRoutes(mux *http.ServeMux)
+}
+
+// PublicPathMatcher reports whether path is publicly accessible without authentication.
+type PublicPathMatcher interface {
+	// IsPublicPath checks whether request path should bypass authorization.
+	IsPublicPath(path string) bool
+}
+
 func Create(cfg config.AuthenticationSpec) (Authenticator, error) {
 	switch cfg.Strategy() {
 	case config.AuthenticationStrategyNone:
@@ -26,6 +38,29 @@ func Create(cfg config.AuthenticationSpec) (Authenticator, error) {
 			return nil, fmt.Errorf("create basic authenticator: %w", err)
 		}
 		return authenticator, nil
+	case config.AuthenticationStrategyPasskey:
+		authenticator, err := newPasskeyAuthenticator(cfg.Passkey)
+		if err != nil {
+			return nil, fmt.Errorf("create passkey authenticator: %w", err)
+		}
+		return authenticator, nil
+	case config.AuthenticationStrategyBasicAndPasskey:
+		basicAuthenticator, err := newBasicAuthenticator(cfg.Basic.HTPasswdFile)
+		if err != nil {
+			return nil, fmt.Errorf("create basic authenticator: %w", err)
+		}
+
+		passkeyAuthenticator, err := newPasskeyAuthenticator(cfg.Passkey)
+		if err != nil {
+			return nil, fmt.Errorf("create passkey authenticator: %w", err)
+		}
+
+		return &multiAuthenticator{
+			authenticators: []Authenticator{
+				basicAuthenticator,
+				passkeyAuthenticator,
+			},
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported authenticator %q", cfg.Strategy())
 	}

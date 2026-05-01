@@ -96,6 +96,29 @@ swarm:
 web:
   # Single web server listen address for UI and API.
   address: ":8080"
+  # UI/API access control settings.
+  security:
+    authentication:
+      basic:
+        # Path to htpasswd file with bcrypt hashes (mounted secret recommended).
+        # Example: /run/secrets/basic.htpasswd
+        # Leave empty to disable authentication.
+        htpasswdFile: ""
+      passkey:
+        # Enable WebAuthn passkey auth.
+        enabled: false
+        # Relying party id, usually your domain or localhost in development.
+        rpId: localhost
+        # Human-readable relying party name.
+        rpDisplayName: Swarm Deploy
+        # Allowed WebAuthn origins.
+        rpOrigins:
+          - http://localhost:8080
+        # Directory for passkey users and sessions JSON files.
+        # By default (when enabled) resolved to .swarm-deploy/passkey.
+        storagePath: ""
+        # Set true only for local non-https development.
+        insecureCookie: true
 
 # Dedicated health/metrics server.
 healthServer:

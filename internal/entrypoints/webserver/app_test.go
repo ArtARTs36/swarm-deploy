@@ -3,6 +3,7 @@ package webserver
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,4 +65,28 @@ func TestUIRoutes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPasskeyRoutesMountedAndPublic(t *testing.T) {
+	authCfg := config.AuthenticationSpec{
+		Passkey: config.PasskeyAuthenticationSpec{
+			Enabled:        true,
+			RPID:           "localhost",
+			RPDisplayName:  "Swarm Deploy",
+			RPOrigins:      []string{"http://localhost:8080"},
+			StoragePath:    t.TempDir(),
+			InsecureCookie: true,
+		},
+	}
+
+	app, err := NewApplication(":0", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, authCfg)
+	require.NoError(t, err, "new application")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/passkey/registerBegin", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	app.server.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code, "passkey route should be reachable without prior authentication")
 }

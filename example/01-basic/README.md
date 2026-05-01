@@ -6,6 +6,8 @@ This example contains basic configurations for deploy public repositories.
 - init jobs (for secrets rotation)
 - UI and API on `8080` port (`GET /api/v1/stacks`, `POST /api/v1/sync`, `GET /api/v1/events`, `GET /api/v1/services`, `POST /api/v1/assistant/chat`)
 - event history persisted on disk with `eventHistory.capacity` limit
+- optional UI/API basic authentication via `web.security.authentication.basic.htpasswdFile`
+- optional UI/API passkey authentication via `web.security.authentication.passkey.*`
 - Health Server on `8082` port
 
 Your steps:

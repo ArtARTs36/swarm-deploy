@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/artarts36/specw"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -800,4 +801,140 @@ stacks:
 	require.NoError(t, err, "load config")
 	assert.Equal(t, "oauth2", cfg.Spec.Git.Auth.HTTP.ResolveUsername(), "expected oauth2 fallback for token auth")
 	assert.Equal(t, "token-value", cfg.Spec.Git.Auth.HTTP.ResolvePassword(), "expected token as password")
+}
+
+func TestAuthenticationSpecStrategy(t *testing.T) {
+	testCases := []struct {
+		name string
+		spec AuthenticationSpec
+		want string
+	}{
+		{
+			name: "none",
+			spec: AuthenticationSpec{},
+			want: AuthenticationStrategyNone,
+		},
+		{
+			name: "basic only",
+			spec: AuthenticationSpec{
+				Basic: BasicAuthenticationSpec{
+					HTPasswdFile: specw.File{Path: "/run/secrets/basic.htpasswd"},
+				},
+			},
+			want: AuthenticationStrategyBasic,
+		},
+		{
+			name: "passkey only",
+			spec: AuthenticationSpec{
+				Passkey: PasskeyAuthenticationSpec{Enabled: true},
+			},
+			want: AuthenticationStrategyPasskey,
+		},
+		{
+			name: "basic and passkey",
+			spec: AuthenticationSpec{
+				Basic: BasicAuthenticationSpec{
+					HTPasswdFile: specw.File{Path: "/run/secrets/basic.htpasswd"},
+				},
+				Passkey: PasskeyAuthenticationSpec{Enabled: true},
+			},
+			want: AuthenticationStrategyBasicAndPasskey,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Equal(t, testCase.want, testCase.spec.Strategy(), "unexpected strategy")
+		})
+	}
+}
+
+func TestApplyWebAndHealthDefaultsPasskey(t *testing.T) {
+	cfg := &Config{
+		Spec: Spec{
+			DataDir: "/tmp/swarm-deploy-tests",
+			Web: WebSpec{
+				Security: SecuritySpec{
+					Authentication: AuthenticationSpec{
+						Passkey: PasskeyAuthenticationSpec{Enabled: true},
+					},
+				},
+			},
+		},
+	}
+
+	cfg.applyWebAndHealthDefaults()
+
+	assert.Equal(t, defaultWebAddress, cfg.Spec.Web.Address, "expected default web address")
+	assert.Equal(t, "Swarm Deploy", cfg.Spec.Web.Security.Authentication.Passkey.RPDisplayName, "expected default passkey rpDisplayName")
+	assert.Equal(
+		t,
+		filepath.Join(cfg.Spec.DataDir, "passkey"),
+		cfg.Spec.Web.Security.Authentication.Passkey.StoragePath,
+		"expected passkey storagePath under data dir",
+	)
+}
+
+func TestValidateSecurityPasskey(t *testing.T) {
+	cfg := &Config{
+		Spec: Spec{
+			Web: WebSpec{
+				Security: SecuritySpec{
+					Authentication: AuthenticationSpec{
+						Passkey: PasskeyAuthenticationSpec{
+							Enabled: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	errs := cfg.validateSecurity()
+	require.NotEmpty(t, errs, "expected validation errors")
+
+	allErrors := errorsToMessage(errs)
+	assert.Contains(t, allErrors, "web.security.authentication.passkey.rpId", "expected rpId validation")
+	assert.Contains(t, allErrors, "web.security.authentication.passkey.rpDisplayName", "expected rpDisplayName validation")
+	assert.Contains(t, allErrors, "web.security.authentication.passkey.rpOrigins", "expected rpOrigins validation")
+	assert.Contains(t, allErrors, "web.security.authentication.passkey.storagePath", "expected storagePath validation")
+}
+
+func TestValidateSecurityPasskeySuccess(t *testing.T) {
+	cfg := &Config{
+		Spec: Spec{
+			Web: WebSpec{
+				Security: SecuritySpec{
+					Authentication: AuthenticationSpec{
+						Passkey: PasskeyAuthenticationSpec{
+							Enabled:       true,
+							RPID:          "localhost",
+							RPDisplayName: "Swarm Deploy",
+							RPOrigins:     []string{"http://localhost:8080"},
+							StoragePath:   "/tmp/swarm-deploy/passkey",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	errs := cfg.validateSecurity()
+	assert.Empty(t, errs, "expected valid passkey config")
+}
+
+func errorsToMessage(errs []error) string {
+	if len(errs) == 0 {
+		return ""
+	}
+
+	out := ""
+	for _, err := range errs {
+		if out != "" {
+			out += "; "
+		}
+		out += err.Error()
+	}
+
+	return out
 }

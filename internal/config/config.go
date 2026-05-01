@@ -23,6 +23,10 @@ const (
 	AuthenticationStrategyNone = "none"
 	// AuthenticationStrategyBasic enables HTTP Basic authentication.
 	AuthenticationStrategyBasic = "basic"
+	// AuthenticationStrategyPasskey enables WebAuthn passkey authentication.
+	AuthenticationStrategyPasskey = "passkey"
+	// AuthenticationStrategyBasicAndPasskey enables both HTTP Basic and passkey authentication.
+	AuthenticationStrategyBasicAndPasskey = "basic+passkey"
 
 	defaultWebAddress         = ":8080"
 	defaultWebhookAddress     = ":8082"
@@ -261,6 +265,21 @@ func (c *Config) applyWebAndHealthDefaults() {
 	if strings.TrimSpace(c.Spec.Web.Address) == "" {
 		c.Spec.Web.Address = defaultWebAddress
 	}
+
+	passkeyCfg := &c.Spec.Web.Security.Authentication.Passkey
+	passkeyCfg.RPID = strings.TrimSpace(passkeyCfg.RPID)
+	passkeyCfg.RPDisplayName = strings.TrimSpace(passkeyCfg.RPDisplayName)
+	if passkeyCfg.RPDisplayName == "" {
+		passkeyCfg.RPDisplayName = "Swarm Deploy"
+	}
+	passkeyCfg.StoragePath = strings.TrimSpace(passkeyCfg.StoragePath)
+	if passkeyCfg.Enabled && passkeyCfg.StoragePath == "" {
+		passkeyCfg.StoragePath = filepath.Join(c.Spec.DataDir, "passkey")
+	}
+	for i, origin := range passkeyCfg.RPOrigins {
+		passkeyCfg.RPOrigins[i] = strings.TrimSpace(origin)
+	}
+
 	if c.Spec.HealthServer.Address == "" {
 		c.Spec.HealthServer.Address = ":8081"
 	}
@@ -701,15 +720,41 @@ func (c *Config) validateGitAuth() []error {
 }
 
 func (c *Config) validateSecurity() []error {
-	if c.Spec.Web.Security.Authentication.Basic.HTPasswdFile.Path == "" {
-		return nil
+	var errs []error
+
+	if c.Spec.Web.Security.Authentication.Basic.HTPasswdFile.Path != "" &&
+		strings.TrimSpace(string(c.Spec.Web.Security.Authentication.Basic.HTPasswdFile.Content)) == "" {
+		errs = append(errs, errors.New("web.security.authentication.basic.htpasswdFile contains empty credentials"))
 	}
 
-	if strings.TrimSpace(string(c.Spec.Web.Security.Authentication.Basic.HTPasswdFile.Content)) == "" {
-		return []error{errors.New("web.security.authentication.basic.htpasswdFile contains empty credentials")}
+	passkeyCfg := c.Spec.Web.Security.Authentication.Passkey
+	if !passkeyCfg.Enabled {
+		return errs
 	}
 
-	return nil
+	if passkeyCfg.RPID == "" {
+		errs = append(errs, errors.New("web.security.authentication.passkey.rpId is required when passkey.enabled=true"))
+	}
+	if passkeyCfg.RPDisplayName == "" {
+		errs = append(errs, errors.New("web.security.authentication.passkey.rpDisplayName is required when passkey.enabled=true"))
+	}
+
+	origins := 0
+	for i, origin := range passkeyCfg.RPOrigins {
+		if strings.TrimSpace(origin) == "" {
+			errs = append(errs, fmt.Errorf("web.security.authentication.passkey.rpOrigins[%d] must not be empty", i))
+			continue
+		}
+		origins++
+	}
+	if origins == 0 {
+		errs = append(errs, errors.New("web.security.authentication.passkey.rpOrigins must contain at least one origin"))
+	}
+	if strings.TrimSpace(passkeyCfg.StoragePath) == "" {
+		errs = append(errs, errors.New("web.security.authentication.passkey.storagePath is required when passkey.enabled=true"))
+	}
+
+	return errs
 }
 
 func (c *Config) validateWebhookSecret() []error {
@@ -792,8 +837,17 @@ func (a AssistantOpenAISpec) ResolveMaxTokens() (int, error) {
 
 // Strategy resolves configured web authentication strategy.
 func (a AuthenticationSpec) Strategy() string {
-	if strings.TrimSpace(a.Basic.HTPasswdFile.Path) != "" {
+	basicEnabled := strings.TrimSpace(a.Basic.HTPasswdFile.Path) != ""
+	passkeyEnabled := a.Passkey.Enabled
+
+	if basicEnabled && passkeyEnabled {
+		return AuthenticationStrategyBasicAndPasskey
+	}
+	if basicEnabled {
 		return AuthenticationStrategyBasic
+	}
+	if passkeyEnabled {
+		return AuthenticationStrategyPasskey
 	}
 
 	return AuthenticationStrategyNone

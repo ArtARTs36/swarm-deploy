@@ -27,6 +27,13 @@ func Authorize(
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		slog.InfoContext(req.Context(), "[security] authorizing request")
 
+		publicPathMatcher, hasPublicPathMatcher := auth.(authenticator.PublicPathMatcher)
+		if hasPublicPathMatcher && publicPathMatcher.IsPublicPath(req.URL.Path) {
+			slog.InfoContext(req.Context(), "[security] path is public")
+			next.ServeHTTP(w, req)
+			return
+		}
+
 		user, authenticated := auth.Authenticate(req)
 		if authenticated {
 			req = req.WithContext(security.ContextWithUser(req.Context(), user))

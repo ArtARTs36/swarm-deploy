@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,6 +18,7 @@ import (
 type fakeAuthenticator struct {
 	authenticateResult bool
 	challenged         bool
+	publicPathPrefix   string
 }
 
 func (f *fakeAuthenticator) Authenticate(_ *http.Request) (security.User, bool) {
@@ -27,6 +29,14 @@ func (f *fakeAuthenticator) Authenticate(_ *http.Request) (security.User, bool) 
 
 func (f *fakeAuthenticator) Challenge(_ http.ResponseWriter) {
 	f.challenged = true
+}
+
+func (f *fakeAuthenticator) IsPublicPath(path string) bool {
+	if strings.TrimSpace(f.publicPathPrefix) == "" {
+		return false
+	}
+
+	return strings.HasPrefix(path, f.publicPathPrefix)
 }
 
 type captureDispatcher struct {
@@ -44,6 +54,7 @@ func (*captureDispatcher) Shutdown(context.Context) error {
 }
 
 var _ authenticator.Authenticator = (*fakeAuthenticator)(nil)
+var _ authenticator.PublicPathMatcher = (*fakeAuthenticator)(nil)
 var _ dispatcher.Dispatcher = (*captureDispatcher)(nil)
 
 func TestAuthorizeDispatchesUserAuthenticatedEventOnSessionStart(t *testing.T) {
@@ -110,5 +121,27 @@ func TestAuthorizeChallengesWhenAuthenticationFailed(t *testing.T) {
 
 	assert.False(t, nextCalled, "expected next handler to stay untouched")
 	assert.True(t, auth.challenged, "expected authentication challenge")
+	assert.Len(t, eventsCapture.dispatched, 0, "expected no dispatched events")
+}
+
+func TestAuthorizeSkipsAuthenticationOnPublicPath(t *testing.T) {
+	auth := &fakeAuthenticator{
+		authenticateResult: false,
+		publicPathPrefix:   "/api/passkey/",
+	}
+	eventsCapture := &captureDispatcher{}
+	nextCalled := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		nextCalled = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	handler := Authorize(next, auth, eventsCapture)
+	req := httptest.NewRequest(http.MethodPost, "/api/passkey/loginBegin", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.True(t, nextCalled, "expected next handler to be called")
+	assert.False(t, auth.challenged, "expected no challenge for public path")
 	assert.Len(t, eventsCapture.dispatched, 0, "expected no dispatched events")
 }
