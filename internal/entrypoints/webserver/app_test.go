@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -89,4 +90,31 @@ func TestPasskeyRoutesMountedAndPublic(t *testing.T) {
 	app.server.Handler.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code, "passkey route should be reachable without prior authentication")
+}
+
+func TestAuthMethodsRoutePublic(t *testing.T) {
+	authCfg := config.AuthenticationSpec{
+		Passkey: config.PasskeyAuthenticationSpec{
+			Enabled:        true,
+			RPID:           "localhost",
+			RPDisplayName:  "Swarm Deploy",
+			RPOrigins:      []string{"http://localhost:8080"},
+			StoragePath:    t.TempDir(),
+			InsecureCookie: true,
+		},
+	}
+
+	app, err := NewApplication(":0", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, authCfg)
+	require.NoError(t, err, "new application")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/methods", nil)
+	rec := httptest.NewRecorder()
+	app.server.Handler.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code, "auth methods route should be public")
+
+	var payload map[string]bool
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &payload), "decode auth methods payload")
+	assert.Equal(t, false, payload["basic_enabled"], "unexpected basic_enabled")
+	assert.Equal(t, true, payload["passkey_enabled"], "unexpected passkey_enabled")
 }

@@ -12,6 +12,63 @@ body {
   min-height: 100vh;
 }
 
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-panel {
+  width: min(440px, 96vw);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  backdrop-filter: blur(10px);
+  padding: 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.login-title {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.login-subtitle {
+  margin: 0;
+  color: var(--muted);
+}
+
+.login-form {
+  display: grid;
+  gap: 10px;
+}
+
+.login-field {
+  display: grid;
+  gap: 6px;
+}
+
+.login-field span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.login-field input {
+  border: 1px solid rgba(161, 192, 204, 0.34);
+  border-radius: 10px;
+  background: rgba(9, 18, 28, 0.92);
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+.login-error {
+  margin: 0;
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
 .app-root {
   position: relative;
   min-height: 100vh;

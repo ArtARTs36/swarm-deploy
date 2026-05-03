@@ -57,6 +57,11 @@ export interface QueueResponse {
   queued: boolean;
 }
 
+export interface AuthMethodsResponse {
+  basic_enabled: boolean;
+  passkey_enabled: boolean;
+}
+
 export interface CurrentUserResponse {
   name: string;
 }

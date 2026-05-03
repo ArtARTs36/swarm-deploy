@@ -117,10 +117,29 @@ func TestAuthorizeChallengesWhenAuthenticationFailed(t *testing.T) {
 
 	handler := Authorize(next, auth, eventsCapture)
 	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/stacks", nil))
 
 	assert.False(t, nextCalled, "expected next handler to stay untouched")
 	assert.True(t, auth.challenged, "expected authentication challenge")
+	assert.Len(t, eventsCapture.dispatched, 0, "expected no dispatched events")
+}
+
+func TestAuthorizeSkipsAuthenticationOnUIPath(t *testing.T) {
+	auth := &fakeAuthenticator{authenticateResult: false}
+	eventsCapture := &captureDispatcher{}
+	nextCalled := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		nextCalled = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	handler := Authorize(next, auth, eventsCapture)
+	req := httptest.NewRequest(http.MethodGet, "/overview", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.True(t, nextCalled, "expected next handler to be called")
+	assert.False(t, auth.challenged, "expected no challenge for ui path")
 	assert.Len(t, eventsCapture.dispatched, 0, "expected no dispatched events")
 }
 
@@ -143,5 +162,24 @@ func TestAuthorizeSkipsAuthenticationOnPublicPath(t *testing.T) {
 
 	assert.True(t, nextCalled, "expected next handler to be called")
 	assert.False(t, auth.challenged, "expected no challenge for public path")
+	assert.Len(t, eventsCapture.dispatched, 0, "expected no dispatched events")
+}
+
+func TestAuthorizeSkipsAuthenticationOnAuthMethodsPath(t *testing.T) {
+	auth := &fakeAuthenticator{authenticateResult: false}
+	eventsCapture := &captureDispatcher{}
+	nextCalled := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		nextCalled = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	handler := Authorize(next, auth, eventsCapture)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/methods", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.True(t, nextCalled, "expected next handler to be called")
+	assert.False(t, auth.challenged, "expected no challenge for auth methods path")
 	assert.Len(t, eventsCapture.dispatched, 0, "expected no dispatched events")
 }

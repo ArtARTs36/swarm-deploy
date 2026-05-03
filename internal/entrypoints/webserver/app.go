@@ -2,6 +2,7 @@ package webserver
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -116,6 +117,24 @@ func NewApplication(
 	}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/methods", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			return
+		}
+
+		strategy := authCfg.Strategy()
+		basicEnabled := strategy == config.AuthenticationStrategyBasic ||
+			strategy == config.AuthenticationStrategyBasicAndPasskey
+		passkeyEnabled := strategy == config.AuthenticationStrategyPasskey ||
+			strategy == config.AuthenticationStrategyBasicAndPasskey
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]bool{
+			"basic_enabled":   basicEnabled,
+			"passkey_enabled": passkeyEnabled,
+		})
+	})
 	mux.Handle("/api/", apiHandler)
 	if routesMounter, ok := auth.(authenticator.APIRoutesMounter); ok {
 		routesMounter.MountAPIRoutes(mux)
